@@ -4,7 +4,7 @@ import type {
   EnterpriseCodingPlanPricingProduct,
   EnterpriseCodingPlanSubscribePeriod,
   ProviderFamilyDomain,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   normalizeCodingPlanCardCopyItems,
   type CodingPlanPriceUnit,

@@ -1,17 +1,17 @@
 import { join } from "node:path";
-import { createNodeContextSourceAdapter } from "@zcode/adapters/context";
-import { createNodeExecutionAdapter } from "@zcode/adapters/exec";
-import { createNodeFileSystemAdapter } from "@zcode/adapters/fs";
-import { createNodeWebFetchHttpClientAdapter } from "@zcode/adapters/http";
-import { createNodeSkillAdapter } from "@zcode/adapters/skills";
-import type { ConfigResult } from "@zcode/adapters/config";
+import { createNodeContextSourceAdapter } from "@social-harness/adapters/context";
+import { createNodeExecutionAdapter } from "@social-harness/adapters/exec";
+import { createNodeFileSystemAdapter } from "@social-harness/adapters/fs";
+import { createNodeWebFetchHttpClientAdapter } from "@social-harness/adapters/http";
+import { createNodeSkillAdapter } from "@social-harness/adapters/skills";
+import type { ConfigResult } from "@social-harness/adapters/config";
 import {
   AgentRuntime,
   type AgentRuntimeConfig,
   type AgentRuntimeDeps,
   type ChildClientPortsContext,
   type PermissionService,
-} from "@zcode/core";
+} from "@social-harness/core";
 import {
   type AgentExecutionTelemetryPort,
   type ContextSourcePort,
@@ -30,7 +30,7 @@ import {
   type WorkflowAgentCallInput,
   type WorkflowEscalatePort,
   type WorkflowSubmitPort,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import { collectDisabledPaths } from "../skill-command-overrides.js";
 import { parseProviderQualifiedModelSelection } from "./provider-registry-selection.js";
 import type { ZCodeAppOptions } from "./types.js";

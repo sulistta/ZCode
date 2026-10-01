@@ -4,7 +4,8 @@ import { dirname, join } from "node:path";
 import { maybeThrowStorageFsFault } from "../fs-fault-injection.js";
 
 export function getDefaultSessionDbPath(): string {
-  return join(homedir(), ".zcode", "cli", "db", "db.sqlite");
+  const dataBaseDir = process.env.SOCIAL_HARNESS_DATA_BASE_DIR?.trim() || homedir();
+  return join(dataBaseDir, ".social-harness", "v1", "cli", "db", "db.sqlite");
 }
 
 export function ensureParentDir(filePath: string): void {

@@ -16,7 +16,7 @@ import {
   type SessionId,
   type SessionInfo,
   type TraceContext,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import {
   buildSessionContextMaterial,
   formatLocalSessionNotFound,

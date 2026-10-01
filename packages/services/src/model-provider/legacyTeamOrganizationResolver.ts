@@ -3,7 +3,7 @@ import {
   resolveZaiBusinessBaseUrl,
   type ApiClient,
   type ProviderFamilyDomain,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type { LegacyTeamConnection } from "#src/setting/legacyAccountConnectionSettings.js";
 import type {
   RemoteCustomerInfo,

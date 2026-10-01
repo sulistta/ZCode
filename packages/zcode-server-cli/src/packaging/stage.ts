@@ -120,39 +120,12 @@ async function resolveProductionPackageClosure(
   return closure;
 }
 
-/**
- * node-pty 运行时白名单。必须剔除 `build/`：那是宿主平台的编译产物，而 node-pty 的
- * loadNativeModule 按 build/Release → build/Debug → prebuilds/<platform>-<arch> 顺序加载，
- * 交叉打包时留下 build/ 会让目标机优先载入错误架构的 pty.node 直接崩溃。
- * 非目标平台的 prebuilds 一并剔除，控制发行包体积。
- */
-function isNodePtyRuntimePath(relativePath: string, target: ServerTarget): boolean {
-  const normalized = relativePath.split(sep).join("/");
-  if (normalized === "" || normalized === "package.json") return true;
-  if (/^(?:LICENSE|NOTICE|COPYING)(?:[._-].*)?$/iu.test(normalized)) return true;
-  if (normalized === "lib" || normalized.startsWith("lib/")) return true;
-  if (normalized === "typings" || normalized.startsWith("typings/")) return true;
-  if (
-    normalized === "prebuilds" ||
-    normalized === `prebuilds/${target}` ||
-    normalized.startsWith(`prebuilds/${target}/`)
-  ) {
-    return true;
-  }
-  return false;
-}
-
-function isTargetSpecificPackage(packageName: string, target: ServerTarget): boolean {
-  if (!packageName.startsWith("@mbears/opentui-core-")) return true;
-  return packageName === `@mbears/opentui-core-${target}`;
-}
-
 interface StageOptions {
   target: ServerTarget;
   appVersion: string;
   /** tsup 产物目录（server-cli.js / server-core.js） */
   distDir: string;
-  /** 既有 CLI/Agent bundle（zcode.cjs，自包含 CJS） */
+  /** 既有 CLI/Agent bundle（social-harness.cjs，自包含 CJS） */
   agentBundlePath: string;
   /** 已准备好的目标平台 Node 二进制 */
   nodeBinaryPath: string;
@@ -160,7 +133,7 @@ interface StageOptions {
   notices: { thirdParty: string; node: string; nodeSource: string };
   /** 依赖闭包解析与复制的来源 node_modules */
   workspaceNodeModulesDir: string;
-  /** 未被 pnpm 链接到 node_modules 的 workspace 包（例如 @zcode/tui）。 */
+  /** 未被 pnpm 链接到 node_modules 的 workspace 包。 */
   workspacePackageDirs?: ReadonlyMap<string, string>;
   /** 发行目录的输出父目录 */
   outputDir: string;
@@ -415,8 +388,8 @@ export async function stageRelease(options: StageOptions): Promise<StagedRelease
     `${JSON.stringify({ name: releaseName, private: true, type: "module" }, null, 2)}\n`,
     "utf8",
   );
-  await cp(options.agentBundlePath, join(runtimeDir, "zcode.cjs"), { dereference: true });
-  // Agent bundle 是第三个实际运行入口；只扫描 Server bundle 会漏掉外置的 TUI/Playwright。
+  await cp(options.agentBundlePath, join(runtimeDir, "social-harness.cjs"), { dereference: true });
+  // Agent bundle 是第三个实际运行入口；只扫描 Server bundle 会漏掉外置的 Playwright。
   bundleSources.push(await readFile(options.agentBundlePath, "utf8"));
 
   const nodeTargetPath = join(
@@ -437,32 +410,20 @@ export async function stageRelease(options: StageOptions): Promise<StagedRelease
     options.workspaceNodeModulesDir,
     options.workspacePackageDirs,
   );
-  const closure = new Map(
-    [...rawClosure].filter(([packageName]) => isTargetSpecificPackage(packageName, options.target)),
-  );
+  const closure = new Map(rawClosure);
   const nodeModulesTargetDir = join(runtimeDir, "node_modules");
   for (const [packageName, packageDir] of closure) {
     const targetDir = join(nodeModulesTargetDir, ...packageName.split("/"));
     await mkdir(dirname(targetDir), { recursive: true });
-    if (packageName === "node-pty") {
-      await copyPackageDir(packageDir, targetDir, (relativePath) =>
-        isNodePtyRuntimePath(relativePath, options.target),
-      );
-    } else {
-      // Agent 的外置依赖存在 peer 版本并存（例如 ajv6 + ajv8）。只为已知 peer
-      // 冲突包保留 nested node_modules，避免把 pnpm 的整棵开发依赖树复制进发行包。
-      await copyPackageDir(
-        packageDir,
-        targetDir,
-        undefined,
-        packageName === "ajv-formats" || packageName === "ajv-keywords",
-      );
-      if (packageName === "koffi") await pruneKoffiRuntime(packageDir, targetDir, options.target);
-    }
-  }
-
-  if (closure.has("node-pty")) {
-    await ensureNodePtyPrebuild(options, nodeModulesTargetDir);
+    // Agent 的外置依赖存在 peer 版本并存（例如 ajv6 + ajv8）。只为已知 peer
+    // 冲突包保留 nested node_modules，避免把 pnpm 的整棵开发依赖树复制进发行包。
+    await copyPackageDir(
+      packageDir,
+      targetDir,
+      undefined,
+      packageName === "ajv-formats" || packageName === "ajv-keywords",
+    );
+    if (packageName === "koffi") await pruneKoffiRuntime(packageDir, targetDir, options.target);
   }
 
   const tools = await copyNativeTools(
@@ -506,7 +467,7 @@ export async function stageRelease(options: StageOptions): Promise<StagedRelease
         "runtime/THIRD-PARTY-NOTICES.md",
       ],
     },
-    { id: "agent-runtime", paths: ["runtime/zcode.cjs", "runtime/licenses/agent"] },
+    { id: "agent-runtime", paths: ["runtime/social-harness.cjs", "runtime/licenses/agent"] },
     ...(plugins.length > 0
       ? [
           {
@@ -603,50 +564,5 @@ async function pruneKoffiRuntime(
       continue;
     }
     await cp(sourcePath, join(targetBuild, targetKey), { recursive: true, dereference: true });
-  }
-}
-
-/**
- * 确保发行包内 node-pty 有目标平台的 pty.node。官方 node-pty npm 包只带
- * darwin/win32 prebuilds，linux 平台从 workspace 的 `@lydell/node-pty-<target>`
- * 补齐（与老远端资产链同一来源）；缺失时直接报错，避免发行包的终端能力必然损坏。
- */
-async function ensureNodePtyPrebuild(
-  options: StageOptions,
-  nodeModulesTargetDir: string,
-): Promise<void> {
-  const prebuildDir = join(nodeModulesTargetDir, "node-pty", "prebuilds", options.target);
-  const ptyNodePath = join(prebuildDir, "pty.node");
-  let hasPtyNode = true;
-  try {
-    await access(ptyNodePath);
-  } catch {
-    hasPtyNode = false;
-  }
-  if (!hasPtyNode) {
-    // 官方包无该平台 prebuild（linux），从 @lydell 平台包补齐。
-    const lydellDir = await findDependencyDir(
-      dirname(resolve(options.workspaceNodeModulesDir)),
-      `@lydell/node-pty-${options.target}`,
-    );
-    const lydellPtyNode = lydellDir
-      ? join(lydellDir, "prebuilds", options.target, "pty.node")
-      : null;
-    if (!lydellPtyNode) {
-      throw new Error(
-        `Missing node-pty prebuild for ${options.target}: install @lydell/node-pty-${options.target}`,
-      );
-    }
-    await mkdir(prebuildDir, { recursive: true });
-    await cp(lydellPtyNode, ptyNodePath, { dereference: true });
-  }
-  // darwin 的 spawn-helper 必须可执行；npm 发布/解压不保证权限位，丢失时 node-pty
-  // 会在 posix_spawn 阶段报错（老远端资产链踩过同一坑，见 prepare-prebuilds.mjs）。
-  const spawnHelperPath = join(prebuildDir, "spawn-helper");
-  try {
-    await access(spawnHelperPath);
-    await chmod(spawnHelperPath, 0o755);
-  } catch {
-    // 非 darwin 平台没有 spawn-helper，忽略。
   }
 }

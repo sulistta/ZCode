@@ -53,3 +53,45 @@ export function buildIdentitySection(outputStyle?: OutputStylePromptConfig): Con
     preview: content.slice(0, 100),
   };
 }
+
+const SOCIAL_AGENT_PREFIX_PROMPT = "You are the Social Agent in Social Harness.";
+
+export function buildSocialAgentPrefixSection(): ContextSection {
+  const content = SOCIAL_AGENT_PREFIX_PROMPT;
+
+  return {
+    name: "Social Agent Prefix",
+    source: "social_agent_prefix",
+    injectionTarget: "system",
+    cacheHint: "stable",
+    chars: content.length,
+    tokens: estimateTokens(content),
+    content,
+    preview: content.slice(0, 100),
+  };
+}
+
+function buildSocialAgentIdentityPrompt(outputStyle?: OutputStylePromptConfig): string {
+  const intro = outputStyle
+    ? "You are the Social Agent in Social Harness. Follow the active Output Style below while helping users create social content."
+    : "You are the Social Agent in Social Harness. Help users discover sources, develop social video, edit projects, review exports, and prepare approved content for publication.";
+
+  return [intro, "", SECURITY_NOTICE].join("\n");
+}
+
+export function buildSocialAgentIdentitySection(
+  outputStyle?: OutputStylePromptConfig,
+): ContextSection {
+  const content = buildSocialAgentIdentityPrompt(outputStyle);
+
+  return {
+    name: "Social Agent Identity",
+    source: "social_agent_identity",
+    injectionTarget: "system",
+    cacheHint: "stable",
+    chars: content.length,
+    tokens: estimateTokens(content),
+    content,
+    preview: content.slice(0, 100),
+  };
+}

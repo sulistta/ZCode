@@ -8,8 +8,8 @@ import {
   type ZCodeSavedWorkflowMeta,
   type ZCodeSavedWorkflowRun,
   type ZCodeWorkflowsGetResult,
-} from "@zcode/shared";
-import type { IZCodeAgentService, ZCodeAgentSavedWorkflowTarget } from "@zcode/services";
+} from "@social-harness/shared";
+import type { IZCodeAgentService, ZCodeAgentSavedWorkflowTarget } from "@social-harness/services";
 import { CodeBlock } from "@/components/ai-elements/code-block.js";
 import { Button } from "@/components/ui/button.js";
 import { Spinner } from "@/components/ui/spinner.js";

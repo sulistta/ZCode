@@ -1,11 +1,8 @@
-/* eslint-disable max-lines -- 聚合命令、任务、文件三类搜索结果，后续可按 result section 拆分。 */
+/* eslint-disable max-lines -- 聚合命令与任务两类搜索结果，后续可按 result section 拆分。 */
 import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { unpackWorkspaceFileEntries } from "@zcode/shared/workspaceFileEntriesCodec";
-import { fetchWorkspaceFileEntriesPacked } from "@/workspace-file-search/fetchWorkspaceFileEntries.js";
 import { Command as CommandPrimitive } from "cmdk";
 import {
   ChevronDownIcon,
-  FileIcon,
   ListIcon,
   MessageSquareIcon,
   MessagesSquareIcon,
@@ -13,7 +10,7 @@ import {
   SearchIcon,
   Trash2Icon,
 } from "lucide-react";
-import type { WorkspaceFileEntry, ZCodeTaskChangeSummary, ZCodeTaskMeta } from "@zcode/shared";
+import type { ZCodeTaskMeta } from "@social-harness/shared";
 import {
   Command,
   CommandDialog,
@@ -26,12 +23,8 @@ import {
 import { cn } from "@/components/lib/utils.js";
 import { toast } from "@/components/ui/toast.js";
 import { useGlobalTaskList } from "@/hooks/useGlobalTaskList.js";
-import { useServices } from "@/hooks/useServices.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
-import { FileDisplayIcon, resolveFileDisplayDescriptor } from "@/lib/fileDisplay.js";
 import { formatTaskRelativeTime } from "@/lib/taskListItemPresentation.js";
-import { toWorkspaceRelativePath } from "@/lib/taskChangeSummary.js";
-import { getPathLeaf } from "@/lib/path.js";
 import { logger } from "@/logger.js";
 import { HighlightedMatchText } from "@/quickpick/HighlightedMatchText.js";
 import { QUICK_PICK_SECTION_ORDER, type QuickPickCommand } from "@/quickpick/quickPickCommands.js";
@@ -44,7 +37,6 @@ import {
   quickPickMetadataClassName,
   quickPickShortcutPillClassName,
 } from "@/quickpick/quickPickStyles.js";
-import type { CodeViewerSource } from "@/lib/codeViewer.js";
 import type { WorkspaceTabState } from "@/store/tabStore.js";
 import type { ChatSearchResultHighlightRequest } from "@/v4/legacyChatViewTypes.js";
 import {
@@ -59,7 +51,6 @@ const EMPTY_QUICK_PICK_COMMANDS: QuickPickCommand[] = [];
 const EMPTY_COMMAND_CENTER_WORKSPACE_TABS: WorkspaceTabState[] = [];
 const COMMAND_CENTER_SECTION_LIMIT = 3;
 const COMMAND_CENTER_CONTEXT_SECTION_LIMIT = 3;
-const COMMAND_CENTER_FILE_RESULT_LIMIT = 80;
 const COMMAND_CENTER_TASK_RESULT_LIMIT = 80;
 const commandCenterDialogClassName = cn(
   quickPickDialogClassName,
@@ -74,46 +65,17 @@ const commandCenterListClassName = cn(
   "max-h-[min(440px,calc(100dvh-15rem))]",
 );
 
-type CommandCenterSectionId = "commands" | "conversations" | "files";
+type CommandCenterSectionId = "commands" | "conversations";
 type TaskSearchResultItem = ZCodeTaskMeta & {
   searchSnippet?: string;
   searchSnippets?: string[];
 };
-type TaskChangedFileSummary = ZCodeTaskChangeSummary["files"][number];
 type TaskSearchResultRow = {
   key: string;
   task: TaskSearchResultItem;
   searchSnippet?: string;
   snippetIndex?: number;
 };
-
-function getWorkspaceFileDirectory(entry: WorkspaceFileEntry): string {
-  const slashIndex = entry.relativePath.lastIndexOf("/");
-  return slashIndex === -1 ? "" : entry.relativePath.slice(0, slashIndex);
-}
-
-function buildWorkspaceFileSearchText(entry: WorkspaceFileEntry): string {
-  return `${entry.name} ${entry.relativePath}`.toLocaleLowerCase();
-}
-
-function filterWorkspaceFileEntries(
-  entries: readonly WorkspaceFileEntry[],
-  query: string,
-): WorkspaceFileEntry[] {
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  if (!normalizedQuery) {
-    return [];
-  }
-
-  const parts = normalizedQuery.split(/\s+/).filter(Boolean);
-  return entries
-    .filter((entry) => entry.type === "file")
-    .filter((entry) => {
-      const searchText = buildWorkspaceFileSearchText(entry);
-      return parts.every((part) => searchText.includes(part));
-    })
-    .slice(0, COMMAND_CENTER_FILE_RESULT_LIMIT);
-}
 
 function normalizeSnippetForDedupe(snippet: string): string {
   return snippet
@@ -149,16 +111,6 @@ function getTaskTitle(task: ZCodeTaskMeta, untitledLabel: string): string {
   return task.title.trim() || untitledLabel;
 }
 
-function compareRecentChangedFiles(left: TaskChangedFileSummary, right: TaskChangedFileSummary) {
-  if (right.lastTurnIndex !== left.lastTurnIndex) {
-    return right.lastTurnIndex - left.lastTurnIndex;
-  }
-  if (right.writeCount !== left.writeCount) {
-    return right.writeCount - left.writeCount;
-  }
-  return left.path.localeCompare(right.path);
-}
-
 function resolveQueryScope(rawQuery: string): {
   query: string;
   scope: CommandCenterSearchScope;
@@ -172,10 +124,6 @@ function resolveQueryScope(rawQuery: string): {
   if (prefix === "#") {
     return { query: trimmed.slice(1).trimStart(), scope: "conversations", explicitScope: true };
   }
-  if (prefix === "@") {
-    return { query: trimmed.slice(1).trimStart(), scope: "files", explicitScope: true };
-  }
-
   return { query: rawQuery.trim(), scope: "all", explicitScope: false };
 }
 
@@ -280,8 +228,6 @@ function scopeToPrefix(scope: CommandCenterSearchScope): string {
       return ">";
     case "conversations":
       return "#";
-    case "files":
-      return "@";
     default:
       return "";
   }
@@ -402,19 +348,16 @@ export const CommandCenterDialog = memo(function CommandCenterDialogComponent({
   workspaceAbsPath,
   workspaceIdentity,
   activeTaskId,
-  activeTaskChangeSummary,
   workspaceTabs,
   onOpenChange,
   onSelectTask,
   onSearchResultHighlightRequest,
-  onOpenCodeViewer,
 }: {
   open: boolean;
   commands: QuickPickCommand[];
   workspaceAbsPath: string;
   workspaceIdentity?: string;
   activeTaskId?: string | null;
-  activeTaskChangeSummary?: ZCodeTaskChangeSummary | null;
   workspaceTabs: WorkspaceTabState[];
   onOpenChange: (open: boolean) => void;
   onSelectTask: (
@@ -425,9 +368,7 @@ export const CommandCenterDialog = memo(function CommandCenterDialogComponent({
   onSearchResultHighlightRequest?: (
     request: Omit<ChatSearchResultHighlightRequest, "requestId">,
   ) => void;
-  onOpenCodeViewer: (source: CodeViewerSource) => void;
 }) {
-  const { fileService } = useServices();
   const { intl } = useZCodeIntl();
   const workspaceKey = workspaceIdentity?.trim() || workspaceAbsPath;
   const [rawQuery, setRawQuery] = useState("");
@@ -437,22 +378,16 @@ export const CommandCenterDialog = memo(function CommandCenterDialogComponent({
   );
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [historyEntries, setHistoryEntries] = useState<CommandCenterSearchHistoryEntry[]>([]);
-  const [workspaceFiles, setWorkspaceFiles] = useState<WorkspaceFileEntry[]>([]);
-  const [workspaceFilesLoading, setWorkspaceFilesLoading] = useState(false);
-  const [workspaceFilesError, setWorkspaceFilesError] = useState<string | null>(null);
-  const [loadedWorkspaceKey, setLoadedWorkspaceKey] = useState<string | null>(null);
   // 性能修复：Command Center 关闭时不需要跟随 chat streaming 重算命令、任务和 recent changes。
   // 保留 hooks 顺序，但把关闭态输入降为空，避免隐藏弹窗在每个 token 批次重建结果区。
   const effectiveCommands = open ? commands : EMPTY_QUICK_PICK_COMMANDS;
   const effectiveWorkspaceTabs = open ? workspaceTabs : EMPTY_COMMAND_CENTER_WORKSPACE_TABS;
-  const effectiveActiveTaskChangeSummary = open ? activeTaskChangeSummary : null;
   const resolvedQuery = useMemo(() => resolveQueryScope(rawQuery), [rawQuery]);
   const activeScope = resolvedQuery.explicitScope ? resolvedQuery.scope : manualScope;
   const searchQuery = resolvedQuery.query;
   const hasSearchQuery = searchQuery.trim().length > 0;
   const searchConversations =
     open && hasSearchQuery && (activeScope === "all" || activeScope === "conversations");
-  const searchFiles = open && hasSearchQuery && (activeScope === "all" || activeScope === "files");
   const searchWorkspaceTabs = useMemo(
     () => (searchConversations ? effectiveWorkspaceTabs : []),
     [effectiveWorkspaceTabs, searchConversations],
@@ -519,18 +454,6 @@ export const CommandCenterDialog = memo(function CommandCenterDialogComponent({
     () => buildTaskResultRows({ tasks: taskList.items, query: searchQuery }),
     [searchQuery, taskList.items],
   );
-  const fileRows = useMemo(
-    () => filterWorkspaceFileEntries(workspaceFiles, searchQuery),
-    [searchQuery, workspaceFiles],
-  );
-  const recentChangeRows = useMemo(
-    () => [...(effectiveActiveTaskChangeSummary?.files ?? [])].sort(compareRecentChangedFiles),
-    [effectiveActiveTaskChangeSummary],
-  );
-  const recentChangePreviewRows = useMemo(
-    () => recentChangeRows.slice(0, COMMAND_CENTER_CONTEXT_SECTION_LIMIT),
-    [recentChangeRows],
-  );
   const recentTaskRows = useMemo(
     () => recentTaskList.items.filter((task) => task.taskId !== activeTaskId),
     [activeTaskId, recentTaskList.items],
@@ -554,48 +477,6 @@ export const CommandCenterDialog = memo(function CommandCenterDialogComponent({
   useEffect(() => {
     setExpandedSections(new Set());
   }, [activeScope, searchQuery]);
-
-  useEffect(() => {
-    setWorkspaceFiles([]);
-    setWorkspaceFilesError(null);
-    setWorkspaceFilesLoading(false);
-    setLoadedWorkspaceKey(null);
-  }, [workspaceKey]);
-
-  useEffect(() => {
-    if (!searchFiles || loadedWorkspaceKey === workspaceKey) {
-      return;
-    }
-
-    let cancelled = false;
-    setWorkspaceFilesLoading(true);
-    setWorkspaceFilesError(null);
-    void fetchWorkspaceFileEntriesPacked(fileService, workspaceAbsPath)
-      .then((result) => {
-        // Host 返回列式 packed 字符串（避免大数组结构化克隆），此处一次性解包。
-        const entries = unpackWorkspaceFileEntries(result, workspaceAbsPath);
-        if (cancelled) {
-          return;
-        }
-
-        setWorkspaceFiles(entries);
-        setLoadedWorkspaceKey(workspaceKey);
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          setWorkspaceFilesError(String(error));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setWorkspaceFilesLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [fileService, loadedWorkspaceKey, searchFiles, workspaceAbsPath, workspaceKey]);
 
   const rememberSearch = useCallback(
     (scope: CommandCenterSearchScope = activeScope) => {
@@ -657,32 +538,6 @@ export const CommandCenterDialog = memo(function CommandCenterDialogComponent({
     [closeDialog, onSearchResultHighlightRequest, onSelectTask, rememberSearch, searchQuery],
   );
 
-  const selectFile = useCallback(
-    (entry: WorkspaceFileEntry) => {
-      rememberSearch("files");
-      onOpenCodeViewer({
-        type: "file",
-        title: entry.name,
-        path: entry.path,
-      });
-      closeDialog();
-    },
-    [closeDialog, onOpenCodeViewer, rememberSearch],
-  );
-
-  const selectRecentChange = useCallback(
-    (file: TaskChangedFileSummary) => {
-      closeDialog();
-      const relativePath = toWorkspaceRelativePath(workspaceAbsPath, file.path);
-      onOpenCodeViewer({
-        type: "file",
-        title: getPathLeaf(relativePath) || relativePath,
-        path: file.path,
-      });
-    },
-    [closeDialog, onOpenCodeViewer, workspaceAbsPath],
-  );
-
   const selectRecentTask = useCallback(
     (task: ZCodeTaskMeta) => {
       onSelectTask(task.workspacePath, task.taskId, task.workspaceIdentity);
@@ -703,7 +558,6 @@ export const CommandCenterDialog = memo(function CommandCenterDialogComponent({
 
   const shouldShowCommandSection = activeScope === "all" || activeScope === "commands";
   const shouldShowConversationSection = activeScope === "all" || activeScope === "conversations";
-  const shouldShowFileSection = activeScope === "all" || activeScope === "files";
   const showHistory = !hasSearchQuery && historyEntries.length > 0;
 
   const renderMoreRow = (sectionId: CommandCenterSectionId, count: number) => {
@@ -720,47 +574,6 @@ export const CommandCenterDialog = memo(function CommandCenterDialogComponent({
         {intl.formatMessage({ id: "commandCenter.moreResults" })}
         <ChevronDownIcon className="size-3.5" />
       </button>
-    );
-  };
-
-  const renderRecentChangesSection = ({
-    rows = recentChangePreviewRows,
-    showEmpty = false,
-  }: {
-    rows?: TaskChangedFileSummary[];
-    showEmpty?: boolean;
-  } = {}) => {
-    if (hasSearchQuery || (rows.length === 0 && !showEmpty)) {
-      return null;
-    }
-
-    return (
-      <CommandGroup heading={intl.formatMessage({ id: "commandCenter.section.recentChanges" })}>
-        {rows.length === 0 ? (
-          <CommandEmpty className="px-4 py-5 text-foreground-subtle">
-            {intl.formatMessage({ id: "commandCenter.empty.recentChanges" })}
-          </CommandEmpty>
-        ) : null}
-        {rows.map((file) => {
-          const relativePath = toWorkspaceRelativePath(workspaceAbsPath, file.path);
-          const descriptor = resolveFileDisplayDescriptor(file.path);
-          return (
-            <CommandItem
-              key={file.path}
-              value={`${relativePath} +${file.added} -${file.removed}`}
-              className={quickPickItemClassName}
-              onSelect={() => selectRecentChange(file)}
-            >
-              <FileDisplayIcon src={descriptor.fileIconSrc} size={14} className="shrink-0" />
-              <span className="min-w-0 flex-1 truncate">{relativePath}</span>
-              <CommandShortcut className={quickPickMetadataClassName}>
-                <span className="text-diff-added">+{file.added}</span>{" "}
-                <span className="text-diff-removed">-{file.removed}</span>
-              </CommandShortcut>
-            </CommandItem>
-          );
-        })}
-      </CommandGroup>
     );
   };
 
@@ -900,63 +713,10 @@ export const CommandCenterDialog = memo(function CommandCenterDialogComponent({
     );
   };
 
-  const renderFileSection = () => {
-    if (
-      !hasSearchQuery ||
-      !shouldShowFileSection ||
-      (!workspaceFilesLoading && !workspaceFilesError && fileRows.length === 0)
-    ) {
-      return null;
-    }
-
-    const visibleRows =
-      activeScope === "files" || expandedSections.has("files")
-        ? fileRows
-        : fileRows.slice(0, COMMAND_CENTER_SECTION_LIMIT);
-    return (
-      <CommandGroup heading={intl.formatMessage({ id: "commandCenter.section.files" })}>
-        {workspaceFilesLoading && fileRows.length === 0 ? (
-          <CommandEmpty className="px-4 py-5 text-foreground-subtle">
-            {intl.formatMessage({ id: "sidePane.openFileLoading" })}
-          </CommandEmpty>
-        ) : workspaceFilesError ? (
-          <CommandEmpty className="px-4 py-5 text-destructive">{workspaceFilesError}</CommandEmpty>
-        ) : null}
-        {visibleRows.map((entry) => {
-          const descriptor = resolveFileDisplayDescriptor(entry.path);
-          const directory = getWorkspaceFileDirectory(entry);
-          return (
-            <CommandItem
-              key={entry.path}
-              value={`${entry.name} ${entry.relativePath}`}
-              className={quickPickItemClassName}
-              onSelect={() => selectFile(entry)}
-            >
-              <FileDisplayIcon src={descriptor.fileIconSrc} size={14} className="shrink-0" />
-              <span className="min-w-0 flex-1 truncate">
-                <HighlightedMatchText text={entry.name} query={searchQuery} />
-              </span>
-              {directory ? (
-                <CommandShortcut className={quickPickMetadataClassName}>
-                  <HighlightedMatchText text={directory} query={searchQuery} />
-                </CommandShortcut>
-              ) : null}
-            </CommandItem>
-          );
-        })}
-        {activeScope === "all" ? renderMoreRow("files", fileRows.length) : null}
-      </CommandGroup>
-    );
-  };
-
   const hasAnySearchResults =
     (shouldShowCommandSection && commandOptions.length > 0) ||
-    (shouldShowConversationSection && conversationRows.length > 0) ||
-    (shouldShowFileSection && fileRows.length > 0);
-  const hasSearchStatus =
-    taskList.loading ||
-    workspaceFilesLoading ||
-    (shouldShowFileSection && Boolean(workspaceFilesError));
+    (shouldShowConversationSection && conversationRows.length > 0);
+  const hasSearchStatus = taskList.loading;
 
   const renderDefaultSections = () => {
     switch (activeScope) {
@@ -964,12 +724,9 @@ export const CommandCenterDialog = memo(function CommandCenterDialogComponent({
         return renderCommandSections();
       case "conversations":
         return renderRecentTasksSection({ rows: recentTaskRows, showEmpty: true });
-      case "files":
-        return renderRecentChangesSection({ rows: recentChangeRows, showEmpty: true });
       default:
         return (
           <>
-            {renderRecentChangesSection()}
             {renderRecentTasksSection()}
             {renderCommandSections()}
           </>
@@ -1022,13 +779,6 @@ export const CommandCenterDialog = memo(function CommandCenterDialogComponent({
             >
               <MessagesSquareIcon className="size-3" />
             </CommandCenterScopeButton>
-            <CommandCenterScopeButton
-              active={activeScope === "files"}
-              label={intl.formatMessage({ id: "commandCenter.scope.files" })}
-              onClick={() => setScope("files")}
-            >
-              <FileIcon className="size-3" />
-            </CommandCenterScopeButton>
           </div>
         </div>
         <CommandList className={commandCenterListClassName}>
@@ -1038,7 +788,6 @@ export const CommandCenterDialog = memo(function CommandCenterDialogComponent({
             <>
               {renderCommandSections()}
               {renderConversationSection()}
-              {renderFileSection()}
             </>
           ) : (
             <CommandEmpty className="px-4 py-5 text-foreground-subtle">

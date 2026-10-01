@@ -1,6 +1,6 @@
-import type { WorkspaceFileEntry } from "@zcode/shared";
+import type { WorkspaceFileEntry } from "@social-harness/shared";
 import { logger } from "@/logger.js";
-import { unpackWorkspaceFileEntries } from "@zcode/shared/workspaceFileEntriesCodec";
+import { unpackWorkspaceFileEntries } from "@social-harness/shared/workspaceFileEntriesCodec";
 import {
   filterWorkspaceFileSearchCandidates,
   mapWorkspaceFileEntriesToSearchCandidates,

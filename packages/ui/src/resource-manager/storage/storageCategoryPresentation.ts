@@ -11,7 +11,11 @@ import {
   PackageOpen,
   Route,
 } from "lucide-react";
-import type { StorageCategoryId, StorageCategoryUsage, StorageRootUsage } from "@zcode/shared";
+import type {
+  StorageCategoryId,
+  StorageCategoryUsage,
+  StorageRootUsage,
+} from "@social-harness/shared";
 import { APP_USAGE_MODEL_CHART_COLORS } from "@/settings/usage-stats/appUsageChartPalette.js";
 
 export const STORAGE_CATEGORY_ICONS: Record<StorageCategoryId, typeof Folder> = {

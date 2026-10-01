@@ -9,14 +9,14 @@ import { createRequire } from "node:module";
 import { dirname } from "node:path";
 import {
   isRemoteWorkspaceIdentity,
-  ZCODE_AGENT_PROVIDER,
+  SOCIAL_HARNESS_AGENT_PROVIDER,
   zcodeTaskMetaSchema,
   resolveWorkspaceKey,
   CRON_DEFAULT_GROUP_ID,
   OFF_PEAK_DEFAULT_GROUP_ID,
   type ZCodeProvider,
   type ZCodeTaskMeta,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type {
   ZCodeTaskListQuery,
   ZCodeTaskListResult,
@@ -245,7 +245,8 @@ function rowToMeta(row: TaskIndexRow): ZCodeTaskMeta {
     updatedAt: row.updated_at,
     mode: row.mode as ZCodeTaskMeta["mode"],
     model: row.model ?? undefined,
-    provider: row.provider === ZCODE_AGENT_PROVIDER ? ZCODE_AGENT_PROVIDER : undefined,
+    provider:
+      row.provider === SOCIAL_HARNESS_AGENT_PROVIDER ? SOCIAL_HARNESS_AGENT_PROVIDER : undefined,
     migrationSource: (row.migration_source as ZCodeTaskMeta["migrationSource"]) ?? undefined,
     forkedFromTaskId: row.forked_from_task_id ?? undefined,
     cronAutomationId: row.cron_automation_id ?? undefined,
@@ -278,7 +279,7 @@ function normalizeWorkspaceBootstrapScopes(
   scopes: Array<{
     workspacePath: string;
     workspaceIdentity?: string;
-    workspacePurpose?: import("@zcode/shared").WorkspacePurpose;
+    workspacePurpose?: import("@social-harness/shared").WorkspacePurpose;
   }>,
 ): WorkspaceBootstrapScope[] {
   const seen = new Set<string>();

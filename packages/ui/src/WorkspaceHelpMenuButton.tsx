@@ -2,10 +2,9 @@ import {
   DesktopCommandIds,
   TID_WORKSPACE_HELP_MENU_RESOURCE_MANAGER,
   TID_WORKSPACE_HELP_MENU_TRIGGER,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   ActivityIcon,
-  BookOpenIcon,
   CircleHelpIcon,
   LightbulbIcon,
   InfoIcon,
@@ -88,10 +87,6 @@ export function WorkspaceHelpMenuButton({
         align="end"
         className="min-w-0 w-max [&_[data-slot=dropdown-menu-item]]:pr-6"
       >
-        <DropdownMenuItem onSelect={helpMenuActions.openProductDocs}>
-          <BookOpenIcon className="size-4" />
-          {intl.formatMessage({ id: "workspaceHeader.help.docs" })}
-        </DropdownMenuItem>
         <DropdownMenuItem onSelect={handleOpenCommunity}>
           <UsersIcon className="size-4" />
           {intl.formatMessage({ id: "workspaceHeader.help.community" })}

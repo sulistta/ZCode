@@ -2,7 +2,7 @@ import {
   databaseStartupControlSchema,
   databaseStartupStateSchema,
   databaseStartupPortPayloadSchema,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 /* eslint-disable max-lines -- preload bridge 集中暴露桌面平台 IPC，拆散会让 contextBridge 权限边界更难审计。 */
 import { contextBridge, ipcRenderer, webFrame, webUtils } from "electron";
 import {
@@ -25,7 +25,7 @@ function parseDeviceIdFromArgs(): string {
 }
 
 // 在 contextBridge 建立之前就暴露同步值，让 renderer 在 React 渲染前就能读到
-contextBridge.exposeInMainWorld("__ZCODE_DEVICE_ID__", parseDeviceIdFromArgs());
+contextBridge.exposeInMainWorld("__SOCIAL_HARNESS_DEVICE_ID__", parseDeviceIdFromArgs());
 
 import type {
   AppSettings,
@@ -76,13 +76,13 @@ import type {
   OpenCuaPermissionOnboardingOptions,
   ConfigureFinalArmsCustomEventE2ERequest,
   FinalArmsCustomEventE2EEntry,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   InternalChannels,
   PlatformChannels,
   formatZCodeRendererProcessName,
   shouldEnableE2ETestBridge,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { createOAuthCallbackHandler } from "./oauthCallbackBridge.js";
 
 if (shouldEnableE2ETestBridge(process.env)) {
@@ -98,13 +98,9 @@ if (shouldEnableE2ETestBridge(process.env)) {
 const updateReadyCallbacks = new Set<(version: string) => void>();
 const updateStateCallbacks = new Set<(payload: UpdateStatePayload) => void>();
 const postUpdateReleaseNotesCallbacks = new Set<(payload: PostUpdateReleaseNotesPayload) => void>();
-const openWorkspacePathCallbacks = new Set<(path: string) => void>();
 let latestReadyUpdateVersion: string | null = null;
 let latestUpdateState: UpdateStatePayload | null = null;
 let latestPostUpdateReleaseNotes: PostUpdateReleaseNotesPayload | null = null;
-const pendingOpenWorkspacePaths: string[] = [];
-const shareImportCallbacks = new Set<(payload: { shareCode: string }) => void>();
-const pendingShareImports: { shareCode: string }[] = [];
 const MACOS_WINDOW_CONTROLS_BASE_LEFT_PADDING_PX = 96;
 const WINDOWS_WINDOW_CONTROLS_BASE_RIGHT_PADDING_PX = 136;
 const WINDOWS_TITLE_BAR_HEIGHT_PX = 48;
@@ -179,28 +175,6 @@ ipcRenderer.on(
   },
 );
 
-ipcRenderer.on(PlatformChannels.OpenWorkspacePath, (_event: unknown, path: string) => {
-  if (openWorkspacePathCallbacks.size === 0) {
-    // 冷启动 open-workspace 会在 renderer ready 后立刻从 main 进程投递，
-    // 但 React 的 platform effect 可能尚未注册 onOpenWorkspacePath。preload 先接住
-    // 这条 IPC，等 UI 订阅建立后再回放，避免只打开 App 而不打开目录。
-    pendingOpenWorkspacePaths.push(path);
-    return;
-  }
-
-  for (const callback of openWorkspacePathCallbacks) {
-    callback(path);
-  }
-});
-
-ipcRenderer.on(PlatformChannels.ShareImport, (_event: unknown, payload: { shareCode: string }) => {
-  if (shareImportCallbacks.size === 0) {
-    pendingShareImports.push(payload);
-    return;
-  }
-  for (const callback of shareImportCallbacks) callback(payload);
-});
-
 function updateRendererProcessTitle(): void {
   process.title = formatZCodeRendererProcessName(document.title);
 }
@@ -250,7 +224,7 @@ contextBridge.exposeInMainWorld("zcode", {
     context?: {
       workspacePath: string;
       workspaceIdentity?: string;
-      connectTrigger?: import("@zcode/shared").RemoteWorkspaceConnectTrigger;
+      connectTrigger?: import("@social-harness/shared").RemoteWorkspaceConnectTrigger;
     },
   ) =>
     ipcRenderer.invoke(PlatformChannels.ConnectRemote, {
@@ -477,29 +451,6 @@ contextBridge.exposeInMainWorld("zcode", {
     ipcRenderer.on(PlatformChannels.BrowserViewRestore, handler);
     return () => ipcRenderer.removeListener(PlatformChannels.BrowserViewRestore, handler);
   },
-  /** 注册 main 进程触发新建任务的回调，返回 disposer */
-  onNewTask: (callback: () => void): (() => void) => {
-    const handler = () => callback();
-    ipcRenderer.on(PlatformChannels.NewTask, handler);
-    return () => ipcRenderer.removeListener(PlatformChannels.NewTask, handler);
-  },
-  /** 注册 main 进程触发打开工作区的回调，返回 disposer */
-  onOpenWorkspace: (callback: () => void): (() => void) => {
-    const handler = () => callback();
-    ipcRenderer.on(PlatformChannels.OpenWorkspace, handler);
-    return () => ipcRenderer.removeListener(PlatformChannels.OpenWorkspace, handler);
-  },
-  /** 注册 deep link 直接打开本地工作区目录回调，返回 disposer */
-  onOpenWorkspacePath: (callback: (path: string) => void): (() => void) => {
-    openWorkspacePathCallbacks.add(callback);
-    while (pendingOpenWorkspacePaths.length > 0) {
-      const path = pendingOpenWorkspacePaths.shift();
-      if (path) {
-        callback(path);
-      }
-    }
-    return () => openWorkspacePathCallbacks.delete(callback);
-  },
   onOpenFeedbackDialog: (callback: () => void): (() => void) => {
     const handler = () => callback();
     ipcRenderer.on(PlatformChannels.OpenFeedbackDialog, handler);
@@ -576,7 +527,7 @@ contextBridge.exposeInMainWorld("zcode", {
   openInFileManager: (path: string) => ipcRenderer.invoke(PlatformChannels.OpenInFileManager, path),
   /** 使用系统默认应用打开本地文件 */
   openExternalFile: (path: string) => ipcRenderer.invoke(PlatformChannels.OpenExternalFile, path),
-  /** 打开 ZCode Computer Use 完整权限引导 */
+  /** 打开 Social Harness Computer Use 完整权限引导 */
   openCuaPermissionOnboarding: (options?: OpenCuaPermissionOnboardingOptions) =>
     ipcRenderer.invoke(PlatformChannels.OpenCuaPermissionOnboarding, options),
   /** 只取消当前 renderer 以 operationId 发起的 onboarding participant。 */
@@ -600,20 +551,6 @@ contextBridge.exposeInMainWorld("zcode", {
     });
     ipcRenderer.on(PlatformChannels.OAuthCallback, handler);
     return () => ipcRenderer.removeListener(PlatformChannels.OAuthCallback, handler);
-  },
-  /** 注册支付 deep link 回调，返回 disposer */
-  onPaymentCallback: (callback: (url: string) => void): (() => void) => {
-    const handler = (_event: unknown, url: string) => callback(url);
-    ipcRenderer.on(PlatformChannels.PaymentCallback, handler);
-    return () => ipcRenderer.removeListener(PlatformChannels.PaymentCallback, handler);
-  },
-  onShareImport: (callback: (payload: { shareCode: string }) => void): (() => void) => {
-    shareImportCallbacks.add(callback);
-    while (pendingShareImports.length > 0) {
-      const payload = pendingShareImports.shift();
-      if (payload) callback(payload);
-    }
-    return () => shareImportCallbacks.delete(callback);
   },
   /** 通知 main process renderer 已就绪 */
   notifyRendererReady: () => ipcRenderer.send(PlatformChannels.RendererReady),
@@ -652,7 +589,7 @@ contextBridge.exposeInMainWorld("zcode", {
       ipcRenderer.removeListener(PlatformChannels.RendererActionTraceConfigChanged, handler);
   },
   /** 发送已结束 Span；使用 send 避免遥测往返阻塞业务。 */
-  reportLocalTtftBatch: (batch: import("@zcode/shared").LocalTtftBatch): void =>
+  reportLocalTtftBatch: (batch: import("@social-harness/shared").LocalTtftBatch): void =>
     ipcRenderer.send(PlatformChannels.ReportLocalTtftBatch, batch),
   reportRendererActionTraceBatch: (batch: RendererActionTraceBatchV1): void =>
     ipcRenderer.send(PlatformChannels.ReportRendererActionTraceBatch, batch),
@@ -665,7 +602,7 @@ contextBridge.exposeInMainWorld("zcode", {
   /** 通过 main process 触发原生任务通知 */
   showTaskNotification: (payload: TaskNotificationPayload) =>
     ipcRenderer.send(PlatformChannels.ShowTaskNotification, payload),
-  /** 导出日志：打包 ~/.zcode/v2 及外部 agent 日志为 zip 并在 Finder 中显示 */
+  /** 导出日志：打包 Social Harness 及外部 Agent 日志为 zip 并在系统文件浏览器中显示 */
   exportLogs: (): Promise<{
     success: boolean;
     path?: string;
@@ -703,8 +640,9 @@ contextBridge.exposeInMainWorld("zcode", {
   browserViewUpdateViewport: (payload: { tabId: string; viewport: BrowserViewportSize | null }) =>
     ipcRenderer.invoke(PlatformChannels.BrowserViewUpdateViewport, payload),
   /** 从自动发现的 Chrome Profile 一次性导入内置浏览器数据。 */
-  importChromeBrowserData: (options?: import("@zcode/shared").ChromeBrowserDataImportOptions) =>
-    ipcRenderer.invoke(PlatformChannels.ImportChromeBrowserData, options),
+  importChromeBrowserData: (
+    options?: import("@social-harness/shared").ChromeBrowserDataImportOptions,
+  ) => ipcRenderer.invoke(PlatformChannels.ImportChromeBrowserData, options),
   /** 清理内置浏览器缓存或全部站点数据。 */
   clearEmbeddedBrowserData: (mode: "cache" | "all") =>
     ipcRenderer.invoke(PlatformChannels.ClearEmbeddedBrowserData, mode),

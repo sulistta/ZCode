@@ -50,7 +50,6 @@
       "packages/ui/src/components/ai-elements/sources.tsx",
       "packages/ui/src/components/ai-elements/suggestion.tsx",
       "packages/ui/src/components/ai-elements/task.tsx",
-      "packages/ui/src/components/ai-elements/terminal.tsx",
       "packages/ui/src/components/ai-elements/test-results.tsx",
       "packages/ui/src/components/ai-elements/tool.tsx",
       "packages/ui/src/components/ai-elements/toolbar.tsx",
@@ -96,7 +95,6 @@
       ".agents/skills/ai-elements/references/stack-trace.md",
       ".agents/skills/ai-elements/references/suggestion.md",
       ".agents/skills/ai-elements/references/task.md",
-      ".agents/skills/ai-elements/references/terminal.md",
       ".agents/skills/ai-elements/references/test-results.md",
       ".agents/skills/ai-elements/references/tool.md",
       ".agents/skills/ai-elements/references/toolbar.md",
@@ -150,7 +148,6 @@
       ".agents/skills/ai-elements/scripts/stack-trace.tsx",
       ".agents/skills/ai-elements/scripts/suggestion-input.tsx",
       ".agents/skills/ai-elements/scripts/suggestion.tsx",
-      ".agents/skills/ai-elements/scripts/terminal.tsx",
       ".agents/skills/ai-elements/scripts/test-results.tsx",
       ".agents/skills/ai-elements/scripts/tool-output-available.tsx",
       ".agents/skills/ai-elements/scripts/tool-output-error.tsx",
@@ -162,6 +159,32 @@
       "packages/ui/src/components/ai-elements/prompt-input-buttons.tsx",
       "packages/ui/src/components/ai-elements/prompt-input-primitives.tsx",
       "packages/ui/src/components/ai-elements/prompt-input-textarea.tsx"
+    ],
+    "excludedFiles": [
+      {
+        "path": "packages/ui/src/components/ai-elements/terminal.tsx",
+        "reason": "Removed with the retired Social Harness terminal UI; not distributed."
+      },
+      {
+        "path": ".agents/skills/ai-elements/references/terminal.md",
+        "reason": "Removed with the retired Social Harness terminal UI; not distributed."
+      },
+      {
+        "path": ".agents/skills/ai-elements/scripts/terminal.tsx",
+        "reason": "Removed with the retired Social Harness terminal UI; not distributed."
+      },
+      {
+        "path": ".agents/skills/ai-elements/scripts/terminal-basic.tsx",
+        "reason": "Removed with the retired Social Harness terminal UI; not distributed."
+      },
+      {
+        "path": ".agents/skills/ai-elements/scripts/terminal-streaming.tsx",
+        "reason": "Removed with the retired Social Harness terminal UI; not distributed."
+      },
+      {
+        "path": ".agents/skills/ai-elements/scripts/terminal-clear.tsx",
+        "reason": "Removed with the retired Social Harness terminal UI; not distributed."
+      }
     ]
   },
   {
@@ -249,6 +272,156 @@
     "roots": [".agents/skills/react-best-practices"],
     "license": "MIT",
     "scope": "Vendored React/Next.js guidance and local adaptations; local README preserves Shu Ding / Vercel attribution.",
-    "reviewRequired": "Pinned upstream README and skill declare MIT, but a complete original copyright/license notice has not been obtained."
+    "reviewRequired": "Pinned upstream README and skill declare MIT, but a complete original copyright/license notice has not been obtained.",
+    "reviewEvidence": {
+      "checkedOn": "2026-09-29",
+      "sourceTreeUrl": "https://api.github.com/repos/vercel-labs/agent-skills/git/trees/063bee94c3f4df8453406c830b0a7df0f2860278?recursive=1",
+      "upstreamLicenseFiles": [],
+      "result": "The exact pinned upstream tree contains no LICENSE, COPYING, or NOTICE file. Its root README and skill front matter declare MIT, and the skill README credits @shuding and Vercel; the complete original copyright/license notice remains unavailable."
+    }
+  },
+  {
+    "id": "OpenCut Classic timeline utility adaptations",
+    "referenceRevision": "cf5e79e919144200294fb9fed22a222592a0aeea",
+    "importRevision": "cf5e79e919144200294fb9fed22a222592a0aeea",
+    "source": "https://raw.githubusercontent.com/OpenCut-app/opencut-classic/cf5e79e919144200294fb9fed22a222592a0aeea/LICENSE",
+    "file": "packages/opencut-core/LICENSE",
+    "sha256": "8117f9bb64534f7530fc6139b014fd1c1465f7981f93d1871789150fa3f59d3d",
+    "roots": [
+      "packages/opencut-core/src/timelineCoordinates.ts",
+      "packages/opencut-core/src/timelineSnapping.ts",
+      "packages/opencut-core/src/timelineRuler.ts",
+      "packages/opencut-core/src/socialProjectTrim.ts",
+      "packages/ui/src/social-accounts/socialProjectTimelineDrag.ts",
+      "packages/ui/src/social-accounts/SocialProjectTimeline.tsx",
+      "packages/ui/src/social-accounts/SocialProjectRulerMarks.tsx",
+      "packages/opencut-core/upstream/opencut-classic",
+      "packages/ui/src/social-accounts/OpenCutClassicTimelineTick.tsx"
+    ],
+    "adaptations": [
+      {
+        "local": "packages/opencut-core/src/timelineCoordinates.ts",
+        "upstream": [
+          "apps/web/src/timeline/scale.ts",
+          "apps/web/src/timeline/pixel-utils.ts",
+          "apps/web/src/timeline/zoom-utils.ts"
+        ]
+      },
+      {
+        "local": "packages/opencut-core/src/timelineSnapping.ts",
+        "upstream": [
+          "apps/web/src/timeline/snapping/threshold.ts",
+          "apps/web/src/timeline/snapping/resolve.ts",
+          "apps/web/src/timeline/group-move/snap.ts"
+        ]
+      },
+      {
+        "local": "packages/opencut-core/src/timelineRuler.ts",
+        "upstream": ["apps/web/src/timeline/ruler-utils.ts"]
+      },
+      {
+        "local": "packages/opencut-core/src/timelineRuler.ts",
+        "upstream": ["apps/web/src/timeline/components/timeline-ruler.tsx"]
+      },
+      {
+        "local": "packages/opencut-core/src/socialProjectTrim.ts",
+        "upstream": ["apps/web/src/timeline/group-resize/compute-resize.ts"]
+      },
+      {
+        "local": "packages/ui/src/social-accounts/socialProjectTimelineDrag.ts",
+        "upstream": [
+          "apps/web/src/timeline/group-move/snap.ts",
+          "apps/web/src/timeline/animation-snap-points.ts"
+        ]
+      },
+      {
+        "local": "packages/ui/src/social-accounts/SocialProjectTimeline.tsx",
+        "upstream": [
+          "apps/web/src/timeline/components/timeline-ruler.tsx",
+          "apps/web/src/timeline/hooks/use-scroll-position.ts"
+        ]
+      },
+      {
+        "local": "packages/ui/src/social-accounts/SocialProjectRulerMarks.tsx",
+        "upstream": [
+          "apps/web/src/timeline/components/timeline-ruler.tsx",
+          "apps/web/src/timeline/components/timeline-tick.tsx"
+        ]
+      },
+      {
+        "local": "packages/ui/src/social-accounts/OpenCutClassicTimelineTick.tsx",
+        "upstream": ["apps/web/src/timeline/components/timeline-tick.tsx"]
+      }
+    ],
+    "license": "MIT",
+    "scope": "The listed timeline calculations, viewport-driven ruler behavior, single-clip frame-clamped resize algorithm and nearest-edge move snapping are adapted from the pinned OpenCut Classic source snapshots. Each snapshot is byte-exact and SHA-256 verified by the notice generator. Social Harness adapters use millisecond times, rational frame rates and shared UI tokens; the Social Harness project scene evaluator and contract remain independent because the project service is the sole edit-state owner.",
+    "sourceFiles": [
+      {
+        "upstreamPath": "apps/web/src/timeline/scale.ts",
+        "snapshotFile": "packages/opencut-core/upstream/opencut-classic/apps/web/src/timeline/scale.ts.upstream",
+        "sha256": "ba001bea8ad3331a446615328689db3c5a47ff7a9897ab7fa0ad696ea1c0b519",
+        "sourceUrl": "https://github.com/OpenCut-app/opencut-classic/blob/cf5e79e919144200294fb9fed22a222592a0aeea/apps/web/src/timeline/scale.ts"
+      },
+      {
+        "upstreamPath": "apps/web/src/timeline/pixel-utils.ts",
+        "snapshotFile": "packages/opencut-core/upstream/opencut-classic/apps/web/src/timeline/pixel-utils.ts.upstream",
+        "sha256": "373bcd4b0d9fd88da7cffb05bd3ea3368c8aabcb13f275147cfceb59e70eaef0",
+        "sourceUrl": "https://github.com/OpenCut-app/opencut-classic/blob/cf5e79e919144200294fb9fed22a222592a0aeea/apps/web/src/timeline/pixel-utils.ts"
+      },
+      {
+        "upstreamPath": "apps/web/src/timeline/zoom-utils.ts",
+        "snapshotFile": "packages/opencut-core/upstream/opencut-classic/apps/web/src/timeline/zoom-utils.ts.upstream",
+        "sha256": "00d105f58146956d915b4614ee1796a73513ff786bed90dd07d1245ee2fb84b6",
+        "sourceUrl": "https://github.com/OpenCut-app/opencut-classic/blob/cf5e79e919144200294fb9fed22a222592a0aeea/apps/web/src/timeline/zoom-utils.ts"
+      },
+      {
+        "upstreamPath": "apps/web/src/timeline/ruler-utils.ts",
+        "snapshotFile": "packages/opencut-core/upstream/opencut-classic/apps/web/src/timeline/ruler-utils.ts.upstream",
+        "sha256": "6fe2e65beac1b514e86f79bf89041476427427c73a1dea0c98351e777a40c760",
+        "sourceUrl": "https://github.com/OpenCut-app/opencut-classic/blob/cf5e79e919144200294fb9fed22a222592a0aeea/apps/web/src/timeline/ruler-utils.ts"
+      },
+      {
+        "upstreamPath": "apps/web/src/timeline/snapping/threshold.ts",
+        "snapshotFile": "packages/opencut-core/upstream/opencut-classic/apps/web/src/timeline/snapping/threshold.ts.upstream",
+        "sha256": "951ed0604bcd5960384a520a14cf66f554c2580f4e0098e0307939db73ced686",
+        "sourceUrl": "https://github.com/OpenCut-app/opencut-classic/blob/cf5e79e919144200294fb9fed22a222592a0aeea/apps/web/src/timeline/snapping/threshold.ts"
+      },
+      {
+        "upstreamPath": "apps/web/src/timeline/snapping/resolve.ts",
+        "snapshotFile": "packages/opencut-core/upstream/opencut-classic/apps/web/src/timeline/snapping/resolve.ts.upstream",
+        "sha256": "73f7865940cd914b09070ca3daa03325b03a31bd33ebb6766dc0975736c6fc0d",
+        "sourceUrl": "https://github.com/OpenCut-app/opencut-classic/blob/cf5e79e919144200294fb9fed22a222592a0aeea/apps/web/src/timeline/snapping/resolve.ts"
+      },
+      {
+        "upstreamPath": "apps/web/src/timeline/group-move/snap.ts",
+        "snapshotFile": "packages/opencut-core/upstream/opencut-classic/apps/web/src/timeline/group-move/snap.ts.upstream",
+        "sha256": "fe9bc3fed428deba33e25c94aca2d84edff0e7a5ebfa66c254a70521e7b6a88a",
+        "sourceUrl": "https://github.com/OpenCut-app/opencut-classic/blob/cf5e79e919144200294fb9fed22a222592a0aeea/apps/web/src/timeline/group-move/snap.ts"
+      },
+      {
+        "upstreamPath": "apps/web/src/timeline/group-resize/compute-resize.ts",
+        "snapshotFile": "packages/opencut-core/upstream/opencut-classic/apps/web/src/timeline/group-resize/compute-resize.ts.upstream",
+        "sha256": "efe061a73f7e70637f7eed26e25f7d4af3cc36695e60dab088680b4743fa2e45",
+        "sourceUrl": "https://github.com/OpenCut-app/opencut-classic/blob/cf5e79e919144200294fb9fed22a222592a0aeea/apps/web/src/timeline/group-resize/compute-resize.ts"
+      },
+      {
+        "upstreamPath": "apps/web/src/timeline/components/timeline-ruler.tsx",
+        "snapshotFile": "packages/opencut-core/upstream/opencut-classic/apps/web/src/timeline/components/timeline-ruler.tsx.upstream",
+        "sha256": "c08052c49ac4e3e13e41f55c46dd98a32c1311033cccb985dab210d30f125b54",
+        "sourceUrl": "https://github.com/OpenCut-app/opencut-classic/blob/cf5e79e919144200294fb9fed22a222592a0aeea/apps/web/src/timeline/components/timeline-ruler.tsx"
+      },
+      {
+        "upstreamPath": "apps/web/src/timeline/components/timeline-tick.tsx",
+        "snapshotFile": "packages/opencut-core/upstream/opencut-classic/apps/web/src/timeline/components/timeline-tick.tsx.upstream",
+        "sha256": "e402e1c1acbce620c48656381937aa4ae50252beac45a65ac7ada56739705608",
+        "sourceUrl": "https://github.com/OpenCut-app/opencut-classic/blob/cf5e79e919144200294fb9fed22a222592a0aeea/apps/web/src/timeline/components/timeline-tick.tsx"
+      },
+      {
+        "upstreamPath": "apps/web/src/timeline/hooks/use-scroll-position.ts",
+        "snapshotFile": "packages/opencut-core/upstream/opencut-classic/apps/web/src/timeline/hooks/use-scroll-position.ts.upstream",
+        "sha256": "89b4b056737f7beb7ed50e2a2266b1f91d49a753af0bfe3dfa2517a1ed414d0d",
+        "sourceUrl": "https://github.com/OpenCut-app/opencut-classic/blob/cf5e79e919144200294fb9fed22a222592a0aeea/apps/web/src/timeline/hooks/use-scroll-position.ts"
+      }
+    ]
   }
 ]

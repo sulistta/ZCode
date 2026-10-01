@@ -1,30 +1,31 @@
 import { isAbsolute, join, resolve } from "node:path";
+import { homedir } from "node:os";
 import {
   createInMemorySessionEventStore,
   createNodeToolArtifactStore,
-} from "@zcode/adapters/storage";
-import { createNodeLoggerFactory } from "@zcode/adapters/logging";
-import { createConfig, resolvePath } from "@zcode/adapters/config";
+} from "@social-harness/adapters/storage";
+import { createNodeLoggerFactory } from "@social-harness/adapters/logging";
+import { createConfig, resolvePath } from "@social-harness/adapters/config";
 import {
   createNodeExecutionAdapter,
   resolveEffectiveBashShellSelection,
-} from "@zcode/adapters/exec";
-import { createNodeFileSystemAdapter } from "@zcode/adapters/fs";
-import { createNodeWebFetchHttpClientAdapter } from "@zcode/adapters/http";
-import { createJimpImageProcessorAdapter } from "@zcode/adapters/image";
-import { createPopplerPdfDocumentAdapter } from "@zcode/adapters/pdf";
-import { createNodeSessionMailboxAdapter } from "@zcode/adapters/mailbox";
-import { createNodeContextSourceAdapter } from "@zcode/adapters/context";
-import { createNodeSkillAdapter } from "@zcode/adapters/skills";
-import { createMcpAdapter } from "@zcode/adapters/mcp";
+} from "@social-harness/adapters/exec";
+import { createNodeFileSystemAdapter } from "@social-harness/adapters/fs";
+import { createNodeWebFetchHttpClientAdapter } from "@social-harness/adapters/http";
+import { createJimpImageProcessorAdapter } from "@social-harness/adapters/image";
+import { createPopplerPdfDocumentAdapter } from "@social-harness/adapters/pdf";
+import { createNodeSessionMailboxAdapter } from "@social-harness/adapters/mailbox";
+import { createNodeContextSourceAdapter } from "@social-harness/adapters/context";
+import { createNodeSkillAdapter } from "@social-harness/adapters/skills";
+import { createMcpAdapter } from "@social-harness/adapters/mcp";
 import {
   AgentRuntime,
   PermissionService,
   buildPluginReferenceCatalog,
   type AmendWorkflowRunSettingsInput,
   type ResumeSessionResult,
-} from "@zcode/core";
-import { createModelTelemetry } from "@zcode/telemetry";
+} from "@social-harness/core";
+import { createModelTelemetry } from "@social-harness/telemetry";
 import {
   createRootTraceContext,
   traceContextToLogContext,
@@ -33,12 +34,12 @@ import {
   createSessionEvent,
   type ExecutionShellSelection,
   type MessageId,
-} from "@zcode/contracts";
-import { isRemoteWorkspaceIdentity, resolveZCodeRuntimeEnv } from "@zcode/shared";
+} from "@social-harness/contracts";
+import { isRemoteWorkspaceIdentity, resolveZCodeRuntimeEnv } from "@social-harness/shared";
 import {
-  ZCODE_ATTACHMENT_FAULT_CODES,
+  SOCIAL_HARNESS_ATTACHMENT_FAULT_CODES,
   ZCodeAttachmentFaultError,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 
 import { createModelAdapter } from "../model-factory.js";
 import { StartupTimer, startupNow } from "../startup-logging.js";
@@ -205,6 +206,9 @@ export async function createZCodeApp(options: ZCodeAppOptions): Promise<ZCodeApp
       cliStorageRoot,
       resolveZCodeRuntimeEnv(options.env ?? process.env) === "development",
     );
+    const socialAccountRuntime =
+      options.runtimeConfig?.memory?.workspaceIdentity?.toString().startsWith("social-account:") ??
+      false;
     const zcodeSubagentProfileOutcome = await loadZCodeAgentProfiles({
       logger,
       storageRoot,
@@ -217,6 +221,7 @@ export async function createZCodeApp(options: ZCodeAppOptions): Promise<ZCodeApp
       env: options.env,
       logger,
       options,
+      socialAccountRuntime,
       startupTimer,
       workingDirectory,
     });
@@ -361,7 +366,13 @@ export async function createZCodeApp(options: ZCodeAppOptions): Promise<ZCodeApp
       (messageEnabled
         ? createNodeSessionMailboxAdapter({
             rootDir: resolvePath(
-              (options.env ?? process.env).ZCODE_MAILBOX_ROOT ?? "~/.zcode/mailbox",
+              (options.env ?? process.env).SOCIAL_HARNESS_MAILBOX_ROOT ??
+                join(
+                  (options.env ?? process.env).SOCIAL_HARNESS_DATA_BASE_DIR?.trim() || homedir(),
+                  ".social-harness",
+                  "v1",
+                  "mailbox",
+                ),
             ),
           })
         : undefined);
@@ -773,6 +784,8 @@ export async function createZCodeApp(options: ZCodeAppOptions): Promise<ZCodeApp
       dynamicWorkflowSnippetPort,
       modelCatalogPort,
       automationPort: options.automationPort,
+      socialAgentPort: options.socialAgentPort,
+      socialProjectPort: options.socialProjectPort,
       offPeakPort: options.offPeakPort,
       appVersion,
       traceContext,
@@ -800,7 +813,7 @@ export async function createZCodeApp(options: ZCodeAppOptions): Promise<ZCodeApp
         return await resolveZCodeCustomCommandPrompt(text, {
           // 动态工作流灰度关闭时 `/workflow` 不得展开成插件提示词。目录侧已经
           // 把它从 `/` 面板剔除，但用户仍可手打命令名，两条路径必须给出同一个结论。
-          // 缺席（TUI、headless、workflow_child）不设门禁，见 runtimeConfig 字段注释。
+          // 缺席（headless、workflow_child）不设门禁，见 runtimeConfig 字段注释。
           ...(runtimeConfig.dynamicWorkflowEnabled === false
             ? { disabledCommandNames: DYNAMIC_WORKFLOW_GATED_COMMAND_NAMES }
             : {}),
@@ -1052,7 +1065,9 @@ export async function createZCodeApp(options: ZCodeAppOptions): Promise<ZCodeApp
         const { ref, mediaType, artifactUri } = await resolvePromptAttachment(input);
         if (artifactUri) {
           if (!artifactStore.statToolResultArtifact) {
-            throw new ZCodeAttachmentFaultError(ZCODE_ATTACHMENT_FAULT_CODES.statUnsupported);
+            throw new ZCodeAttachmentFaultError(
+              SOCIAL_HARNESS_ATTACHMENT_FAULT_CODES.statUnsupported,
+            );
           }
           const result = await artifactStore.statToolResultArtifact({
             uri: artifactUri,
@@ -1068,7 +1083,7 @@ export async function createZCodeApp(options: ZCodeAppOptions): Promise<ZCodeApp
         if (result.kind !== "file") {
           // 目录/符号链接/已消失都意味着「这个附件不再是可分享的文件」，用稳定码上抛，
           // 让 share 预检按确定分类处理，而不是靠错误文本猜。
-          throw new ZCodeAttachmentFaultError(ZCODE_ATTACHMENT_FAULT_CODES.statNotFile);
+          throw new ZCodeAttachmentFaultError(SOCIAL_HARNESS_ATTACHMENT_FAULT_CODES.statNotFile);
         }
         return {
           totalBytes: result.sizeBytes,

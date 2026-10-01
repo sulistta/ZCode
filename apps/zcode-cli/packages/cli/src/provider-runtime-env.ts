@@ -7,15 +7,15 @@ import {
   PERSONAL_PROVIDER_CONFIG_FILE_NAME,
   resolveZCodeBuiltinCachePaths,
   resolveZCodeBuiltinClientPlatform,
-  ZCODE_BUILTIN_PROVIDER_BUNDLED_CONFIG_FILE_ENV,
-  ZCODE_BUILTIN_PROVIDER_CONFIG_FILE_ENV,
-  ZCODE_PERSONAL_PROVIDER_CONFIG_FILE_ENV,
+  SOCIAL_HARNESS_BUILTIN_PROVIDER_BUNDLED_CONFIG_FILE_ENV,
+  SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_FILE_ENV,
+  SOCIAL_HARNESS_PERSONAL_PROVIDER_CONFIG_FILE_ENV,
   type ZCodeBuiltinRefreshEvent,
-} from "@zcode/provider-node";
-import { resolveRuntimeZCodeEndpointOrigin, ZCODE_VERSION } from "@zcode/shared";
+} from "@social-harness/provider-node";
+import { resolveRuntimeZCodeEndpointOrigin, SOCIAL_HARNESS_VERSION } from "@social-harness/shared";
 import type { CliEnv } from "./env.js";
 
-export const SEA_ZCODE_BUILTIN_PROVIDER_CONFIG_ASSET_KEY = "zcode-provider/zcode-builtin.json";
+export const SEA_SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_ASSET_KEY = "social-harness-provider/social-harness-builtin.json";
 
 export function createCliProviderRefreshReporter(
   stderr: Pick<NodeJS.WriteStream, "write"> = process.stderr,
@@ -55,13 +55,13 @@ export async function prepareCliProviderRuntimeEnv(
 ): Promise<Record<string, string>> {
   if (!requiresProviderRuntime(options.argv)) return {};
 
-  const explicitZCodeBuiltin = options.env[ZCODE_BUILTIN_PROVIDER_CONFIG_FILE_ENV]?.trim();
-  const explicitPersonal = options.env[ZCODE_PERSONAL_PROVIDER_CONFIG_FILE_ENV]?.trim();
-  const dataBaseDir = options.dataBaseDir ?? options.env.ZCODE_DATA_BASE_DIR?.trim() ?? homedir();
+  const explicitZCodeBuiltin = options.env[SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_FILE_ENV]?.trim();
+  const explicitPersonal = options.env[SOCIAL_HARNESS_PERSONAL_PROVIDER_CONFIG_FILE_ENV]?.trim();
+  const dataBaseDir = options.dataBaseDir ?? options.env.SOCIAL_HARNESS_DATA_BASE_DIR?.trim() ?? homedir();
   if (explicitZCodeBuiltin && explicitPersonal) {
     return {
-      [ZCODE_BUILTIN_PROVIDER_CONFIG_FILE_ENV]: explicitZCodeBuiltin,
-      [ZCODE_PERSONAL_PROVIDER_CONFIG_FILE_ENV]: explicitPersonal,
+      [SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_FILE_ENV]: explicitZCodeBuiltin,
+      [SOCIAL_HARNESS_PERSONAL_PROVIDER_CONFIG_FILE_ENV]: explicitPersonal,
     };
   }
 
@@ -73,12 +73,13 @@ export async function prepareCliProviderRuntimeEnv(
       sea: options.sea ?? getSeaProviderConfigAssets(),
     }));
   const personalFilePath =
-    explicitPersonal ?? join(dataBaseDir, ".zcode", "v2", PERSONAL_PROVIDER_CONFIG_FILE_NAME);
-  const appVersion = options.appVersion ?? ZCODE_VERSION;
+    explicitPersonal ??
+    join(dataBaseDir, ".social-harness", "v1", "config", PERSONAL_PROVIDER_CONFIG_FILE_NAME);
+  const appVersion = options.appVersion ?? SOCIAL_HARNESS_VERSION;
   const platform = options.platform ?? resolveZCodeBuiltinClientPlatform();
   const zcodeEndpointOrigin = resolveRuntimeZCodeEndpointOrigin(options.env);
   const cachePaths = resolveZCodeBuiltinCachePaths({
-    environmentConfigRoot: join(dataBaseDir, ".zcode", "v2"),
+    environmentConfigRoot: join(dataBaseDir, ".social-harness", "v1", "config"),
     platform,
     appVersion,
     zcodeEndpointOrigin,
@@ -88,7 +89,7 @@ export async function prepareCliProviderRuntimeEnv(
     activeFilePath: cachePaths.activeFilePath,
     watch: false,
   });
-  // 入口只准备资源和路径；下载由 Prompt/TUI 长生命周期 Runtime 持有并取消。
+  // 入口只准备资源和路径；下载由长生命周期 Prompt Runtime 持有并取消。
   try {
     await source.read();
   } finally {
@@ -96,9 +97,9 @@ export async function prepareCliProviderRuntimeEnv(
   }
 
   return {
-    [ZCODE_BUILTIN_PROVIDER_CONFIG_FILE_ENV]: cachePaths.activeFilePath,
-    [ZCODE_BUILTIN_PROVIDER_BUNDLED_CONFIG_FILE_ENV]: zcodeBuiltinFilePath,
-    [ZCODE_PERSONAL_PROVIDER_CONFIG_FILE_ENV]: personalFilePath,
+    [SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_FILE_ENV]: cachePaths.activeFilePath,
+    [SOCIAL_HARNESS_BUILTIN_PROVIDER_BUNDLED_CONFIG_FILE_ENV]: zcodeBuiltinFilePath,
+    [SOCIAL_HARNESS_PERSONAL_PROVIDER_CONFIG_FILE_ENV]: personalFilePath,
   };
 }
 
@@ -119,9 +120,8 @@ function requiresProviderRuntime(argv: readonly string[]): boolean {
   }
 
   const command = argv[0];
-  if (command === undefined || command.startsWith("-")) return true;
+  if (command === undefined || command.startsWith("-")) return false;
   return (
-    command === "tui" ||
     command === "app-server" ||
     command === "agent-server" ||
     command === "login" ||
@@ -135,9 +135,9 @@ async function resolveBundledZCodeBuiltinProviderConfig(input: {
   readonly sea: SeaProviderConfigAssets | undefined;
 }): Promise<string> {
   if (input.sea?.isSea()) {
-    const content = input.sea.getAsset(SEA_ZCODE_BUILTIN_PROVIDER_CONFIG_ASSET_KEY, "utf8");
+    const content = input.sea.getAsset(SEA_SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_ASSET_KEY, "utf8");
     return materializeZCodeBuiltinProviderConfig({
-      environmentConfigRoot: join(input.dataBaseDir, ".zcode", "v2"),
+      environmentConfigRoot: join(input.dataBaseDir, ".social-harness", "v1", "config"),
       content,
     });
   }
@@ -147,8 +147,8 @@ async function resolveBundledZCodeBuiltinProviderConfig(input: {
   // 全局 bin 可以是软链接，随包配置必须相对真实入口定位。
   const entryDirectory = dirname(realpathSync(resolve(entrypoint)));
   const candidates = [
-    join(entryDirectory, "provider", "zcode-builtin.json"),
-    resolve(entryDirectory, "../../../../../config/provider/zcode-builtin.json"),
+    join(entryDirectory, "provider", "social-harness-builtin.json"),
+    resolve(entryDirectory, "../../../../../config/provider/social-harness-builtin.json"),
   ];
   const candidate = candidates.find((filePath) => existsSync(filePath));
   if (candidate) return candidate;

@@ -1,7 +1,7 @@
-import type { ConfigResult } from "@zcode/adapters/config";
-import { discoverNodePluginsSync } from "@zcode/adapters/plugins";
-import type { AgentRuntimeConfig } from "@zcode/core";
-import type { Logger, McpServerConfig, PluginLoadOutcome } from "@zcode/contracts";
+import type { ConfigResult } from "@social-harness/adapters/config";
+import { discoverNodePluginsSync } from "@social-harness/adapters/plugins";
+import type { AgentRuntimeConfig } from "@social-harness/core";
+import type { Logger, McpServerConfig, PluginLoadOutcome } from "@social-harness/contracts";
 import type { StartupTimer } from "../startup-logging.js";
 import { resolveOfficialPluginRoots } from "./bundled-plugins.js";
 import { DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS } from "./official-plugin-definitions.js";
@@ -14,9 +14,27 @@ export function resolveStartupPlugins(input: {
   env?: NodeJS.ProcessEnv;
   logger?: Logger;
   options: Pick<ZCodeAppOptions, "officialPluginRoots" | "pluginStorageRoot">;
+  socialAccountRuntime?: boolean;
   startupTimer: StartupTimer;
   workingDirectory: string;
 }): PluginLoadOutcome {
+  if (input.socialAccountRuntime) {
+    // 社交账号会话只使用 Social Harness 工具；不要把旧的通用插件目录或 ZCode 资源 seed 到新数据根。
+    input.startupTimer.mark("Social account plugin resolution skipped", {
+      context: { reason: "social_account_runtime" },
+      event: "bootstrap.app.startup.plugins.skipped",
+      stage: "resolve_plugins",
+    });
+    return {
+      commandRoots: [],
+      diagnostics: [],
+      hooks: {},
+      mcpServers: {},
+      plugins: [],
+      skillRoots: [],
+    };
+  }
+
   const pluginStorageRoot =
     input.options.pluginStorageRoot ?? getPluginStorageRoot(input.cliStorageRoot);
   const pluginOutcome = discoverNodePluginsSync({

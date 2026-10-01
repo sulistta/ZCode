@@ -2,7 +2,7 @@ import {
   MEDIA_BUDGET_CURRENT_ATTACHMENT_TOO_LARGE_ERROR_CODE,
   MEDIA_BUDGET_CURRENT_IMAGE_TOO_LARGE_ERROR_CODE,
   MEDIA_BUDGET_CURRENT_VIDEO_TOO_LARGE_ERROR_CODE,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   isGenericProviderInvalidRequestCode,
   isLocalModelValidationMessage,

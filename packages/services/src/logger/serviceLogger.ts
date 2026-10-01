@@ -1,4 +1,4 @@
-import { formatLogPrefix, type TraceId } from "@zcode/shared";
+import { formatLogPrefix, type TraceId } from "@social-harness/shared";
 import { isEffectiveDevelopmentNodeEnv } from "#src/runtime-tools/nodeEnv.js";
 
 interface ServiceLogSink {

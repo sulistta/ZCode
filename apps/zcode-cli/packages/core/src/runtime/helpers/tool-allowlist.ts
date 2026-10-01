@@ -5,12 +5,30 @@ import {
   RESPOND_TO_COORDINATOR_TOOL_NAME,
   RESUME_WORKFLOW_RUN_TOOL_NAME,
   SAVE_WORKFLOW_TOOL_NAME,
-} from "@zcode/contracts";
+  SOCIAL_PROJECT_COMMAND_TOOL_NAME,
+  SOCIAL_PROJECT_LIST_TOOL_NAME,
+  SOCIAL_PROJECT_READ_TOOL_NAME,
+  SOCIAL_AGENT_CONTEXT_TOOL_NAME,
+  SOCIAL_MEDIA_LIST_TOOL_NAME,
+  SOCIAL_YOUTUBE_SEARCH_TOOL_NAME,
+  SOCIAL_CLIP_CANDIDATES_TOOL_NAME,
+  SOCIAL_PUBLICATION_REQUEST_TOOL_NAME,
+} from "@social-harness/contracts";
 import { EXPLORE_AGENT_ALLOWED_TOOLS } from "../../subagent/explore-tools.js";
 import type { AgentRuntimeConfig } from "../types.js";
 import { normalizeToolNameAlias } from "../../tool/tool-visibility.js";
 
 const EXPLORE_AGENT_ALLOWED_TOOL_SET = new Set<string>(EXPLORE_AGENT_ALLOWED_TOOLS);
+const SOCIAL_ACCOUNT_RUNTIME_TOOLS = [
+  SOCIAL_PROJECT_LIST_TOOL_NAME,
+  SOCIAL_PROJECT_READ_TOOL_NAME,
+  SOCIAL_PROJECT_COMMAND_TOOL_NAME,
+  SOCIAL_AGENT_CONTEXT_TOOL_NAME,
+  SOCIAL_MEDIA_LIST_TOOL_NAME,
+  SOCIAL_YOUTUBE_SEARCH_TOOL_NAME,
+  SOCIAL_CLIP_CANDIDATES_TOOL_NAME,
+  SOCIAL_PUBLICATION_REQUEST_TOOL_NAME,
+] as const;
 
 /**
  * workflow child 运行时额外不注册的工具。
@@ -63,7 +81,7 @@ export function resolveRuntimeDisallowedTools(
 
 /**
  * 动态工作流灰度门在 registerBuiltInTools 上的取值。
- * **缺席即开启**：TUI、headless `-p` 和 workflow_child 都不写这个字段，它们必须保留完整工具面；
+ * **缺席即开启**：headless `-p` 和 workflow_child 都不写这个字段，它们必须保留完整工具面；
  * 只有受信 Host 创建的 protocol session 会显式写 false。fail-closed 的缺省值在协议服务端的
  * appRuntimePreferences，不在这一层。
  *
@@ -81,6 +99,12 @@ export function resolveBuiltInToolAllowlist(
 ): readonly string[] | undefined {
   const normalizedAllowlist = normalizeBuiltInToolAllowlist(config.toolAllowlist);
 
+  if (isSocialAccountRuntime(config)) {
+    if (!normalizedAllowlist) return SOCIAL_ACCOUNT_RUNTIME_TOOLS;
+    const configuredTools = new Set(normalizedAllowlist);
+    return SOCIAL_ACCOUNT_RUNTIME_TOOLS.filter((toolName) => configuredTools.has(toolName));
+  }
+
   if (config.toolset !== "explore") {
     return appendChildControlTool(config, normalizedAllowlist);
   }
@@ -93,6 +117,14 @@ export function resolveBuiltInToolAllowlist(
     config,
     normalizedAllowlist.filter((toolName) => EXPLORE_AGENT_ALLOWED_TOOL_SET.has(toolName)),
   );
+}
+
+export function isSocialAccountRuntime(
+  config: Pick<AgentRuntimeConfig, "workspaceIdentity">,
+): boolean {
+  // Malformed social-account identities still fail closed; Host scope validation rejects them
+  // before runtime creation, and this prefix guard prevents an alternate generic tool surface.
+  return config.workspaceIdentity?.toString().startsWith("social-account:") ?? false;
 }
 
 function appendChildControlTool(

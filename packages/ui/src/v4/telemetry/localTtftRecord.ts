@@ -6,8 +6,8 @@ import {
   type LocalTtftFacts,
   type LocalTtftRecord,
   type LocalTtftOutputKind,
-} from "@zcode/shared";
-import type { ConversationRow } from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared";
+import type { ConversationRow } from "@social-harness/shared/zcode-protocol-v4";
 export interface LocalTtftPending {
   context: LocalTtftContext;
   workspace: string;

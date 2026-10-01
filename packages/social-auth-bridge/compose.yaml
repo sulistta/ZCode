@@ -1,0 +1,46 @@
+services:
+  social-auth-bridge:
+    build:
+      context: ../..
+      dockerfile: packages/social-auth-bridge/Dockerfile
+    env_file: .env
+    environment:
+      PORT: "8080"
+      SOCIAL_AUTH_BRIDGE_DATA_DIR: /var/lib/social-auth-bridge
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - social-auth-bridge-data:/var/lib/social-auth-bridge
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8080/healthz').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      SOCIAL_AUTH_BRIDGE_DOMAIN: ${SOCIAL_AUTH_BRIDGE_DOMAIN:?set SOCIAL_AUTH_BRIDGE_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      social-auth-bridge:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  social-auth-bridge-data:
+  caddy-data:
+  caddy-config:

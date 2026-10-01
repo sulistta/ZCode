@@ -1,6 +1,6 @@
 import { accessSync, constants } from "node:fs";
 import { delimiter, posix, win32 } from "node:path";
-import { sanitizeZCodeRuntimeEnv } from "@zcode/shared";
+import { sanitizeZCodeRuntimeEnv } from "@social-harness/shared";
 import { createNetworkProxyFetch } from "../network/proxy-fetch.js";
 import { applyNetworkEgressEnv, type NetworkEgressEnvPolicy } from "../network/subprocess-env.js";
 
@@ -75,7 +75,7 @@ function prependRunningNodeDirectory(
     return env;
   }
 
-  // remote Agent 由 ~/.zcode/server/node 启动，但登录环境 PATH 不含该目录，
+  // remote Agent 由 ~/.social-harness/v1/server/node 启动，但登录环境 PATH 不含该目录，
   // Plugin manifest 中标准的 command: "node" 因此无法启动 MCP。复用当前 Agent 的 Node
   // 目录可保持插件配置跨本地/SSH/WSL/Docker 可移植，同时不覆盖插件显式注入的环境。
   return {

@@ -4,26 +4,20 @@ import {
   parseAccountProviderConfigMap,
   type AccountProviderConfigSnapshot,
   type AccountProviderStates,
-} from "@zcode/provider";
+} from "@social-harness/provider";
 import {
   isBuiltinModelProviderId,
-  resolveRuntimeZCodeEndpointOrigin,
-  ZCODE_VERSION,
-} from "@zcode/shared";
-import { dirname, join } from "node:path";
+} from "@social-harness/shared";
 import {
   NodeModelSelectionConfigRepository,
   NodeProviderRegistryRuntime,
   resolveNodeProviderRuntimePaths,
-  downloadZCodeBuiltinRelease,
-  resolveZCodeBuiltinClientPlatform,
-  ZCODE_BUILTIN_PROVIDER_BUNDLED_CONFIG_FILE_ENV,
-  type ZCodeBuiltinRefreshEvent,
-} from "@zcode/provider-node";
+  SOCIAL_HARNESS_BUILTIN_PROVIDER_BUNDLED_CONFIG_FILE_ENV,
+} from "@social-harness/provider-node";
 import {
   createSharedZCodeCredentialStore,
   type SharedZCodeCredentialStore,
-} from "@zcode/adapters/auth";
+} from "@social-harness/adapters/auth";
 import { readLegacyCliPersonalProviderConfig } from "./legacy-cli-personal-provider-config-importer.js";
 import {
   createStandaloneProviderRuntimeHeadersPort,
@@ -31,14 +25,11 @@ import {
 } from "./standalone-account-provider-runtime.js";
 
 export interface ProcessProviderRegistryRuntimeOptions {
-  /** Standalone Prompt CLI / TUI 自己拥有账号凭据与旧配置的一次性导入。 */
+  /** Headless prompt command center owns account credentials and one-time legacy config import. */
   readonly standalone?: {
     readonly credentialStore?: SharedZCodeCredentialStore;
     readonly legacyCliUserConfigFilePath?: string;
     readonly onAccountInitializationError?: (error: unknown) => void;
-    readonly request?: typeof fetch;
-    readonly onBuiltinRefreshError?: (error: unknown) => void;
-    readonly onBuiltinRefreshResult?: (event: ZCodeBuiltinRefreshEvent) => void;
   };
 }
 
@@ -57,7 +48,7 @@ export async function startProcessProviderRegistryRuntime(
     : undefined;
   let standaloneAccount: AccountProviderService | undefined;
   const bundledFile = options.standalone
-    ? env[ZCODE_BUILTIN_PROVIDER_BUNDLED_CONFIG_FILE_ENV]?.trim()
+    ? env[SOCIAL_HARNESS_BUILTIN_PROVIDER_BUNDLED_CONFIG_FILE_ENV]?.trim()
     : undefined;
   const runtime = new NodeProviderRegistryRuntime({
     ...paths,
@@ -65,25 +56,8 @@ export async function startProcessProviderRegistryRuntime(
       ? {
           zcodeBuiltinFilePath: bundledFile,
           zcodeBuiltinActiveFilePath: paths.zcodeBuiltinFilePath,
-          zcodeBuiltinRemote: {
-            controlFilePath: join(
-              dirname(paths.zcodeBuiltinFilePath),
-              "zcode-builtin-refresh.json",
-            ),
-            resolveEndpointKey: () => resolveRuntimeZCodeEndpointOrigin(env),
-            fetchRelease: (endpointOrigin, signal) =>
-              downloadZCodeBuiltinRelease({
-                endpointOrigin,
-                signal,
-                appVersion: ZCODE_VERSION,
-                platform: resolveZCodeBuiltinClientPlatform(),
-                request: options.standalone?.request ?? globalThis.fetch,
-              }),
-            onRefreshResult: options.standalone?.onBuiltinRefreshResult,
-          },
         }
       : {}),
-    onZCodeBuiltinRefreshError: options.standalone?.onBuiltinRefreshError,
     accountSource,
     ...(credentialStore
       ? {

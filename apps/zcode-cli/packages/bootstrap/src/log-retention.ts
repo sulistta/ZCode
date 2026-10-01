@@ -1,4 +1,4 @@
-import type { Logger, LoggerFactory } from "@zcode/contracts";
+import type { Logger, LoggerFactory } from "@social-harness/contracts";
 
 interface RetentionAwareLoggerFactory extends LoggerFactory {
   scheduleLogRetentionCleanup(options?: { logger?: Logger }): unknown;

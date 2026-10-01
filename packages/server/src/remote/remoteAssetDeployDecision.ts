@@ -1,28 +1,22 @@
-import { ZCODE_VERSION } from "@zcode/shared";
-import type { IRemoteBackend, RemoteEnvironment } from "@zcode/server/remote/backend.js";
+import { SOCIAL_HARNESS_VERSION } from "@social-harness/shared";
+import type { IRemoteBackend, RemoteEnvironment } from "@social-harness/server/remote/backend.js";
 import {
   REMOTE_BASE,
   type DeployLoggers,
   type RemoteAssetDeployOptions,
-} from "@zcode/server/remote/deployShared.js";
+} from "@social-harness/server/remote/deployShared.js";
 import {
   readRemoteAssetComponentMeta,
   writeRemoteAssetComponentMeta,
-} from "@zcode/server/remote/remoteAssetLiveIdentity.js";
+} from "@social-harness/server/remote/remoteAssetLiveIdentity.js";
 import {
   fetchRemoteAssetManifestFromCdn,
   resolveRemoteAssetComponentCacheVersion,
   selectRemoteAssetManifestComponents,
   type RemoteAssetManifest,
-} from "@zcode/server/remote/remoteAssetCache.js";
-import {
-  LocalUploadAssetInstaller,
-  type RemoteAssetInstaller,
-} from "@zcode/server/remote/remoteAssetInstaller.js";
-import type { RemoteAssetNetworkPort } from "@zcode/server/remote/remoteAssetNetwork.js";
-
-const REMOTE_NODE_PTY_PATH = `${REMOTE_BASE}/build/Release/pty.node`;
-const REMOTE_NODE_PTY_SPAWN_HELPER_PATH = `${REMOTE_BASE}/build/Release/spawn-helper`;
+} from "@social-harness/server/remote/remoteAssetCache.js";
+import { type RemoteAssetInstaller } from "@social-harness/server/remote/remoteAssetInstaller.js";
+import type { RemoteAssetNetworkPort } from "@social-harness/server/remote/remoteAssetNetwork.js";
 
 export interface RemoteAssetVersionResolverOptions {
   mockCdnDir?: string;
@@ -31,14 +25,6 @@ export interface RemoteAssetVersionResolverOptions {
   remoteCacheDir?: string;
   manifestRequestTimeoutMs?: number;
   remoteAssetNetwork?: RemoteAssetNetworkPort;
-}
-
-interface DeployNodePtyPrebuildOptions extends RemoteAssetDeployOptions {
-  platformArch: string;
-  force?: boolean;
-  onlyIfMissing: boolean;
-  installer: RemoteAssetInstaller;
-  expectedVersion?: string | null;
 }
 
 interface DeployNodeRuntimeOptions extends RemoteAssetDeployOptions {
@@ -115,98 +101,6 @@ export async function deployNodeRuntime(
 
 function normalizeDeployExpectedVersion(version: string | null | undefined): string | null {
   return version ? resolveRemoteAssetComponentCacheVersion(version) : null;
-}
-
-export async function deployNodePtyPrebuilds(
-  backend: IRemoteBackend,
-  env: RemoteEnvironment,
-  options: DeployNodePtyPrebuildOptions,
-  loggers: DeployLoggers,
-): Promise<void> {
-  const { platformArch, onlyIfMissing, installer } = options;
-  const expectedVersion = normalizeDeployExpectedVersion(options.expectedVersion);
-  const decision = await shouldDeployVersionedComponent(backend, {
-    componentId: "node-pty",
-    platformArch,
-    remotePath: REMOTE_NODE_PTY_PATH,
-    expectedVersion,
-    force: options.force,
-    fallbackDeployWhenVersionUnknown: !onlyIfMissing,
-  });
-  if (decision.shouldDeploy) {
-    const sourceRelativePath = `node-pty/${platformArch}/pty.node`;
-    if (
-      installer instanceof LocalUploadAssetInstaller &&
-      !(await installer.tryResolveLocalPath(["node-pty"], sourceRelativePath))
-    ) {
-      loggers.logWarn(`WARNING: no node-pty prebuild for ${platformArch}. Terminal will not work.`);
-      loggers.logWarn(
-        `Run: node scripts/prepare-prebuilds.mjs to prepare mock-cdn release assets.`,
-      );
-    } else {
-      logDeployRequired({
-        loggers,
-        installer,
-        componentId: "node-pty",
-        reason: decision.reason,
-      });
-      loggers.log("installing node-pty prebuild...");
-      await installer.installFile({
-        componentId: "node-pty",
-        sourceRelativePath,
-        remotePath: REMOTE_NODE_PTY_PATH,
-      });
-      await writeRemoteAssetComponentMeta(backend, {
-        id: "node-pty",
-        version: expectedVersion ?? "unknown",
-        platformArch,
-      });
-      loggers.log("node-pty install done");
-    }
-  } else {
-    loggers.log("node-pty prebuild already exists, skip");
-  }
-
-  if (env.platform !== "darwin") {
-    return;
-  }
-
-  const shouldUploadSpawnHelper =
-    decision.shouldDeploy || !(await backend.exists(REMOTE_NODE_PTY_SPAWN_HELPER_PATH));
-  if (shouldUploadSpawnHelper) {
-    const sourceRelativePath = `node-pty/${platformArch}/spawn-helper`;
-    if (
-      installer instanceof LocalUploadAssetInstaller &&
-      !(await installer.tryResolveLocalPath(["node-pty"], sourceRelativePath))
-    ) {
-      loggers.logWarn(
-        `WARNING: no node-pty spawn-helper for ${platformArch}. Terminal may fail to start.`,
-      );
-      loggers.logWarn(
-        `Run: node scripts/prepare-prebuilds.mjs to prepare mock-cdn release assets.`,
-      );
-      return;
-    }
-
-    loggers.log("installing node-pty spawn-helper...");
-    if (!decision.shouldDeploy) {
-      logDeployRequired({
-        loggers,
-        installer,
-        componentId: "node-pty",
-        reason: `remote file missing path=${REMOTE_NODE_PTY_SPAWN_HELPER_PATH}`,
-      });
-    }
-    await installer.installFile({
-      componentId: "node-pty",
-      sourceRelativePath,
-      remotePath: REMOTE_NODE_PTY_SPAWN_HELPER_PATH,
-      executable: true,
-    });
-    loggers.log("node-pty spawn-helper install done");
-  } else {
-    loggers.log("node-pty spawn-helper already exists, skip");
-  }
 }
 
 async function shouldDeployVersionedComponent(
@@ -300,7 +194,7 @@ async function resolveComponentManifest(
         remoteCdnBaseUrl: options.remoteCdnBaseUrl,
         remoteCdnBaseUrls: options.remoteCdnBaseUrls,
         remoteCacheDir: options.remoteCacheDir,
-        version: ZCODE_VERSION,
+        version: SOCIAL_HARNESS_VERSION,
         platformArch: `${env.platform}-${env.arch}`,
         manifestRequestTimeoutMs: options.manifestRequestTimeoutMs,
         remoteAssetNetwork: options.remoteAssetNetwork,

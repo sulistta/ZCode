@@ -5,6 +5,7 @@
 import type {
   ExecutionShellSelection,
   AutomationPort,
+  SocialAgentPort,
   OffPeakPort,
   EmbeddedSearchBackend,
   ExecutionPort,
@@ -36,7 +37,8 @@ import type {
   WorkflowPort,
   WorkflowEscalatePort,
   WorkflowSubmitPort,
-} from "@zcode/contracts";
+  SocialProjectPort,
+} from "@social-harness/contracts";
 import type {
   JsonSchema,
   ModelToolSideEffectScope,
@@ -54,7 +56,7 @@ import type {
   ToolTimeoutPolicy,
   ToolExecutionSpanWriter,
   ToolExecutionTelemetry,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { PersistedReadFileStateMetadata } from "./read-file-state-metadata.js";
 import type { RuntimeTaskRegistry } from "../runtime-task/registry.js";
 
@@ -163,6 +165,8 @@ export interface ToolExecutionContext {
   workflowEscalatePort?: WorkflowEscalatePort;
   artifactStore?: ToolArtifactStorePort;
   automationPort?: AutomationPort;
+  socialAgentPort?: SocialAgentPort;
+  socialProjectPort?: SocialProjectPort;
   offPeakPort?: OffPeakPort;
   sessionStore?: SessionStorePort;
   sessionModePort?: SessionModePort;

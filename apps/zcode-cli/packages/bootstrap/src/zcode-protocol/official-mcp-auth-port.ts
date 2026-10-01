@@ -6,8 +6,8 @@ import {
   zcodeOfficialMcpAuthHeadersResponseSchema,
   zcodeProtocolMethods,
   type ZCodeWorkspaceRef,
-} from "@zcode/shared";
-import type { OfficialMcpAuthHeadersPort } from "@zcode/contracts";
+} from "@social-harness/shared";
+import type { OfficialMcpAuthHeadersPort } from "@social-harness/contracts";
 import type { ZCodeProtocolAgentServerContext } from "./server-types.js";
 
 let requestSequence = 0;

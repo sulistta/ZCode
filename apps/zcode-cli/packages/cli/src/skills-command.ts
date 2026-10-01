@@ -1,16 +1,16 @@
-import { formatJson } from "@zcode/core";
-import type { Logger } from "@zcode/contracts";
-import type { RunContext, GlobalOptions } from "@zcode/shared-types";
+import { formatJson } from "@social-harness/core";
+import type { Logger } from "@social-harness/contracts";
+import type { RunContext, GlobalOptions } from "@social-harness/shared-types";
 import type {
   inspectZCodeSkill,
   InspectZCodeSkillOptions,
   listZCodeSkills,
   ListZCodeSkillsOptions,
   ZCodeSkillInspection,
-} from "@zcode/bootstrap";
+} from "@social-harness/bootstrap";
 import type { CliEnv } from "./env.js";
 
-type BootstrapModule = typeof import("@zcode/bootstrap");
+type BootstrapModule = typeof import("@social-harness/bootstrap");
 type CliSkillListOutcome = Awaited<ReturnType<typeof listZCodeSkills>>;
 type CliSkillListItem = CliSkillListOutcome["skills"][number];
 
@@ -23,7 +23,7 @@ interface SkillsCommandDependencies {
   loadBootstrapModule?: () => Promise<BootstrapModule>;
 }
 
-const SKILLS_COMMAND_USAGE = "Usage: zcode skills [list|inspect <name>]";
+const SKILLS_COMMAND_USAGE = "Usage: social-harness skills [list|inspect <name>]";
 
 export const runSkillsCommand = async (
   ctx: RunContext,
@@ -59,7 +59,7 @@ async function runSkillsListCommand(
   try {
     const env = deps.env ?? process.env;
     const workingDirectory = (deps.cwd ?? process.cwd)();
-    const bootstrap = deps.loadBootstrapModule ?? (() => import("@zcode/bootstrap"));
+    const bootstrap = deps.loadBootstrapModule ?? (() => import("@social-harness/bootstrap"));
     const listSkills = deps.listSkills ?? (await bootstrap()).listZCodeSkills;
     const outcome = await listSkills({
       env,
@@ -87,7 +87,7 @@ async function runSkillsInspectCommand(
   try {
     const env = deps.env ?? process.env;
     const workingDirectory = (deps.cwd ?? process.cwd)();
-    const bootstrap = deps.loadBootstrapModule ?? (() => import("@zcode/bootstrap"));
+    const bootstrap = deps.loadBootstrapModule ?? (() => import("@social-harness/bootstrap"));
     const inspectSkill = deps.inspectSkill ?? (await bootstrap()).inspectZCodeSkill;
     const inspection = await inspectSkill({
       env,

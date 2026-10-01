@@ -7,8 +7,8 @@ import {
   type SessionGoal,
   type TurnFileChangeSummary,
   type TurnId,
-} from "@zcode/contracts";
-import type { ConversationSnapshot } from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/contracts";
+import type { ConversationSnapshot } from "@social-harness/shared/zcode-protocol-v4";
 import {
   goalVerificationEntriesFromSessionEntries,
   synthesizeEventsFromMessages,
@@ -26,22 +26,22 @@ interface ConversationMaterializationSource {
 }
 
 interface PersistedConversationMaterializationStore {
-  getSession(sessionId: import("@zcode/contracts").SessionId): Promise<{
+  getSession(sessionId: import("@social-harness/contracts").SessionId): Promise<{
     title?: string;
     revert?: {
-      branchCutAfterMessageID?: import("@zcode/contracts").MessageId;
+      branchCutAfterMessageID?: import("@social-harness/contracts").MessageId;
       branchGeneration?: number;
-      createdMessageID?: import("@zcode/contracts").MessageId;
-      keptMessageIDs?: import("@zcode/contracts").MessageId[];
-      targetMessageID?: import("@zcode/contracts").MessageId;
+      createdMessageID?: import("@social-harness/contracts").MessageId;
+      keptMessageIDs?: import("@social-harness/contracts").MessageId[];
+      targetMessageID?: import("@social-harness/contracts").MessageId;
     };
   } | null>;
-  messages(input: { sessionID: import("@zcode/contracts").SessionId }): Promise<MessageWithParts[]>;
+  messages(input: { sessionID: import("@social-harness/contracts").SessionId }): Promise<MessageWithParts[]>;
   readTarget(input: {
-    sessionID: import("@zcode/contracts").SessionId;
+    sessionID: import("@social-harness/contracts").SessionId;
   }): Promise<SessionGoal | null>;
   sessionEntries?(input: {
-    sessionID: import("@zcode/contracts").SessionId;
+    sessionID: import("@social-harness/contracts").SessionId;
     type?: string;
   }): Promise<SessionEntryInfo[]>;
 }
@@ -68,7 +68,7 @@ export async function loadPersistedConversationMaterialization(input: {
       messages: [],
     };
   }
-  const sessionID = input.sessionId as import("@zcode/contracts").SessionId;
+  const sessionID = input.sessionId as import("@social-harness/contracts").SessionId;
   const [session, allMessages, target, entries] = await Promise.all([
     input.store.getSession(sessionID),
     input.persistedMessages ?? input.store.messages({ sessionID }),

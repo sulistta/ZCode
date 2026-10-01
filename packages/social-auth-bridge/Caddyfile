@@ -1,0 +1,4 @@
+{$SOCIAL_AUTH_BRIDGE_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy social-auth-bridge:8080
+}

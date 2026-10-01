@@ -126,8 +126,8 @@ export class NetworkCaptureService {
     const caCertPath = join(this.caDir, "certs", "ca.pem");
     const env: Record<string, string> = url
       ? {
-          ZCODE_HTTP_PROXY: url,
-          ZCODE_AGENT_CA_CERT: caCertPath,
+          SOCIAL_HARNESS_HTTP_PROXY: url,
+          SOCIAL_HARNESS_AGENT_CA_CERT: caCertPath,
         }
       : {};
 
@@ -304,12 +304,12 @@ export function disabledNetworkCaptureStatus(): NetworkCaptureStatus {
 export function createNetworkCaptureServiceFromEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): NetworkCaptureService | undefined {
-  if (isDisabled(env.ZCODE_DEBUG_NETWORK_CAPTURE)) return undefined;
+  if (isDisabled(env.SOCIAL_HARNESS_DEBUG_NETWORK_CAPTURE)) return undefined;
   return new NetworkCaptureService({
-    host: env.ZCODE_DEBUG_NETWORK_HOST || undefined,
-    port: parsePositiveInteger(env.ZCODE_DEBUG_NETWORK_PORT) ?? DEFAULT_PORT,
-    caDir: env.ZCODE_DEBUG_NETWORK_CA_DIR || undefined,
-    maxEntries: parsePositiveInteger(env.ZCODE_DEBUG_NETWORK_MAX_ENTRIES) ?? DEFAULT_MAX_ENTRIES,
+    host: env.SOCIAL_HARNESS_DEBUG_NETWORK_HOST || undefined,
+    port: parsePositiveInteger(env.SOCIAL_HARNESS_DEBUG_NETWORK_PORT) ?? DEFAULT_PORT,
+    caDir: env.SOCIAL_HARNESS_DEBUG_NETWORK_CA_DIR || undefined,
+    maxEntries: parsePositiveInteger(env.SOCIAL_HARNESS_DEBUG_NETWORK_MAX_ENTRIES) ?? DEFAULT_MAX_ENTRIES,
   });
 }
 

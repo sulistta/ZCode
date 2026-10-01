@@ -1,7 +1,7 @@
-import { BIGMODEL_PROVIDER_ID } from "@zcode/shared";
+import { BIGMODEL_PROVIDER_ID } from "@social-harness/shared";
 
 const ACTIVE_PROVIDER_KEY = "oauth:active_provider";
-const ZCODE_JWT_TOKEN_KEY = "zcodejwttoken";
+const SOCIAL_HARNESS_JWT_TOKEN_KEY = "zcodejwttoken";
 
 interface BigModelStartPlanZcodeJwtCredentialService {
   load(key: string): Promise<string | null>;
@@ -14,7 +14,8 @@ export async function resolveBigModelStartPlanZcodeJwt(params: {
 }): Promise<string> {
   const activeProvider = (await params.credentialService?.load(ACTIVE_PROVIDER_KEY))?.trim() || "";
   if (params.trustCachedZcodeJwt === true || activeProvider === BIGMODEL_PROVIDER_ID) {
-    const credentialJwt = (await params.credentialService?.load(ZCODE_JWT_TOKEN_KEY))?.trim() || "";
+    const credentialJwt =
+      (await params.credentialService?.load(SOCIAL_HARNESS_JWT_TOKEN_KEY))?.trim() || "";
     if (credentialJwt) {
       return credentialJwt;
     }

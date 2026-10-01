@@ -1,4 +1,4 @@
-import type { ProviderConfigLayerSnapshot, ProviderSource } from "@zcode/provider";
+import type { ProviderConfigLayerSnapshot, ProviderSource } from "@social-harness/provider";
 import {
   normalizeZCodeBuiltinEndpointOrigin,
   resolveZCodeBuiltinCachePaths,

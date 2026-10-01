@@ -1,4 +1,4 @@
-import type { SessionCreateSource } from "@zcode/shared";
+import type { SessionCreateSource } from "@social-harness/shared";
 import type { GroupedDraftTaskState } from "@/store/zcodeSessionStoreTypes.js";
 
 export interface PendingCommandClientContext {

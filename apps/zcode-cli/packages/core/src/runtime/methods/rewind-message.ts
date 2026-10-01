@@ -443,7 +443,7 @@ async function buildConversationRewindPlan(
     targetMessageId: MessageId;
     /**
      * assistant 锚点回溯映射开关：仅纯 conversation scope（v4 editUserQuery/retryTurn
-     * 的 `/rewind conversation <assistantMessageId>`）开启；cascade/both 的显式 TUI
+     * 的 `/rewind conversation <assistantMessageId>`）开启；cascade/both 的显式调用
      * 流保持严格 user prompt 目标校验（precheck reject，不隐式扩大回滚范围）。
      */
     remapAssistantAnchor?: boolean;

@@ -10,7 +10,7 @@ const { loadBuiltinProviderConfig } = await import(
 const { content: zcodeBuiltinProviderConfigJson } = await loadBuiltinProviderConfig();
 
 export const SERVER_CLI_DEFINES = {
-  __ZCODE_BUILTIN_PROVIDER_CONFIG_JSON__: JSON.stringify(zcodeBuiltinProviderConfigJson),
+  __SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_JSON__: JSON.stringify(zcodeBuiltinProviderConfigJson),
 };
 
 export default defineConfig({
@@ -27,10 +27,9 @@ export default defineConfig({
   banner: {
     js: 'import { fileURLToPath as __zcodeFileURLToPath } from "node:url"; import { dirname as __zcodeDirname } from "node:path"; const __filename = __zcodeFileURLToPath(import.meta.url); const __dirname = __zcodeDirname(__filename);',
   },
-  noExternal: ["@zcode/shared", "@zcode/rpc", "@zcode/services"],
+  noExternal: ["@social-harness/shared", "@social-harness/rpc", "@social-harness/services"],
   define: SERVER_CLI_DEFINES,
   external: [
-    "node-pty",
     "ssh2",
     "yaml",
     "node-forge",
@@ -40,9 +39,5 @@ export default defineConfig({
     "combined-stream",
     "proxy-from-env",
     "follow-redirects",
-    "@lydell/node-pty-darwin-arm64",
-    "@lydell/node-pty-darwin-x64",
-    "@lydell/node-pty-linux-arm64",
-    "@lydell/node-pty-linux-x64",
   ],
 });

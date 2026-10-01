@@ -1,9 +1,13 @@
-import type { BackgroundBashOutputResult, SessionDebugSnapshot } from "@zcode/shared";
+import type { BackgroundBashOutputResult, SessionDebugSnapshot } from "@social-harness/shared";
 /* eslint-disable max-lines -- ZCode agent service 接口集中声明 protocol/session/workspace 方法，拆分会增加 service descriptor 迁移成本。 */
-import type { Event, IDisposable } from "@zcode/rpc";
-import { ServiceChannels } from "@zcode/shared";
-import type { AppUsageRange, AppUsageSnapshot, ZCodeTaskTokenUsageResult } from "@zcode/shared";
-import type { ZCodeAutomation, ZCodeAutomationRun } from "@zcode/shared";
+import type { Event, IDisposable } from "@social-harness/rpc";
+import { ServiceChannels } from "@social-harness/shared";
+import type {
+  AppUsageRange,
+  AppUsageSnapshot,
+  ZCodeTaskTokenUsageResult,
+} from "@social-harness/shared";
+import type { ZCodeAutomation, ZCodeAutomationRun } from "@social-harness/shared";
 import type {
   ZCodeStorageStartupState,
   ZCodeDeliveryKind,
@@ -63,7 +67,7 @@ import type {
   ZCodeWorkspaceGenerateTextResult,
   ZCodeWorkspaceGenerateTextParams,
   ZCodeWorkspaceHookTrustGrantResult,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type {
   ClientHello,
   CommandAck,
@@ -100,7 +104,7 @@ import type {
   V4SessionsIndexSubscribeResult,
   V4WorkspaceConfigSubscribeResult,
   WorkspaceConfigTopicWireCandidate,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import { createServiceDescriptor } from "../descriptors.js";
 
 export * from "./zcodeAgentPluginParams.js";
@@ -175,7 +179,8 @@ export interface ZCodeAgentWorkspaceRuntimeIdentity {
   workspaceKey: string;
 }
 
-export const ZCODE_AGENT_RUNTIME_UNAVAILABLE_CODE = "ZCODE_AGENT_RUNTIME_UNAVAILABLE";
+export const SOCIAL_HARNESS_AGENT_RUNTIME_UNAVAILABLE_CODE =
+  "SOCIAL_HARNESS_AGENT_RUNTIME_UNAVAILABLE";
 
 export type ZCodeAgentRuntimePolicy = "start-if-needed" | "existing-only";
 
@@ -252,7 +257,7 @@ export interface ZCodeAgentGrantWorkspaceHookTrustParams extends ZCodeAgentWorks
 
 export interface ZCodeAgentSendPromptParamsBase extends ZCodeAgentSessionTarget {
   modelSelection?: ModelSelection;
-  modelExecution?: import("@zcode/shared/zcode-protocol-v4").CommandPayloadMap["sendText"]["modelExecution"];
+  modelExecution?: import("@social-harness/shared/zcode-protocol-v4").CommandPayloadMap["sendText"]["modelExecution"];
   inputId?: string;
   queryId?: string;
   messageId?: string;
@@ -632,7 +637,7 @@ export interface IZCodeAgentService {
   moveSavedWorkflow(params: ZCodeAgentMoveSavedWorkflowParams): Promise<ZCodeWorkflowsMoveResult>;
   resolveSuggestedPluginReference(
     params: ZCodeAgentResolveSuggestedPluginReferenceParams,
-  ): Promise<import("@zcode/shared").ZCodePluginsResolveSuggestedReferenceResult>;
+  ): Promise<import("@social-harness/shared").ZCodePluginsResolveSuggestedReferenceResult>;
   /** 推荐项 Plugin 首次本地检查缺失后的 operation-scoped 刷新进度。 */
   onDynamicPluginOperationProgress(
     operationId: string,
@@ -809,7 +814,7 @@ export interface IZCodeAgentService {
   /** workspace 级 live telemetry 事实；connection facade 仅向可信 desktop-continuous 下游暴露。 */
   onDynamicLocalTtftFacts(
     params: ZCodeAgentWorkspaceTarget,
-  ): Event<import("@zcode/shared").LocalTtftFacts>;
+  ): Event<import("@social-harness/shared").LocalTtftFacts>;
   onDynamicConversationTelemetryFact(
     params: ZCodeAgentWorkspaceTarget,
   ): Event<ConversationTelemetryFact>;

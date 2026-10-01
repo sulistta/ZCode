@@ -10,7 +10,11 @@ import {
   PeriodicExportingMetricReader,
 } from "@opentelemetry/sdk-metrics";
 import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
-import { LOCAL_TTFT_BUCKETS_MS, localTtftBatchSchema, type LocalTtftBatch } from "@zcode/shared";
+import {
+  LOCAL_TTFT_BUCKETS_MS,
+  localTtftBatchSchema,
+  type LocalTtftBatch,
+} from "@social-harness/shared";
 import {
   createRendererActionTraceExporter,
   parseRendererActionTraceHeaders,
@@ -77,7 +81,7 @@ export function createLocalTtftExporter(options: {
       },
     ],
   });
-  const meter = meterProvider.getMeter("@zcode/local-ttft", "1");
+  const meter = meterProvider.getMeter("@social-harness/local-ttft", "1");
   const duration = meter.createHistogram("zcode.local_ttft.duration", { unit: "ms" });
   const stageDuration = meter.createHistogram("zcode.local_ttft.stage.duration", { unit: "ms" });
   const stageObservation = meter.createHistogram("zcode.local_ttft.stage.observation.duration", {

@@ -1,5 +1,8 @@
-import type { ProviderSettingsView } from "@zcode/services";
-import { type ZCodeProviderAccountAccess, zcodeProviderAccountAccessSchema } from "@zcode/shared";
+import type { ProviderSettingsView } from "@social-harness/services";
+import {
+  type ZCodeProviderAccountAccess,
+  zcodeProviderAccountAccessSchema,
+} from "@social-harness/shared";
 
 interface EntitledAccountProviderAccess {
   readonly providerId: string;

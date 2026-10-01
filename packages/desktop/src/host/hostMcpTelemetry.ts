@@ -1,7 +1,7 @@
-import type { IDisposable } from "@zcode/rpc";
-import type { IZCodeAgentService } from "@zcode/services";
-import type { ProcessResourceRuntimeSurface } from "@zcode/shared";
-import { HostResponseTypes } from "@zcode/shared";
+import type { IDisposable } from "@social-harness/rpc";
+import type { IZCodeAgentService } from "@social-harness/services";
+import type { ProcessResourceRuntimeSurface } from "@social-harness/shared";
+import { HostResponseTypes } from "@social-harness/shared";
 
 interface RegisterHostMcpTelemetryOptions {
   agentService: Pick<IZCodeAgentService, "onDynamicMcpTelemetry">;

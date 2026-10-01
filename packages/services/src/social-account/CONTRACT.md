@@ -1,0 +1,11 @@
+# Social account contract
+
+The Host owns social account identity, editorial profile, learned preference entries, workspace identity, and the per-account automation policy. Instagram identity, connection status, and publication capability belong to the social publishing service. The service contract in `contract.ts` is the only supported cross-module entry point.
+
+Account creation is local and does not imply Instagram authorization. New accounts start disconnected and supervised. The account name and editorial profile are edited together through `updateEditorial`; automation policy uses its own revision-checked update. Enabling automatic publishing requires a validated non-empty allowed-source list, cadence, and daily publication limit. User-originated and learned memory entries are both editable or removable by the user; learned entries never alter automation policy.
+
+Mutations carry `expectedUpdatedAt`. The application service checks it inside the store's cross-process write lock and rejects a stale write without changing data. Accepted updates persist before emitting `onChanged`. This first increment does not expose account deletion until dependent conversation, media, project, automation, credential, and publication cleanup can be coordinated through their owning modules.
+
+The contract never returns access tokens, app secrets, or local media paths. Older account JSON entries may contain `instagramHandle` and `connectionStatus`; schema parsing ignores those obsolete fields, and new reads and writes omit them. Account listings and catalog views expose the stable `workspaceIdentity` but not a filesystem path. When the Host opens an account conversation, `resolveConversationWorkspace(accountId)` returns the Host-derived cwd together with that identity and ensures the directory exists. The Host validates the identity/path pair against the persisted account before any Agent storage or runtime operation; callers cannot select or override either value.
+
+The account workspace lives under the Social Harness data root at `social-accounts/workspaces/<accountId>`. Existing session indexing and runtime storage remain the owners of conversation state; this service only resolves and validates the workspace boundary.

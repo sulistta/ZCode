@@ -1,17 +1,11 @@
-/* eslint-disable max-lines -- workspace shell 当前集中编排 sidebar、chat、terminal 和 browser pane 的布局联动，先保持单文件收口，避免为满足行数限制打散关键布局状态。*/
+/* eslint-disable max-lines -- workspace shell 当前集中编排 sidebar、chat 和 browser pane 的布局联动，先保持单文件收口，避免为满足行数限制打散关键布局状态。*/
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   CSSProperties,
   KeyboardEvent as ReactKeyboardEvent,
   PointerEvent as ReactPointerEvent,
 } from "react";
-import type { PanelImperativeHandle } from "react-resizable-panels";
-
-import { TID_APP_HEADER } from "@zcode/shared";
-// 保活：workspace tab 真正关闭时，按 workspaceKey 回收 side pane terminal 的常驻 PTY/xterm。
-// 对称下侧 Terminal.tsx 的 openWorkspaceKeys 回收。
-import { sidePaneTerminalSessionRegistry } from "@/terminal/sidePaneTerminalSessionRegistry.js";
-import { V4ChatPane } from "@/v4/V4ChatPane.js";
+import { TID_APP_HEADER } from "@social-harness/shared";
 import { V4WorkspaceChatArea } from "@/v4/V4WorkspaceChatArea.js";
 import {
   V4SplitPaneEntryProvider,
@@ -35,7 +29,6 @@ import { DesktopTopOverlay } from "@/DesktopTopOverlay.js";
 import { DesktopWindowFrame } from "@/DesktopWindowFrame.js";
 import { WorkspacePluginPreview } from "@/WorkspacePluginPreview.js";
 import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
-import { GitBranchSwitcher } from "@/GitBranchSwitcher.js";
 import { ScopedErrorBoundary } from "@/ErrorBoundary.js";
 
 import { AUTOMATIONS_TOAST_ANCHOR_ID, AutomationsSection } from "@/settings/AutomationsSection.js";
@@ -48,13 +41,12 @@ import { AutomationsMainBreadcrumbFrame } from "@/settings/AutomationsMainBreadc
 import { PluginStorePage } from "@/settings/PluginStorePage.js";
 import { TaskFindDialog } from "@/quickpick/TaskFindDialog.js";
 import { WorkspaceHeader } from "@/WorkspaceHeader.js";
-import { WorkspaceSidebar, type SidebarFileTreeOpenRequest } from "@/WorkspaceSidebar.js";
+import { WorkspaceSidebar } from "@/WorkspaceSidebar.js";
 import { AnimatedSidePanePanel } from "@/app-shell/AnimatedSidePanePanel.js";
 import {
   findScreenshotSurfaceTabForRender,
   useBrowserScreenshotSurfaceRequest,
 } from "@/browser-use/useBrowserScreenshotSurfaceRequest.js";
-import { AnimatedTerminalPanel } from "@/app-shell/AnimatedTerminalPanel.js";
 import { SIDE_PANE_DEFAULT_EXPANDED_SIZE } from "@/app-shell/sidePaneLayout.js";
 import { useAnimatedResizablePanel } from "@/app-shell/useAnimatedResizablePanel.js";
 import { ensureTaskNavigationWorkspace } from "@/app-shell/taskNavigationWorkspace.js";
@@ -65,10 +57,8 @@ import {
   resolveWorkspaceShellWindowChromeClass,
 } from "@/app-shell/workspaceShellWindowChrome.js";
 import { cn } from "@/components/lib/utils.js";
-import { Button } from "@/components/ui/button.js";
 import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable.js";
 import { toast } from "@/components/ui/toast.js";
-import { getGitDirtyFileCount } from "@/git-branch-switcher/display.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { getPathLeaf, toFileUrl } from "@/lib/path.js";
@@ -87,10 +77,6 @@ import {
 } from "@/lib/selectionSideChatRuntime.js";
 import { getActiveSelectionSideChatTab } from "@/lib/workspaceSidePane.js";
 import { logger } from "@/logger.js";
-import {
-  areWorkspaceFilePathsEqual,
-  isWorkspaceFilePathInside,
-} from "@/workspace-file-tree/model.js";
 import type { WorkspaceShellLayoutProps } from "@/app-shell/types.js";
 import { useTabStoreApi } from "@/store/TabStoreProvider.js";
 import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
@@ -119,7 +105,7 @@ const CONVERSATION_AUTO_COLLAPSE_RESIZE_IDLE_MS = 300;
 // 性能修复：ResizablePanelGroup 收到深相等的新 panelIds 数组，
 // 会跟随 chat streaming render 重算布局上下文；固定数组语义上不会随消息变化。
 const WORKSPACE_BODY_PANEL_IDS = ["conversation-column", "browser"];
-const WORKSPACE_CONVERSATION_PANEL_IDS = ["conversation", "terminal"];
+const WORKSPACE_CONVERSATION_PANEL_IDS = ["conversation"];
 
 type WorkspaceSidebarResizeSession = {
   containerWidthPx: number;
@@ -215,7 +201,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
   onOpenWorkspace,
   onOpenFolderFromWorkspaceMenu,
   onOpenRemoteWorkspace,
-  onCreateScratchWorkspace,
   allowOpenWorkspace = true,
   allowRemoteWorkspace = true,
   remoteWorkspaceSessions = EMPTY_REMOTE_WORKSPACE_SESSIONS,
@@ -244,7 +229,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
   canGoForward,
   canTaskNavBack,
   canTaskNavForward,
-  isTerminalOpen,
   isSidebarVisible,
   isSidePaneOpen,
   isBrowserOpen,
@@ -262,26 +246,16 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
   activeTaskProvider,
   resolvedActiveTaskMeta,
   activeTaskTitle,
-  activeTaskChangeSummary,
-  gitWorktreeReviewSourceId,
-  gitWorktreeChangeSummary,
-  activeGitSourceId,
-  gitState,
   browserNavigationRequest,
   browserRestoreUrls,
   taskNativeSessionLogFile,
   taskSessionFile,
-  testMessages,
   conversationFindActiveIndex,
   conversationFindNavigationRequestId,
   conversationFindQuery,
   onConversationFindMatchStateChange,
   searchResultHighlightRequest,
   onSearchResultHighlightDone,
-  fileChangeFindActiveIndex,
-  fileChangeFindNavigationRequestId,
-  fileChangeFindQuery,
-  onFileChangeFindMatchCountChange,
   appLogoUrl,
   platform,
   reloadSessionDisabled,
@@ -292,19 +266,13 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
   handleTaskNavForward,
   handleStartDraftInWorkspace,
   handleOpenCommandCenter,
-  handleRefreshGit,
   handleBrowserUrlChange,
   handleBrowserPageMetadataChange,
   handleToggleSidebar,
-  handleToggleTerminal,
   handleToggleBrowser,
   handleOpenBrowserTab,
-  handleOpenTreemapping,
   handleOpenWhiteboard,
   handleOpenDeveloperTools,
-  handleOpenTerminalTab,
-  handleToggleGit,
-  handleOpenGitReview,
   handleToggleSidePane,
   handleOpenBrowserUrl,
   handleOpenCodeViewer,
@@ -321,7 +289,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
   handleOpenWorkflowWorkspace,
   handleOpenWorkflowArtifact,
   handleCloseCodeViewer,
-  handleCloseGit,
   handleActivateSidePaneTab,
   handleReorderSidePaneTab,
   handleCloseSidePaneTab,
@@ -329,8 +296,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
   handleCloseAllSidePaneTabs,
   handleReopenClosedSidePaneTab,
   handleBrowserNavigationRequestHandled,
-  setIsTerminalOpen,
-  setGitSelectedSourceId,
   taskFindDialogProps,
 }: WorkspaceShellLayoutProps) {
   const { intl } = useZCodeIntl();
@@ -354,11 +319,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
   const collapsedSidebarWidthPx = hasDesktopPanelInset ? 4 : 0;
   const [draftHeaderDropTargetController, setDraftHeaderDropTargetController] =
     useState<ConversationDropTargetController | null>(null);
-  const fileTreeOpenRequestIdRef = useRef(0);
-  const [fileTreeOpenRequest, setFileTreeOpenRequest] = useState<SidebarFileTreeOpenRequest | null>(
-    null,
-  );
-  const [isSidebarFileTreeOpen, setIsSidebarFileTreeOpen] = useState(false);
   const workspaceKey = workspaceIdentity?.trim() || workspaceAbsPath;
   const screenshotSurfaceRequest = useBrowserScreenshotSurfaceRequest(sidePaneState?.tabs ?? []);
   const screenshotSurfaceTab = screenshotSurfaceRequest
@@ -388,30 +348,7 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
     () => readStoredWorkspaceSidebarWidthPx() ?? WORKSPACE_SIDEBAR_DEFAULT_WIDTH_PX,
   );
   const workspaceSidebarPanelWidthPxRef = useRef(workspaceSidebarPanelWidthPx);
-  const openWorkspaceKeys = useMemo(
-    () => workspaceTabs.map((tab) => tab.workspaceIdentity?.trim() || tab.workspacePath),
-    [workspaceTabs],
-  );
-  // 保活回收：workspace tab 真正关闭（从 openWorkspaceKeys 移除）时，回收属于该 workspace 的
-  // side pane terminal 常驻 session（杀 PTY + 销 xterm），避免孤儿进程泄漏。
-  // 切 workspace 不会让 workspaceKey 离开这个集合，所以保活的 session 不受影响。
-  // 对称下侧 Terminal.tsx:145-177 的 openWorkspaceKeys 回收逻辑。
-  useEffect(() => {
-    const retained = new Set(openWorkspaceKeys);
-    sidePaneTerminalSessionRegistry.releaseByPredicate(
-      (entry) => Boolean(entry.workspaceKey) && !retained.has(entry.workspaceKey),
-    );
-  }, [openWorkspaceKeys]);
   const isSidebarPanelVisible = isSidebarVisible;
-  const {
-    panelRef: terminalPanelRef,
-    panelElementRef: terminalPanelElementRef,
-    isVisible: isTerminalVisible,
-  } = useAnimatedResizablePanel({
-    open: isTerminalOpen,
-    expandedSize: "30%",
-    rememberExpandedSize: true,
-  });
   const {
     panelRef: sidePanePanelRef,
     panelElementRef: sidePanePanelElementRef,
@@ -427,9 +364,7 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
   });
   const workspaceSessionActionDisabled =
     Boolean(workspaceReadOnlyReason) || reloadSessionDisabled || reloadSessionPending;
-  // 文件树打开时任务列表整屏滑出，侧栏里的 New Task 入口也随之不可见。
-  // 顶部浮层需要临时露出 New Task，关闭文件树后继续沿用侧栏收起态规则。
-  const showTopOverlayNewTaskButton = !isSidebarVisible || isSidebarFileTreeOpen;
+  const showTopOverlayNewTaskButton = !isSidebarVisible;
   const workspaceSidebarResizeLabel = intl.formatMessage({
     id: "workspaceSidebar.resizeSidebar",
   });
@@ -732,11 +667,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
     return activeWorkspaceKey === requestWorkspaceKey ? searchResultHighlightRequest : null;
   }, [activeTaskId, searchResultHighlightRequest, workspaceAbsPath, workspaceIdentity]);
   const renderChatFindDialog = () => <TaskFindDialog {...taskFindDialogProps} placement="chat" />;
-  const gitDirtyFileCount = useMemo(() => {
-    // 关键业务逻辑：同一个文件可能同时出现在 staged / unstaged。
-    // 这里按 path 去重后再统计，避免入口里“未提交更改文件数”被重复计算。
-    return getGitDirtyFileCount(gitState.datasets);
-  }, [gitState.datasets.staged, gitState.datasets.unstaged]);
   const workspaceRemoteTarget = useMemo(
     () =>
       workspaceTabs.find(
@@ -773,49 +703,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
       workspaceSidebarPanelWidthPx,
     ],
   );
-  const activePreviewPath = useMemo(() => {
-    const activeSidePaneTab =
-      sidePaneState?.tabs.find((tab) => tab.id === sidePaneState.activeTabId) ?? null;
-    return activeSidePaneTab?.type === "code-viewer"
-      ? (activeSidePaneTab.source.path ?? null)
-      : null;
-  }, [sidePaneState]);
-  const findFileLinkOwnerWorkspace = useCallback(
-    (
-      targetPath: string,
-      targetWorkspaceIdentity?: string,
-      targetWorkspaceRemoteSessionId?: string,
-    ) => {
-      const matches = workspaceTabs.filter(
-        (tab) =>
-          isWorkspaceFilePathInside(tab.workspacePath, targetPath) &&
-          (!targetWorkspaceIdentity || tab.workspaceIdentity === targetWorkspaceIdentity) &&
-          (!targetWorkspaceRemoteSessionId ||
-            tab.remoteSessionId === targetWorkspaceRemoteSessionId),
-      );
-      if (matches.length === 0) {
-        return null;
-      }
-      return (
-        matches.sort((left, right) => {
-          const leftActive = left.workspaceIdentity === workspaceIdentity ? 1 : 0;
-          const rightActive = right.workspaceIdentity === workspaceIdentity ? 1 : 0;
-          if (leftActive !== rightActive) {
-            return rightActive - leftActive;
-          }
-          return right.workspacePath.length - left.workspacePath.length;
-        })[0] ?? null
-      );
-    },
-    [workspaceIdentity, workspaceTabs],
-  );
-  const openFileTreeRequest = useCallback((request: Omit<SidebarFileTreeOpenRequest, "id">) => {
-    fileTreeOpenRequestIdRef.current += 1;
-    setFileTreeOpenRequest({
-      id: fileTreeOpenRequestIdRef.current,
-      ...request,
-    });
-  }, []);
   const showChatMainView = useCallback(() => {
     onWorkspaceMainViewChange("chat");
   }, [onWorkspaceMainViewChange]);
@@ -1088,8 +975,8 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
     (
       targetWorkspacePath: string,
       targetWorkspaceIdentity?: string,
-      targetWorkspacePurpose?: import("@zcode/shared").WorkspacePurpose,
-      createSource?: import("@zcode/shared").SessionCreateSource,
+      targetWorkspacePurpose?: import("@social-harness/shared").WorkspacePurpose,
+      createSource?: import("@social-harness/shared").SessionCreateSource,
     ) => {
       showChatMainView();
       handleStartDraftInWorkspace(
@@ -1106,12 +993,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
       handleStartDraftInWorkspaceInChat(path, identity, undefined, "project"),
     [handleStartDraftInWorkspaceInChat],
   );
-  const activeWorkspacePurpose =
-    workspaceTabs.find(
-      (tab) =>
-        tab.workspacePath === workspaceAbsPath &&
-        (!workspaceIdentity || tab.workspaceIdentity === workspaceIdentity),
-    )?.workspacePurpose ?? "project";
   const handleSelectConversationWorkspace = useCallback(async () => {
     if (!onResolveConversationWorkspace) {
       return;
@@ -1197,19 +1078,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
             workspaceIdentity={workspaceIdentity}
             remoteSessionId={workspaceRemoteSessionId ?? undefined}
           />
-        ) : !isOfficeMode && activeWorkspacePurpose === "project" ? (
-          <GitBranchSwitcher
-            workspacePath={workspaceAbsPath}
-            gitSummary={gitState.summary}
-            dirtyFileCount={gitDirtyFileCount}
-            onRefreshGit={handleRefreshGit}
-            className="px-0 pt-0"
-            popoverClassName="w-72"
-            branchListClassName="max-h-48"
-            // 输入框区域在底部，Radix 碰撞避让会把分支菜单翻到下方。
-            // 这里锁定上方弹出，避免菜单遮挡输入区并保持操作方向稳定。
-            avoidPopoverCollisions={false}
-          />
         ) : null}
       </>
     ),
@@ -1220,10 +1088,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
       handleSelectComposerPlugin,
       allowOpenWorkspace,
       allowRemoteWorkspace,
-      activeWorkspacePurpose,
-      gitDirtyFileCount,
-      gitState.summary,
-      handleRefreshGit,
       handleSelectConversationWorkspace,
       handleStartDraftInWorkspaceInChat,
       isWindowsDesktop,
@@ -1290,45 +1154,8 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
           return;
         }
 
-        if (target.serviceScope === "base-local") {
-          openFileTreeRequest({
-            target: {
-              workspacePath: target.path,
-              workspaceName: target.label || getPathLeaf(target.path),
-              revealPath: target.path,
-              temporaryExternalDirectory: true,
-            },
-          });
-          return;
-        }
-
-        const ownerWorkspace = findFileLinkOwnerWorkspace(
-          target.path,
-          target.workspaceIdentity,
-          target.workspaceRemoteSessionId,
-        );
-        if (ownerWorkspace) {
-          openFileTreeRequest({
-            target: {
-              workspacePath: ownerWorkspace.workspacePath,
-              workspaceName: ownerWorkspace.label,
-              workspaceIdentity: ownerWorkspace.workspaceIdentity,
-              workspaceRemoteSessionId: ownerWorkspace.remoteSessionId,
-              revealPath: areWorkspaceFilePathsEqual(ownerWorkspace.workspacePath, target.path)
-                ? undefined
-                : target.path,
-            },
-          });
-          return;
-        }
-
-        openFileTreeRequest({
-          target: {
-            workspacePath: target.path,
-            workspaceName: target.label || getPathLeaf(target.path),
-            revealPath: target.path,
-            temporaryExternalDirectory: true,
-          },
+        logger.info("[WorkspaceShell] 忽略目录链接：Social Harness 不提供 workspace 文件浏览器", {
+          path: target.path,
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -1348,16 +1175,13 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
             workspaceRemoteSessionId: target.workspaceRemoteSessionId,
           });
         }
-        toast(intl.formatMessage({ id: "workspaceFileTree.openFailed" }));
       }
     },
     [
-      findFileLinkOwnerWorkspace,
       baseServices.fileService,
       handleOpenBrowserUrl,
       handleOpenCodeViewer,
       intl,
-      openFileTreeRequest,
       services.fileService,
       workspaceReadOnlyReason,
     ],
@@ -1368,30 +1192,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
         void handleOpenMarkdownFileLink(target);
       }),
     [handleOpenMarkdownFileLink],
-  );
-  const handleRevealGitFileInTree = useCallback(
-    (path: string) => {
-      if (workspaceReadOnlyReason) {
-        return;
-      }
-      openFileTreeRequest({
-        target: {
-          workspacePath: workspaceAbsPath,
-          workspaceName: projectName,
-          workspaceIdentity,
-          workspaceRemoteSessionId,
-          revealPath: path,
-        },
-      });
-    },
-    [
-      openFileTreeRequest,
-      projectName,
-      workspaceAbsPath,
-      workspaceIdentity,
-      workspaceRemoteSessionId,
-      workspaceReadOnlyReason,
-    ],
   );
   const activeSelectionSideChatSessionId = activeTaskId
     ? (getActiveSelectionSideChatTab(sidePaneState, {
@@ -1416,7 +1216,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
     <AnimatedSidePanePanel
       services={services}
       isDesktop={isDesktop}
-      isWindowsDesktop={isWindowsDesktop}
       frameClassName={resolveWorkspaceShellWindowChromeClass({
         isMacDesktop,
         isWindowsDesktop,
@@ -1439,20 +1238,13 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
       workspaceRemoteSessionId={workspaceRemoteSessionId}
       activeTaskId={activeTaskId}
       sidePaneOwnerId={sidePaneOwnerId}
-      gitState={gitState}
-      activeGitSourceId={activeGitSourceId}
       panelRef={sidePanePanelRef}
       panelElementRef={sidePanePanelElementRef}
       browserNavigationRequest={browserNavigationRequest}
       browserRestoreUrls={browserRestoreUrls}
       screenshotSurfaceRequest={screenshotSurfaceRequest}
       screenshotSurfaceTabId={screenshotSurfaceTab?.id ?? null}
-      fileChangeFindActiveIndex={fileChangeFindActiveIndex}
-      fileChangeFindNavigationRequestId={fileChangeFindNavigationRequestId}
-      fileChangeFindQuery={fileChangeFindQuery}
-      onFileChangeFindMatchCountChange={onFileChangeFindMatchCountChange}
       onCloseCodeViewer={handleCloseCodeViewer}
-      onCloseGit={handleCloseGit}
       onActivateTab={handleActivateSidePaneTab}
       onReorderTab={handleReorderSidePaneTab}
       onCloseTab={handleCloseSidePaneTab}
@@ -1462,10 +1254,7 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
       onOpenBrowserTab={handleOpenBrowserTab}
       onOpenWhiteboard={handleOpenWhiteboard}
       onOpenDeveloperTools={handleOpenDeveloperTools}
-      onOpenTerminalTab={handleOpenTerminalTab}
-      onOpenReviewTab={handleToggleGit}
       onOpenSelectionSideConversation={handleOpenSelectionSideConversationLauncher}
-      onRevealGitFileInTree={handleRevealGitFileInTree}
       onOpenBrowserUrl={handleOpenBrowserUrl}
       onOpenCodeViewer={handleOpenCodeViewer}
       onOpenFileLink={handleOpenMarkdownFileLink}
@@ -1475,11 +1264,9 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
       onOpenWorkflowWorkspace={handleOpenWorkflowWorkspace}
       onOpenWorkflowArtifact={handleOpenWorkflowArtifact}
       onOpenWorkflowRun={handleOpenWorkflowRun}
-      onRefreshGit={handleRefreshGit}
       onBrowserNavigationRequestHandled={handleBrowserNavigationRequestHandled}
       onBrowserUrlChange={handleBrowserUrlChange}
       onBrowserPageMetadataChange={handleBrowserPageMetadataChange}
-      onSelectGitSource={setGitSelectedSourceId}
     />
   );
   const sidePanePanel = renderSidePanePanel();
@@ -1560,12 +1347,8 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
                   <WorkspaceSidebar
                     workspacePath={workspaceAbsPath}
                     workspaceRemoteSessionId={workspaceRemoteSessionId}
-                    activePreviewPath={activePreviewPath}
                     onSelectTask={handleSelectTaskInChat}
                     onStartDraftInWorkspace={handleCreateProjectDraft}
-                    onOpenCodeViewer={handleOpenCodeViewer}
-                    onOpenBrowserUrl={handleOpenBrowserUrl}
-                    fileTreeOpenRequest={fileTreeOpenRequest}
                     onCreateTask={handleCreateTaskInChat}
                     onCreateConversationTask={onCreateConversationTask ?? handleCreateTaskInChat}
                     onOpenFolderFromWorkspaceMenu={onOpenFolderFromWorkspaceMenu}
@@ -1600,7 +1383,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
                     automationsActive={workspaceMainView === "automations"}
                     onOpenPluginStore={handleOpenPluginStore}
                     pluginStoreActive={workspaceMainView === "plugin-store"}
-                    onFileTreeOpenChange={setIsSidebarFileTreeOpen}
                   />
                 </WorkflowRunOpenProvider>
               </V4SplitPaneEntryProvider>
@@ -1631,7 +1413,7 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
             )}
           />
         ) : null}
-        {/* 右侧主工作区：上方 header，下面左侧会话+终端，右侧共享 browser/code-viewer 槽位 */}
+        {/* 右侧主工作区：上方 header，下面左侧会话，右侧共享 browser/code-viewer 槽位 */}
         <div
           data-panel=""
           id="content"
@@ -1681,7 +1463,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
                             supportsNativeRoundedCorners:
                               desktopWindowChromeState?.supportsNativeRoundedCorners ?? null,
                           }),
-                      isTerminalVisible && "rounded-b-[var(--workspace-panel-radius)] border-b",
                     )}
                   >
                     {shouldRenderWorkspaceHeader ? (
@@ -1705,7 +1486,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
                           localWorkspacePath={workspaceLocalPathForRemoteMcpSync}
                           projectName={projectName}
                           activeTaskTitle={activeTaskTitle}
-                          activeTaskChangeSummary={activeTaskChangeSummary}
                           hasUpdateReady={hasUpdateStatusButton}
                           activeTaskId={activeTaskId}
                           user={user}
@@ -1719,18 +1499,13 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
                           nativeSessionLogExists={taskNativeSessionLogFile.exists}
                           nativeSessionLogLoading={taskNativeSessionLogFile.loading}
                           workspaceHeaderState={workspaceShellZCodeState}
-                          gitSummary={gitState.summary}
-                          gitDirtyFileCount={gitDirtyFileCount}
                           isMacDesktop={isMacDesktop}
                           isMacFullscreen={isMacFullscreen}
                           isWindowsDesktop={isWindowsDesktop}
                           windowsWindowControlsRightPaddingPx={windowsWindowControlsRightPaddingPx}
                           isDesktop={isDesktop}
                           isSidebarVisible={isSidebarVisible}
-                          isTerminalOpen={isTerminalOpen}
                           isSidePaneOpen={isSidePaneOpen}
-                          onRefreshGit={handleRefreshGit}
-                          onToggleTerminal={handleToggleTerminal}
                           onToggleBrowser={handleToggleBrowser}
                           onToggleSidePane={handleToggleSidePane}
                           toggleSidePaneShortcutLabel={toggleSidePaneShortcutLabel}
@@ -1852,17 +1627,10 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
                               onPrimaryDraftDropTargetControllerChange={
                                 setDraftHeaderDropTargetController
                               }
-                              gitSummary={gitState.summary}
-                              gitDirtyFileCount={gitDirtyFileCount}
-                              activeTaskChangeSummary={activeTaskChangeSummary}
-                              gitWorktreeReviewSourceId={gitWorktreeReviewSourceId}
-                              gitWorktreeChangeSummary={gitWorktreeChangeSummary}
                               summaryPanelVariantOverride={summaryPanelVariantOverride}
                               onSummaryPanelVariantOverrideChange={
                                 onSummaryPanelVariantOverrideChange
                               }
-                              onRefreshGit={handleRefreshGit}
-                              onOpenGitReview={handleOpenGitReview}
                               onPaneActiveSessionChange={handlePaneActiveSessionChange}
                               onOpenBrowserUrl={handleOpenBrowserUrl}
                               onOpenAutomationsMain={handleOpenAutomations}
@@ -1899,34 +1667,6 @@ export const WorkspaceShellLayout = memo(function WorkspaceShellLayoutComponent(
                     </div>
                   </section>
                 </ResizablePanel>
-                {workspaceMainView !== "automations" && workspaceMainView !== "plugin-store" ? (
-                  <AnimatedTerminalPanel
-                    frameClassName={cn(
-                      isSidePaneVisible
-                        ? "rounded-[var(--workspace-panel-radius)] border border-border"
-                        : resolveWorkspaceShellWindowChromeClass({
-                            isMacDesktop,
-                            isWindowsDesktop,
-                            isLinuxDesktop,
-                            macOSMajorVersion: desktopWindowChromeState?.macOSMajorVersion,
-                            isWindowsMaximized: desktopWindowChromeState?.isMaximized ?? false,
-                            supportsNativeRoundedCorners:
-                              desktopWindowChromeState?.supportsNativeRoundedCorners ?? null,
-                          }),
-                      "rounded-t-[var(--workspace-panel-radius)] border-t",
-                    )}
-                    services={services}
-                    workspaceAbsPath={workspaceAbsPath}
-                    workspaceIdentity={workspaceIdentity}
-                    openWorkspaceKeys={openWorkspaceKeys}
-                    isVisible={isTerminalVisible}
-                    isWindowsDesktop={isWindowsDesktop}
-                    panelRef={terminalPanelRef}
-                    panelElementRef={terminalPanelElementRef}
-                    onClose={() => setIsTerminalOpen(false)}
-                    onOpenBrowserUrl={handleOpenBrowserUrl}
-                  />
-                ) : null}
               </ResizablePanelGroup>
             </ResizablePanel>
             {/* Browser Guest Host 必须与主视图路由解耦，避免 automations/plugin

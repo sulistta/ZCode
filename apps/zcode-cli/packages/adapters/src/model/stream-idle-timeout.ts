@@ -1,6 +1,6 @@
-import { DEFAULT_MODEL_STREAM_IDLE_TIMEOUT_MS } from "@zcode/contracts";
+import { DEFAULT_MODEL_STREAM_IDLE_TIMEOUT_MS } from "@social-harness/contracts";
 
-export { DEFAULT_MODEL_STREAM_IDLE_TIMEOUT_MS } from "@zcode/contracts";
+export { DEFAULT_MODEL_STREAM_IDLE_TIMEOUT_MS } from "@social-harness/contracts";
 
 const MODEL_STREAM_IDLE_TIMEOUT_RETRY_INCREMENT_MS = 30_000;
 

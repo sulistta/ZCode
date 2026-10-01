@@ -1,10 +1,9 @@
-import type { TuiReadClipboardImage, TuiWriteClipboardText } from "@zcode/tui";
-import type { UiLocale } from "@zcode/i18n";
-import type { Logger } from "@zcode/contracts";
+import type { UiLocale } from "@social-harness/i18n";
+import type { Logger } from "@social-harness/contracts";
 import type {
   createManagedCdpBrowserRuntime,
   ManagedCdpBrowserRuntimeOptions,
-} from "@zcode/adapters/browser";
+} from "@social-harness/adapters/browser";
 import type {
   createModelAdapter,
   createZCodeApp,
@@ -38,13 +37,12 @@ import type {
   startProcessProviderRegistryRuntime,
   shutdownZCodeTelemetry,
   ZCodeAppOptions,
-} from "@zcode/bootstrap";
+} from "@social-harness/bootstrap";
 import type { CliEnv, DotenvLoadResult, LoadCliDotenvOptions } from "./env.js";
 import type { PluginsCommandOverrides } from "./plugins-command.js";
 import type { CliShutdownProcess } from "./shutdown.js";
-import type { resolveWorkspaceGitBranch } from "./tui-workspace-git.js";
 
-export type BootstrapModule = typeof import("@zcode/bootstrap");
+export type BootstrapModule = typeof import("@social-harness/bootstrap");
 
 export interface RunDependencies extends PluginsCommandOverrides {
   protocolLifecycle?: RunZCodeProtocolAgentOptions["lifecycle"];
@@ -96,15 +94,11 @@ export interface RunDependencies extends PluginsCommandOverrides {
   isReservedSlashCommandName?: BootstrapModule["isReservedZCodeSlashCommandName"];
   listSkills?: (options: ListZCodeSkillsOptions) => ReturnType<typeof listZCodeSkills>;
   logger?: Logger;
-  readClipboardImage?: TuiReadClipboardImage;
-  writeClipboardText?: TuiWriteClipboardText;
   resolveLatestSession?: (
     options: ResolveLatestSessionOptions,
   ) => ReturnType<typeof resolveLatestSession>;
-  resolveWorkspaceGitBranch?: typeof resolveWorkspaceGitBranch;
   logoutZCodeCli?: (options?: LogoutZCodeCliOptions) => ReturnType<typeof logoutZCodeCli>;
   runZCodeProtocolAgent?: (options?: RunZCodeProtocolAgentOptions) => Promise<void>;
-  runTui?: typeof import("@zcode/tui").runTui;
   skipUserConfig?: boolean;
   userConfigPath?: string;
   exitProcess?: (code: number) => void;

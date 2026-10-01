@@ -1,4 +1,4 @@
-import type { JsonValue } from "@zcode/shared-types";
+import type { JsonValue } from "@social-harness/shared-types";
 
 export { type JsonValue };
 

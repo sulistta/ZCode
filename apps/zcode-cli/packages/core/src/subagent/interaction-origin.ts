@@ -3,7 +3,7 @@ import type {
   SessionId,
   ToolCallId,
   TurnId,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 
 export interface SubagentInteractionOriginContext {
   agentId: string;

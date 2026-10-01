@@ -4,8 +4,8 @@ import {
   AiSdkModelAdapter,
   type AiSdkModelExecutionConfig,
   type EnvRecord,
-} from "@zcode/adapters/model";
-import type { Logger, ModelStatusSink } from "@zcode/contracts";
+} from "@social-harness/adapters/model";
+import type { Logger, ModelStatusSink } from "@social-harness/contracts";
 
 interface CreateModelAdapterBaseOptions {
   env?: EnvRecord;

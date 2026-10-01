@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
 import { stat } from "node:fs/promises";
-import { extname, resolve } from "node:path";
+import { basename, extname, resolve } from "node:path";
+
+import { verifyPacmanPackageArtifact } from "./pacman-package-validation.mjs";
 
 const argv = process.argv.slice(2);
 
@@ -41,6 +43,11 @@ console.log(`Artifact: ${absoluteArtifactPath}`);
 console.log(`Type: ${extension || "<no-extension>"}`);
 console.log(`Size: ${formatMiB(artifactStat.size)}`);
 console.log(`Limit: ${limit} MiB`);
+
+if (basename(absoluteArtifactPath).endsWith(".pkg.tar.zst")) {
+  await verifyPacmanPackageArtifact(absoluteArtifactPath);
+  console.log("Pacman archive: valid Zstandard compression, metadata, and application payload");
+}
 
 if (sizeMiB > limit) {
   console.error("Bundle size audit failed:");

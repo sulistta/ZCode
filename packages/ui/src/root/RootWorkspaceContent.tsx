@@ -6,7 +6,7 @@ import { logger } from "@/logger.js";
 import { WorkspaceSettingsLayer } from "@/root/WorkspaceSettingsLayer.js";
 import type { AppProps } from "@/app-shell/types.js";
 import type { RootProps } from "@/root/types.js";
-import type { IFeedbackService, IServiceAccessor } from "@zcode/services";
+import type { IFeedbackService, IServiceAccessor } from "@social-harness/services";
 import { ConversationTelemetryWorkspaceAttachment } from "@/v4/telemetry/ConversationTelemetryAttachment.js";
 
 const StableWorkspaceApp = memo(App);
@@ -29,7 +29,6 @@ interface RootWorkspaceContentProps {
   handleOpenWorkspace: AppProps["onOpenWorkspace"];
   handleOpenFolderFromWorkspaceMenu: AppProps["onOpenFolderFromWorkspaceMenu"];
   handleOpenRemoteWorkspace?: AppProps["onOpenRemoteWorkspace"];
-  handleCreateScratchWorkspace: AppProps["onCreateScratchWorkspace"];
   remoteConnectionInProgress?: AppProps["remoteConnectionInProgress"];
   remoteWorkspaceSessions: NonNullable<AppProps["remoteWorkspaceSessions"]>;
   allowRemoteWorkspace: NonNullable<RootProps["allowRemoteWorkspace"]>;
@@ -67,7 +66,6 @@ export function RootWorkspaceContent({
   handleOpenWorkspace,
   handleOpenFolderFromWorkspaceMenu,
   handleOpenRemoteWorkspace,
-  handleCreateScratchWorkspace,
   remoteConnectionInProgress,
   remoteWorkspaceSessions,
   allowRemoteWorkspace,
@@ -161,7 +159,6 @@ export function RootWorkspaceContent({
                 onOpenWorkspace={handleOpenWorkspace}
                 onOpenFolderFromWorkspaceMenu={handleOpenFolderFromWorkspaceMenu}
                 onOpenRemoteWorkspace={handleOpenRemoteWorkspace}
-                onCreateScratchWorkspace={handleCreateScratchWorkspace}
                 remoteConnectionInProgress={remoteConnectionInProgress}
                 onReturnToWorkspace={handleBackFromSettings}
                 allowOpenWorkspace={allowOpenWorkspace}

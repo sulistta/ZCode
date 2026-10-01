@@ -3,7 +3,7 @@ import type {
   WorkspaceHookPolicy,
   WorkspaceHookReasonCode,
   WorkspaceHookSecurityRevision,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 
 export type WorkspaceHookTrustStoreStatus = "missing" | "ok" | "corrupt";
 

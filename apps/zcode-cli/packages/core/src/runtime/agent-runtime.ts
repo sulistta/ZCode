@@ -1,5 +1,5 @@
-import { DEFAULT_ZCODE_MODEL_CONTEXT_BUDGET_STRATEGY, resolveExecutionState } from "@zcode/shared";
-import type { BackgroundBashOutputResult } from "@zcode/shared";
+import { DEFAULT_SOCIAL_HARNESS_MODEL_CONTEXT_BUDGET_STRATEGY, resolveExecutionState } from "@social-harness/shared";
+import type { BackgroundBashOutputResult } from "@social-harness/shared";
 import {
   createDenyPermissionBroker,
   createRootTraceContext,
@@ -84,6 +84,7 @@ import type {
   RuntimeBackgroundStopResult,
 } from "./methods/background.js";
 import { initializeRuntimeTooling } from "./helpers/runtime-tools.js";
+import { isSocialAccountRuntime } from "./helpers/tool-allowlist.js";
 import type {
   ActiveTurnInfo,
   ActiveForegroundExecutionState,
@@ -232,7 +233,7 @@ export class AgentRuntime {
     // 3.12.2：兼容旧 Host/内部调用传入 legacy，但本版本 Runtime、日志和子 Agent 只使用 preflight。
     this.config = projectPersistentAgentMemoryTools({
       ...config,
-      modelContextBudgetStrategy: DEFAULT_ZCODE_MODEL_CONTEXT_BUDGET_STRATEGY,
+      modelContextBudgetStrategy: DEFAULT_SOCIAL_HARNESS_MODEL_CONTEXT_BUDGET_STRATEGY,
     });
     Object.assign(this.config, resolveExecutionState(config));
     this.agentTelemetry = new RuntimeTelemetryFacade({
@@ -280,7 +281,9 @@ export class AgentRuntime {
     this.workingDirectory = config.workingDirectory ?? ".";
     this.contextSourcePort = deps.contextSourcePort;
     this.skillPort = deps.skillPort;
-    this.mcpPort = deps.mcpPort;
+    const socialAccountRuntime = isSocialAccountRuntime(config);
+    // 社交账号会话只能通过 Host 绑定的 Social Harness 工具操作，不能继承用户的任意 MCP 工具。
+    this.mcpPort = socialAccountRuntime ? undefined : deps.mcpPort;
     this.runtimeTaskRegistry = deps.runtimeTaskRegistry ?? new InMemoryRuntimeTaskRegistry();
     this.runtimeTaskRegistry.setActiveBranchGeneration?.(this.branchGeneration);
     this.artifactStore = deps.artifactStore;
@@ -288,11 +291,13 @@ export class AgentRuntime {
     this.fileSystemPort = deps.fileSystemPort;
     this.imageProcessorPort = deps.imageProcessorPort;
     this.pdfDocumentPort = deps.pdfDocumentPort;
-    this.subagentPort = deps.subagentPort ?? runtime.createDefaultSubagentPort(deps);
+    this.subagentPort = socialAccountRuntime
+      ? undefined
+      : (deps.subagentPort ?? runtime.createDefaultSubagentPort(deps));
     this.dynamicWorkflowRunPort = deps.dynamicWorkflowRunPort;
     // GUI「配置」解析子代理模型用的目录（与工具上下文拿的是同一个端口）。
     this.modelCatalogPort = deps.modelCatalogPort;
-    this.registry = deps.toolRegistry ?? createToolRegistry();
+    this.registry = socialAccountRuntime ? createToolRegistry() : (deps.toolRegistry ?? createToolRegistry());
     this.workspaceRoot = this.workingDirectory;
     const tooling = initializeRuntimeTooling(runtime, deps, sessionId);
     this.hookRunner = tooling.hookRunner;

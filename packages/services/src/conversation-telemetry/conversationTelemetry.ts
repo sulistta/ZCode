@@ -1,5 +1,5 @@
-import type { Event } from "@zcode/rpc";
-import type { ConversationTelemetryFact } from "@zcode/shared/zcode-protocol-v4";
+import type { Event } from "@social-harness/rpc";
+import type { ConversationTelemetryFact } from "@social-harness/shared/zcode-protocol-v4";
 import type { IZCodeAgentService } from "#src/zcode-agent/zcodeAgent.js";
 
 export interface ConversationTelemetryWorkspaceTarget {

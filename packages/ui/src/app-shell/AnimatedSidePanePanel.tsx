@@ -1,8 +1,8 @@
-/* eslint-disable max-lines -- Side pane 当前集中承载 tabs、browser/git/code-viewer 内容；完整拆分需按 pane 功能边界继续推进。 */
+/* eslint-disable max-lines -- Side pane 当前集中承载 tabs、browser 与 workflow 内容；完整拆分需按 pane 功能边界继续推进。 */
 import { ServiceProvider } from "@/hooks/useServices.js";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from "react";
 import type { PanelImperativeHandle } from "react-resizable-panels";
-import type { IServiceAccessor } from "@zcode/services";
+import type { IServiceAccessor } from "@social-harness/services";
 import {
   closestCenter,
   DndContext,
@@ -14,18 +14,14 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { horizontalListSortingStrategy, SortableContext } from "@dnd-kit/sortable";
-import type { BrowserViewScreenshotSurfacePreparePayload, GitChangeSourceId } from "@zcode/shared";
+import type { BrowserViewScreenshotSurfacePreparePayload } from "@social-harness/shared";
 import { PreviewPane } from "@/PreviewPane.js";
-import { SidePaneTerminalPane } from "@/SidePaneTerminalPane.js";
-import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
 import { WorkspaceSidePaneToggleButton } from "@/WorkspaceSidePaneToggleButton.js";
 import { DesktopWindowControls } from "@/DesktopWindowControls.js";
 import { BrowserUseSidePaneContent } from "@/browser-use/BrowserUseSidePaneContent.js";
 import { findScreenshotSurfaceTabForRender } from "@/browser-use/useBrowserScreenshotSurfaceRequest.js";
 import { HumanBrowserView } from "@/browser-use/HumanBrowserView.js";
 import { ScopedErrorBoundary } from "@/ErrorBoundary.js";
-import { GitPane } from "@/GitPane.js";
-import { TreemappingPane } from "@/TreemappingPane.js";
 import { WhiteboardPane } from "@/WhiteboardPane.js";
 import { ModelTrajectoryPane } from "@/ModelTrajectoryPane.js";
 import { DeveloperToolsPane } from "@/DeveloperToolsPane.js";
@@ -89,15 +85,7 @@ import { inferMediaPreview, type CodeViewerSource } from "@/lib/codeViewer.js";
 import type { MessageFileLinkTarget } from "@/components/ai-elements/message.js";
 import { getVisibleSidePaneTabs } from "@/lib/workspaceSidePane.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
-import {
-  BugIcon,
-  FileDiffIcon,
-  GlobeIcon,
-  MessageSquareTextIcon,
-  PlusIcon,
-  SquareTerminalIcon,
-  type LucideIcon,
-} from "lucide-react";
+import { BugIcon, GlobeIcon, MessageSquareTextIcon, PlusIcon, type LucideIcon } from "lucide-react";
 
 const SIDE_PANE_CONTENT_WIDTH_LOCK_DURATION_MS = 200;
 const PREVIEW_PANE_RESIZE_SETTLE_DELAY_MS = 220;
@@ -279,7 +267,6 @@ function useWindowResizeSettling(enabled: boolean) {
 export function AnimatedSidePanePanel({
   services,
   isDesktop,
-  isWindowsDesktop,
   isVisible,
   sidePaneState,
   recentClosedSidePaneTabs,
@@ -290,20 +277,13 @@ export function AnimatedSidePanePanel({
   workspaceRemoteSessionId,
   activeTaskId,
   sidePaneOwnerId,
-  gitState,
-  activeGitSourceId,
   panelRef,
   panelElementRef,
   browserNavigationRequest,
   browserRestoreUrls,
   screenshotSurfaceRequest: screenshotSurfaceRequestProp = null,
   screenshotSurfaceTabId = null,
-  fileChangeFindActiveIndex,
-  fileChangeFindNavigationRequestId,
-  fileChangeFindQuery,
-  onFileChangeFindMatchCountChange,
   onCloseCodeViewer,
-  onCloseGit,
   onActivateTab,
   onReorderTab,
   onCloseTab,
@@ -313,10 +293,7 @@ export function AnimatedSidePanePanel({
   onOpenBrowserTab,
   onOpenWhiteboard: _onOpenWhiteboard,
   onOpenDeveloperTools,
-  onOpenTerminalTab,
-  onOpenReviewTab,
   onOpenSelectionSideConversation,
-  onRevealGitFileInTree,
   onOpenBrowserUrl,
   onOpenCodeViewer,
   onOpenFileLink,
@@ -326,11 +303,9 @@ export function AnimatedSidePanePanel({
   onOpenWorkflowArtifact,
   onOpenWorkflowRun,
   onOpenBackgroundBash,
-  onRefreshGit,
   onBrowserNavigationRequestHandled,
   onBrowserUrlChange,
   onBrowserPageMetadataChange,
-  onSelectGitSource,
   frameClassName = "rounded-xl border border-border",
   captionControlsStyle,
   showWindowControls,
@@ -344,7 +319,6 @@ export function AnimatedSidePanePanel({
   onCloseSidePane?: () => void;
   toggleSidePaneShortcutLabel?: string;
   isDesktop?: boolean;
-  isWindowsDesktop?: boolean;
   isVisible: boolean;
   sidePaneState: WorkspaceSidePaneState | null;
   recentClosedSidePaneTabs: RecentClosedSidePaneTab[];
@@ -355,20 +329,13 @@ export function AnimatedSidePanePanel({
   workspaceRemoteSessionId?: string;
   activeTaskId: string | null;
   sidePaneOwnerId: string | null;
-  gitState: ReturnType<typeof import("@/hooks/useGitRepository.js").useGitRepository>;
-  activeGitSourceId: GitChangeSourceId;
   panelRef: RefObject<PanelImperativeHandle | null>;
   panelElementRef: RefObject<HTMLDivElement | null>;
   browserNavigationRequest: BrowserNavigationRequest | null;
   browserRestoreUrls: Record<string, string>;
   screenshotSurfaceRequest?: BrowserViewScreenshotSurfacePreparePayload | null;
   screenshotSurfaceTabId?: string | null;
-  fileChangeFindActiveIndex: number;
-  fileChangeFindNavigationRequestId: number;
-  fileChangeFindQuery: string;
-  onFileChangeFindMatchCountChange: (count: number) => void;
   onCloseCodeViewer: () => void;
-  onCloseGit: () => void;
   onActivateTab: (tabId: string) => void;
   onReorderTab: (activeTabId: string, overTabId: string) => void;
   onCloseTab: (tabId: string) => void;
@@ -378,10 +345,7 @@ export function AnimatedSidePanePanel({
   onOpenBrowserTab: () => void;
   onOpenWhiteboard: () => void;
   onOpenDeveloperTools: () => void;
-  onOpenTerminalTab: () => void;
-  onOpenReviewTab: () => void;
   onOpenSelectionSideConversation: () => void;
-  onRevealGitFileInTree?: (path: string) => void;
   onOpenBrowserUrl: (url: string) => void;
   onOpenCodeViewer: (source: CodeViewerSource) => void;
   onOpenFileLink?: (target: MessageFileLinkTarget) => void;
@@ -395,14 +359,11 @@ export function AnimatedSidePanePanel({
   onOpenWorkflowArtifact?: (request: OpenScopedWorkflowArtifactSideTabRequest) => void;
   /** run 目录页里点一行 → 打开那个 run 的详情页 tab（目录 → 详情是这一页存在的理由）。 */
   onOpenWorkflowRun?: (request: OpenScopedWorkflowRunSideTabRequest) => void;
-  onRefreshGit: () => void;
   onBrowserNavigationRequestHandled: (requestId: string) => void;
   onBrowserUrlChange: (tabId: string, url: string) => void;
   onBrowserPageMetadataChange: (tabId: string, metadata: BrowserSidePaneMetadata) => void;
-  onSelectGitSource: (value: GitChangeSourceId) => void;
 }) {
   const { intl } = useZCodeIntl();
-  const isOfficeMode = useIsOfficeMode();
   const developerToolsEnabled = useDeveloperToolsVisibility();
   const isDragCollapsible = !isVisible;
   const isResizeDisabled = !isVisible;
@@ -447,7 +408,6 @@ export function AnimatedSidePanePanel({
   const widthUnlockTimerRef = useRef<number | null>(null);
   const previousIsVisibleRef = useRef(isVisible);
   const panelLayout = resolveAnimatedSidePanePanelLayout();
-  const hasReviewTab = visibleTabs.some((tab) => tab.type === "git");
   const canOpenSelectionSideConversation = shouldOfferSelectionSideConversation({
     activeTaskId,
   });
@@ -705,16 +665,6 @@ export function AnimatedSidePanePanel({
             <span>{intl.formatMessage({ id: "sidePane.selectionChat" })}</span>
           </DropdownMenuItem>
         ) : null}
-        {!isOfficeMode && !hasReviewTab ? (
-          <DropdownMenuItem
-            onSelect={() => {
-              onOpenReviewTab();
-            }}
-          >
-            <FileDiffIcon className="size-4" />
-            <span>{intl.formatMessage({ id: "sidePane.review" })}</span>
-          </DropdownMenuItem>
-        ) : null}
         {/* 画板入口未启用 */}
         {/* <DropdownMenuItem
           onSelect={() => {
@@ -724,17 +674,6 @@ export function AnimatedSidePanePanel({
           <PaletteIcon className="size-4" />
           <span>{intl.formatMessage({ id: "whiteboard.title" })}</span>
         </DropdownMenuItem> */}
-        {!isOfficeMode ? (
-          <DropdownMenuItem
-            data-side-pane-add-item="terminal"
-            onSelect={() => {
-              onOpenTerminalTab();
-            }}
-          >
-            <SquareTerminalIcon className="size-4" />
-            <span>{intl.formatMessage({ id: "terminal.title" })}</span>
-          </DropdownMenuItem>
-        ) : null}
         {supportsEmbeddedBrowser ? (
           <DropdownMenuItem
             data-side-pane-add-item="browser"
@@ -767,18 +706,6 @@ export function AnimatedSidePanePanel({
       icon: MessageSquareTextIcon,
       onOpen: onOpenSelectionSideConversation,
     },
-    review: {
-      id: "review",
-      label: intl.formatMessage({ id: "sidePane.review" }),
-      icon: FileDiffIcon,
-      onOpen: onOpenReviewTab,
-    },
-    terminal: {
-      id: "terminal",
-      label: intl.formatMessage({ id: "terminal.title" }),
-      icon: SquareTerminalIcon,
-      onOpen: onOpenTerminalTab,
-    },
     browser: {
       id: "browser",
       label: intl.formatMessage({ id: "browser.title" }),
@@ -795,11 +722,8 @@ export function AnimatedSidePanePanel({
   const openTabLauncherItems: OpenTabLauncherItem[] = resolveOpenTabLauncherItemIds({
     canOpenSelectionSideConversation,
     developerToolsEnabled,
-    hasReviewTab,
     supportsEmbeddedBrowser,
-  })
-    .filter((itemId) => !isOfficeMode || (itemId !== "terminal" && itemId !== "review"))
-    .map((itemId) => openTabLauncherItemById[itemId]);
+  }).map((itemId) => openTabLauncherItemById[itemId]);
   const closeSidePaneButton =
     isVisible && onCloseSidePane ? (
       <div className="flex shrink-0 items-center gap-0.5 [app-region:no-drag]">
@@ -875,9 +799,7 @@ export function AnimatedSidePanePanel({
         closeTab: (title) => intl.formatMessage({ id: "sidePane.closeTab" }, { title }),
         relativeTime: (timestamp) => formatTaskRelativeTime(timestamp, intl),
         browserTitle: intl.formatMessage({ id: "browser.title" }),
-        reviewTitle: intl.formatMessage({ id: "sidePane.review" }),
         codeViewerTitle: intl.formatMessage({ id: "codeViewer.title" }),
-        treemappingTitle: intl.formatMessage({ id: "treemapping.title" }),
         whiteboardTitle: intl.formatMessage({ id: "whiteboard.title" }),
         modelTrajectoryTitle: intl.formatMessage({
           id: "modelTrajectory.title",
@@ -1176,13 +1098,7 @@ export function AnimatedSidePanePanel({
                         ) : tab.type === "workflow-artifact" ? (
                           // 「在工作区显示」复用 Git 面板那条文件树 reveal（同一个宿主回调），
                           // 不新造第二条定位路径。
-                          <WorkflowArtifactSidePane
-                            tab={tab}
-                            onOpenBrowserUrl={onOpenBrowserUrl}
-                            {...(onRevealGitFileInTree === undefined
-                              ? {}
-                              : { onRevealFileInTree: onRevealGitFileInTree })}
-                          />
+                          <WorkflowArtifactSidePane tab={tab} onOpenBrowserUrl={onOpenBrowserUrl} />
                         ) : tab.type === "code-viewer" ? (
                           <PreviewPane
                             markdownSelectionTarget={{ sessionId: activeTaskId, workspaceKey }}
@@ -1205,30 +1121,6 @@ export function AnimatedSidePanePanel({
                               isSidePaneVisible: isVisible,
                               visibleInlineSizePx: sidePaneVisibleInlineSizePx,
                             })}
-                          />
-                        ) : tab.type === "git" ? (
-                          <GitPane
-                            workspacePath={workspaceAbsPath}
-                            workspaceIdentity={workspaceIdentity}
-                            workspaceRemoteSessionId={workspaceRemoteSessionId}
-                            gitState={gitState}
-                            isDesktop={isDesktop}
-                            selectedSourceId={activeGitSourceId}
-                            fileChangeFindActiveIndex={fileChangeFindActiveIndex}
-                            fileChangeFindNavigationRequestId={fileChangeFindNavigationRequestId}
-                            fileChangeFindQuery={fileChangeFindQuery}
-                            onFileChangeFindMatchCountChange={onFileChangeFindMatchCountChange}
-                            onSelectSource={onSelectGitSource}
-                            onClose={onCloseGit}
-                            onRefresh={onRefreshGit}
-                            onRevealFileInTree={onRevealGitFileInTree}
-                          />
-                        ) : tab.type === "treemapping" ? (
-                          <TreemappingPane
-                            activeTaskId={activeTaskId}
-                            workspacePath={workspaceAbsPath}
-                            workspaceIdentity={workspaceIdentity}
-                            source={tab.source ?? { kind: "current" }}
                           />
                         ) : tab.type === "whiteboard" ? (
                           <WhiteboardPane
@@ -1253,16 +1145,6 @@ export function AnimatedSidePanePanel({
                               enabled={isVisible && tab.id === visibleActiveTabId}
                             />
                           </ServiceProvider>
-                        ) : tab.type === "terminal" ? (
-                          <SidePaneTerminalPane
-                            services={services}
-                            sessionId={tab.id}
-                            workspaceKey={workspaceKey}
-                            cwd={tab.cwd ?? workspaceAbsPath}
-                            isVisible={isVisible && tab.id === visibleActiveTabId}
-                            isWindowsDesktop={isWindowsDesktop}
-                            onOpenBrowserUrl={onOpenBrowserUrl}
-                          />
                         ) : (
                           <HumanBrowserView
                             browserKey={tab.id}

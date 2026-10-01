@@ -2,8 +2,8 @@ import {
   SessionEventType,
   type SessionEvent,
   type CompactLifecyclePayload,
-} from "@zcode/contracts";
-import { LOCAL_TTFT_MAX_DETAILS, type LocalTtftFacts } from "@zcode/shared";
+} from "@social-harness/contracts";
+import { LOCAL_TTFT_MAX_DETAILS, type LocalTtftFacts } from "@social-harness/shared";
 
 /** Compact 的实际生命周期可以与 main attempt 交错，不能由主请求差额推算。 */
 export function observeLocalTtftCompaction(

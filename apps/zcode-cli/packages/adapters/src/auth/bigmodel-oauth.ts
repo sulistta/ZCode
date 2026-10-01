@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
-import type { HttpClientPort, HttpClientRunOptions, TraceContext } from "@zcode/contracts";
-import { buildBigModelApiUrl } from "@zcode/shared";
+import type { HttpClientPort, HttpClientRunOptions, TraceContext } from "@social-harness/contracts";
+import { buildBigModelApiUrl } from "@social-harness/shared";
 
 const BIGMODEL_AUTHORIZE_PATH = "/login";
 const BIGMODEL_TOKEN_PATH = "/api/auth/tokenByAuthCode";

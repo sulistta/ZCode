@@ -1,22 +1,22 @@
-import { SocketProtocol, ChannelClient } from "@zcode/rpc";
-import type { IServiceAccessor } from "@zcode/services";
-import { RemoteServiceAccess } from "@zcode/client";
+import { SocketProtocol, ChannelClient } from "@social-harness/rpc";
+import type { IServiceAccessor } from "@social-harness/services";
+import { RemoteServiceAccess } from "@social-harness/client";
 import {
   SERVICE_AUTHORITY_MODE_ENV,
-  ZCODE_APP_VERSION_ENV,
-  ZCODE_DESKTOP_CONTEXT_PROMPT_ENABLED_ENV,
-  ZCODE_DYNAMIC_WORKFLOW_MODE_ENV,
+  SOCIAL_HARNESS_APP_VERSION_ENV,
+  SOCIAL_HARNESS_DESKTOP_CONTEXT_PROMPT_ENABLED_ENV,
+  SOCIAL_HARNESS_DYNAMIC_WORKFLOW_MODE_ENV,
   formatLogPrefix,
-  ZCODE_REMOTE_HTTP_PROXY_ENV_KEY,
-  ZCODE_REMOTE_NO_PROXY_ENV_KEY,
-  ZCODE_REMOTE_RUNTIME_NETWORK_AUTHORITY_ENV_KEY,
-} from "@zcode/shared";
+  SOCIAL_HARNESS_REMOTE_HTTP_PROXY_ENV_KEY,
+  SOCIAL_HARNESS_REMOTE_NO_PROXY_ENV_KEY,
+  SOCIAL_HARNESS_REMOTE_RUNTIME_NETWORK_AUTHORITY_ENV_KEY,
+} from "@social-harness/shared";
 import type { IRemoteBackend } from "./backend.js";
 import { wrapStdioStream } from "./stdio-socket.js";
 import { performHandshake } from "./handshake.js";
 import { deployServer } from "./deploy.js";
 import type { DeployOptions } from "./deploy.js";
-import { assertSupportedRemoteEnvironment } from "@zcode/server/remote/remotePlatformSupport.js";
+import { assertSupportedRemoteEnvironment } from "@social-harness/server/remote/remotePlatformSupport.js";
 import { quotePosixShellArg } from "./posixShell.js";
 import { formatWslProxyForLog } from "./wslProxy.js";
 
@@ -54,17 +54,17 @@ export interface RemoteConnection {
 }
 
 const REMOTE_RUNTIME_ENV_KEYS = [
-  "ZCODE_ENV",
-  "ZCODE_BASE_URL",
-  "ZCODE_ENDPOINT_ORIGIN",
+  "SOCIAL_HARNESS_ENV",
+  "SOCIAL_HARNESS_BASE_URL",
+  "SOCIAL_HARNESS_ENDPOINT_ORIGIN",
   "ZAI_OAUTH_ORIGIN",
   "ZAI_BUSINESS_BASE_URL",
   "ZAI_OAUTH_CLIENT_ID",
   // 由 Desktop Main 计算并下发；远端 server 只消费，不重新计算。
-  ZCODE_DESKTOP_CONTEXT_PROMPT_ENABLED_ENV,
+  SOCIAL_HARNESS_DESKTOP_CONTEXT_PROMPT_ENABLED_ENV,
   // 同上：本地覆盖由 Desktop Main 按构建档位写定（buildHostProcessEnv），
   // 透传后 SSH/WSL/Docker 远端 Host 与本地 Host 得到同一档位。
-  ZCODE_DYNAMIC_WORKFLOW_MODE_ENV,
+  SOCIAL_HARNESS_DYNAMIC_WORKFLOW_MODE_ENV,
 ] as const;
 
 export type RemoteRuntimeEnvKey = (typeof REMOTE_RUNTIME_ENV_KEYS)[number];
@@ -101,7 +101,7 @@ function throwIfRemoteConnectAborted(signal: AbortSignal | undefined): void {
  *
  * Steps:
  * 1. detect() → { platform, arch }
- * 2. Deploy if needed (upload node + server bundle + node-pty)
+ * 2. Deploy if needed (upload node runtime + server bundle)
  * 3. exec server command
  * 4. Handshake (read hello, send ack)
  * 5. Wrap stdio → ISocket → SocketProtocol → ChannelClient → RemoteServiceAccess
@@ -362,7 +362,7 @@ function buildRemoteServerCommand(
 ): string {
   const envParts = [
     `${SERVICE_AUTHORITY_MODE_ENV}="desktop-attached-remote"`,
-    'ZCODE_SERVER_RUNTIME_ROOT="$HOME/.zcode/server"',
+    'SOCIAL_HARNESS_SERVER_RUNTIME_ROOT="$HOME/.social-harness/v1/server"',
   ];
   for (const [key, value] of Object.entries(
     pickRemoteRuntimeEnv(options?.remoteRuntimeEnv ?? {}),
@@ -373,20 +373,20 @@ function buildRemoteServerCommand(
   if (appVersion) {
     // 远端 server 是通过 SSH/WSL/Docker 单独启动的，不会继承桌面 host env。
     // 这里显式把 app 版本作为远端进程 env 注入，远端 agent 才能在模型请求 header 中带上版本。
-    envParts.push(`${ZCODE_APP_VERSION_ENV}=${quotePosixShellArg(appVersion)}`);
+    envParts.push(`${SOCIAL_HARNESS_APP_VERSION_ENV}=${quotePosixShellArg(appVersion)}`);
   }
   if (remoteRuntimeNetwork?.authoritative) {
-    envParts.push(`${ZCODE_REMOTE_RUNTIME_NETWORK_AUTHORITY_ENV_KEY}='1'`);
+    envParts.push(`${SOCIAL_HARNESS_REMOTE_RUNTIME_NETWORK_AUTHORITY_ENV_KEY}='1'`);
     if (remoteRuntimeNetwork.httpProxy !== undefined) {
       envParts.push(
-        `${ZCODE_REMOTE_HTTP_PROXY_ENV_KEY}=${quotePosixShellArg(remoteRuntimeNetwork.httpProxy)}`,
+        `${SOCIAL_HARNESS_REMOTE_HTTP_PROXY_ENV_KEY}=${quotePosixShellArg(remoteRuntimeNetwork.httpProxy)}`,
       );
     }
     if (remoteRuntimeNetwork.noProxy !== undefined) {
       envParts.push(
-        `${ZCODE_REMOTE_NO_PROXY_ENV_KEY}=${quotePosixShellArg(remoteRuntimeNetwork.noProxy)}`,
+        `${SOCIAL_HARNESS_REMOTE_NO_PROXY_ENV_KEY}=${quotePosixShellArg(remoteRuntimeNetwork.noProxy)}`,
       );
     }
   }
-  return `${envParts.join(" ")} ~/.zcode/server/node ~/.zcode/server/zcode-server.cjs`;
+  return `${envParts.join(" ")} ~/.social-harness/v1/server/node ~/.social-harness/v1/server/zcode-server.cjs`;
 }

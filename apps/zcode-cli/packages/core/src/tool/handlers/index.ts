@@ -14,8 +14,16 @@ import {
   RESUME_WORKFLOW_RUN_TOOL_NAME,
   SAVE_WORKFLOW_TOOL_NAME,
   SUBMIT_RESULT_TOOL_NAME,
+  SOCIAL_PROJECT_COMMAND_TOOL_NAME,
+  SOCIAL_PROJECT_LIST_TOOL_NAME,
+  SOCIAL_PROJECT_READ_TOOL_NAME,
+  SOCIAL_AGENT_CONTEXT_TOOL_NAME,
+  SOCIAL_MEDIA_LIST_TOOL_NAME,
+  SOCIAL_YOUTUBE_SEARCH_TOOL_NAME,
+  SOCIAL_CLIP_CANDIDATES_TOOL_NAME,
+  SOCIAL_PUBLICATION_REQUEST_TOOL_NAME,
   type JsonSchema,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { ToolEntry } from "../types.js";
 import type { AgentProfile } from "../../subagent/profile.js";
 import { readToolEntry } from "./read.js";
@@ -44,6 +52,18 @@ import {
   cronUpdateToolEntry,
 } from "./cron.js";
 import { offPeakCreateToolEntry, offPeakListToolEntry } from "./off-peak.js";
+import {
+  socialProjectCommandToolEntry,
+  socialProjectListToolEntry,
+  socialProjectReadToolEntry,
+} from "./social-project.js";
+import {
+  socialAgentContextToolEntry,
+  socialClipCandidatesToolEntry,
+  socialMediaListToolEntry,
+  socialYouTubeSearchToolEntry,
+  socialPublicationRequestToolEntry,
+} from "./social-agent.js";
 import {
   createEnterPlanModeToolEntry,
   enterPlanModeToolEntry,
@@ -91,6 +111,14 @@ export const builtInTools: ToolEntry[] = [
   cronDeleteToolEntry,
   offPeakCreateToolEntry,
   offPeakListToolEntry,
+  socialProjectListToolEntry,
+  socialProjectReadToolEntry,
+  socialProjectCommandToolEntry,
+  socialAgentContextToolEntry,
+  socialMediaListToolEntry,
+      socialYouTubeSearchToolEntry,
+      socialClipCandidatesToolEntry,
+      socialPublicationRequestToolEntry,
   enterPlanModeToolEntry,
   exitPlanModeToolEntry,
   askUserQuestionToolEntry,
@@ -172,11 +200,13 @@ interface RegisterBuiltInToolsOptions {
   includeEscalate?: boolean;
   includeWorkflow?: boolean;
   includeAutomation?: boolean;
+  includeSocialProject?: boolean;
+  includeSocialAgent?: boolean;
   /** Off-Peak 会话内创建工具面；由 host 的 offPeakToolEnabled flag（灰度/远程门）驱动。 */
   includeOffPeak?: boolean;
   /**
    * 动态工作流灰度门。**只有显式 false
-   * 才下架** DYNAMIC_WORKFLOW_TOOL_NAMES：缺席代表调用方不参与灰度（TUI、headless、
+   * 才下架** DYNAMIC_WORKFLOW_TOOL_NAMES：缺席代表调用方不参与灰度（headless、
    * workflow_child），它们必须保留全部工具面；fail-closed 的缺省值落在协议服务端的
    * appRuntimePreferences，不在这一层。
    */
@@ -250,6 +280,24 @@ export function registerBuiltInTools(
     if (
       (entry.metadata.name === "OffPeakCreate" || entry.metadata.name === "OffPeakList") &&
       options.includeOffPeak !== true
+    ) {
+      continue;
+    }
+    if (
+      (entry.metadata.name === SOCIAL_PROJECT_LIST_TOOL_NAME ||
+        entry.metadata.name === SOCIAL_PROJECT_READ_TOOL_NAME ||
+        entry.metadata.name === SOCIAL_PROJECT_COMMAND_TOOL_NAME) &&
+      options.includeSocialProject !== true
+    ) {
+      continue;
+    }
+    if (
+      (entry.metadata.name === SOCIAL_AGENT_CONTEXT_TOOL_NAME ||
+        entry.metadata.name === SOCIAL_MEDIA_LIST_TOOL_NAME ||
+        entry.metadata.name === SOCIAL_YOUTUBE_SEARCH_TOOL_NAME ||
+        entry.metadata.name === SOCIAL_CLIP_CANDIDATES_TOOL_NAME ||
+        entry.metadata.name === SOCIAL_PUBLICATION_REQUEST_TOOL_NAME) &&
+      options.includeSocialAgent !== true
     ) {
       continue;
     }

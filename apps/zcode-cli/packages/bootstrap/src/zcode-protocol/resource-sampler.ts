@@ -1,11 +1,11 @@
-import type { Logger } from "@zcode/contracts";
+import type { Logger } from "@social-harness/contracts";
 import {
   createMemorySampleWriteGate,
   memoryUsageToSampleFields,
   zcodeProtocolNotifications,
   type MemorySample,
   type ZCodeProtocolNotification,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   createZCodeProcessResourceSampler,
   type ZCodeProcessResourceSampler,

@@ -1,5 +1,15 @@
 /* eslint-disable max-lines -- Electron Builder config keeps related packaging hooks together so build order stays explicit. */
-import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import {
+  createReadStream,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+} from "node:fs";
 import { readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -8,18 +18,25 @@ import { runCommand, runCommandAndReadStdout } from "../../scripts/spawn-command
 import { loadBuiltinProviderConfig } from "../../scripts/builtin-provider-config.mjs";
 import { noticesFileName, stageElectronNotices } from "../../scripts/third-party-notices.mjs";
 import { resolveNativeSearchReleasePlan } from "../../scripts/native-search-tools-config.mjs";
+import {
+  resolveFfmpegReleasePlan,
+  resolveWhisperCppBuildPlan,
+  resolveYtDlpReleasePlan,
+} from "../../scripts/social-media-tools-config.mjs";
 import { getBuildMetadata } from "./scripts/build-metadata.mjs";
 import { collectRuntimeModuleClosureEntries } from "./scripts/runtime-dependency-closure.mjs";
-import {
-  resolvePackagedNodePtyPrebuildPath,
-  restoreTargetNodePtyPrebuild,
-} from "./scripts/node-pty-package-assets.mjs";
 import { cleanupPackagedSourcemaps } from "./scripts/packaged-sourcemap-cleanup.mjs";
 import { getTargetPlatform } from "./scripts/target-platform.mjs";
 import {
+  ffmpegSourceProvenanceMatches,
+  hasPassingFfmpegRuntimeSmoke,
+} from "./scripts/ffmpeg-runtime-assets.mjs";
+import {
   resolveDesktopArtifactSuffix,
+  resolveDesktopReleaseMetadata,
   resolveDesktopProductIdentity,
 } from "./scripts/desktop-product-identity.mjs";
+import { enforceProductionReleaseMaterialGate } from "./scripts/release-material-gate.mjs";
 import { verifyStagedKoffi } from "./scripts/koffi-package-assets.mjs";
 const ELECTRON_BUILDER_ARCH = {
   1: "x64",
@@ -73,9 +90,25 @@ const targetPlatform = getTargetPlatform();
 const builtinProviderConfig = await loadBuiltinProviderConfig();
 const desktopProductIdentity = resolveDesktopProductIdentity({
   ...process.env,
-  ZCODE_ENV: builtinProviderConfig.environment,
+  SOCIAL_HARNESS_ENV: builtinProviderConfig.environment,
+});
+const desktopReleaseMetadata = resolveDesktopReleaseMetadata({
+  ...process.env,
+  SOCIAL_HARNESS_ENV: builtinProviderConfig.environment,
 });
 const nativeSearchReleasePlan = resolveNativeSearchReleasePlan({
+  platform: targetPlatform.os,
+  arch: targetPlatform.arch,
+});
+const ytDlpReleasePlan = resolveYtDlpReleasePlan({
+  platform: targetPlatform.os,
+  arch: targetPlatform.arch,
+});
+const ffmpegReleasePlan = resolveFfmpegReleasePlan({
+  platform: targetPlatform.os,
+  arch: targetPlatform.arch,
+});
+const whisperCppBuildPlan = resolveWhisperCppBuildPlan({
   platform: targetPlatform.os,
   arch: targetPlatform.arch,
 });
@@ -83,7 +116,7 @@ const rawMacSigningIdentity = process.env.APPLE_SIGNING_IDENTITY || process.env.
 const macSigningIdentity =
   rawMacSigningIdentity?.replace(/^Developer ID Application:\s*/, "") ?? null;
 const shouldEnableMacSigning =
-  process.env.ZCODE_ENABLE_MAC_SIGN === "1" && Boolean(macSigningIdentity);
+  process.env.SOCIAL_HARNESS_ENABLE_MAC_SIGN === "1" && Boolean(macSigningIdentity);
 const workspaceRoot = resolve(import.meta.dirname, "../..");
 const desktopPackageRoot = import.meta.dirname;
 const runtimeModuleLookupRoots = [
@@ -92,7 +125,7 @@ const runtimeModuleLookupRoots = [
   resolve(desktopPackageRoot, "node_modules", ".pnpm", "node_modules"),
   resolve(workspaceRoot, "node_modules", ".pnpm", "node_modules"),
 ];
-const desktopDistDir = process.env.ZCODE_DESKTOP_DIST_DIR || "dist";
+const desktopDistDir = process.env.SOCIAL_HARNESS_DESKTOP_DIST_DIR || "dist";
 const DEFAULT_ELECTRON_MIRROR = "https://npmmirror.com/mirrors/electron/";
 // `pnpm exec asar` 依赖 `.bin/asar`，但 @electron/asar 仅是 electron-builder 传递依赖时，
 // Linux CI（pnpm hoisted）往往解析不到该二进制，`asar list` 未运行即 exit 1。
@@ -119,7 +152,7 @@ const REQUIRED_ASAR_RUNTIME_MODULES = [
   "@opentelemetry/exporter-trace-otlp-proto",
   "@opentelemetry/exporter-metrics-otlp-proto",
   "pngjs",
-  // @zcode/services 的代理连通性探测会动态 require("undici") 取 ProxyAgent。
+  // @social-harness/services 的代理连通性探测会动态 require("undici") 取 ProxyAgent。
   // tsup 虽然把 services 代码并进了主/host 产物，但不会把这个运行时 require 的包内联进去，
   // electron-builder 产物又可能漏掉 hoisted 的 undici，最终 mac 安装包启动即报 Cannot find module "undici"。
   // 这里把 undici 和其他兜底依赖一样强制注入 app.asar，避免用户在已安装应用里主进程直接崩溃。
@@ -164,7 +197,7 @@ const PACMAN_RUNTIME_DEPENDENCIES = [
   "xdg-utils",
 ];
 
-const WINDOWS_INSTALL_MANIFEST_NAME = ".zcode-install-manifest";
+const WINDOWS_INSTALL_MANIFEST_NAME = ".social-harness-install-manifest";
 
 async function writeWindowsInstallManifest(context) {
   if (context.electronPlatformName !== "win32") return;
@@ -190,7 +223,7 @@ async function writeWindowsInstallManifest(context) {
 
 function resolveElectronDownloadMirror(env = process.env) {
   const existingMirror =
-    env.ZCODE_ELECTRON_RUNTIME_MIRROR ||
+    env.SOCIAL_HARNESS_ELECTRON_RUNTIME_MIRROR ||
     env.NPM_CONFIG_ELECTRON_MIRROR ||
     env.npm_config_electron_mirror ||
     env.npm_package_config_electron_mirror ||
@@ -210,11 +243,11 @@ const desktopArtifactEnvSuffix = resolveDesktopArtifactSuffix(process.env);
 // 避免“产物存在”被误认为已经走完和生产版相同的签名链路。
 if (
   desktopProductIdentity.flavor === "preview" &&
-  process.env.ZCODE_ENABLE_MAC_SIGN === "1" &&
+  process.env.SOCIAL_HARNESS_ENABLE_MAC_SIGN === "1" &&
   !macSigningIdentity
 ) {
   throw new Error(
-    "ZCode Preview macOS packaging requires APPLE_SIGNING_IDENTITY or CSC_NAME when ZCODE_ENABLE_MAC_SIGN=1",
+    "Social Harness Preview macOS packaging requires APPLE_SIGNING_IDENTITY or CSC_NAME when SOCIAL_HARNESS_ENABLE_MAC_SIGN=1",
   );
 }
 
@@ -278,7 +311,7 @@ async function runTimedAsync(label, fn) {
 
 function resolveAppAsarPath(context) {
   if (context.electronPlatformName === "darwin") {
-    const appName = `${context.packager?.appInfo?.productFilename ?? "ZCode"}.app`;
+    const appName = `${context.packager?.appInfo?.productFilename ?? "Social Harness"}.app`;
     return resolve(context.appOutDir, appName, "Contents", "Resources", "app.asar");
   }
 
@@ -287,7 +320,7 @@ function resolveAppAsarPath(context) {
 
 function resolvePackagedResourcesDir(context) {
   if (context.electronPlatformName === "darwin") {
-    const appName = `${context.packager?.appInfo?.productFilename ?? "ZCode"}.app`;
+    const appName = `${context.packager?.appInfo?.productFilename ?? "Social Harness"}.app`;
     return resolve(context.appOutDir, appName, "Contents", "Resources");
   }
 
@@ -397,7 +430,6 @@ async function injectHoistedRuntimeModulesIntoAsar(context) {
       replaceAppAsarFromStaging({
         sourceDir: stagingDir,
         appAsarPath,
-        targetPlatformKey: targetPlatform.key,
         runAsarCommand,
       }),
     );
@@ -420,7 +452,6 @@ async function stripPackagedSourcemapReferences(context) {
       replaceAppAsarFromStaging({
         sourceDir,
         appAsarPath,
-        targetPlatformKey: targetPlatform.key,
         runAsarCommand,
       }),
   });
@@ -434,33 +465,168 @@ function assertPackagedNativeResourcePolicy(context) {
   const violations = findDesktopNativePackageViolations(entries, targetPlatform.key);
   if (violations.length > 0) {
     // supportedArchitectures 允许工作区准备多平台依赖，但安装包只能携带目标平台资源。
-    // 之前 Canvas 和 node-pty 的其他平台 native 被同时写进 asar/unpacked，包体被放大数百 MiB。
+    // 之前 Canvas 的其他平台 native 被同时写进 asar/unpacked，包体被放大数百 MiB。
     throw new Error(`桌面 native 资源边界校验失败:\n- ${violations.join("\n- ")}`);
   }
 }
 
-function assertPackagedNodePtyPrebuild(context) {
-  const targetBinaryPath = resolvePackagedNodePtyPrebuildPath({
-    resourcesDir: resolvePackagedResourcesDir(context),
-    platformKey: targetPlatform.key,
-  });
-  if (!existsSync(targetBinaryPath))
-    throw new Error(`node-pty 预编译产物缺失: ${targetBinaryPath}`);
+function assertPackagedYtDlpResource(context) {
+  const resourcesDir = resolvePackagedResourcesDir(context);
+  const toolDir = resolve(resourcesDir, "tools", "yt-dlp");
+  const binaryPath = resolve(toolDir, ytDlpReleasePlan.binaryName);
+  const notices = [
+    "LICENSE.txt",
+    "THIRD_PARTY_LICENSES.txt",
+    "THIRD-PARTY-NOTICES.txt",
+    "SOURCES.json",
+  ];
+  if (!existsSync(binaryPath)) {
+    throw new Error(`Packaged yt-dlp binary is missing: ${binaryPath}`);
+  }
+  for (const notice of notices) {
+    const noticePath = resolve(toolDir, notice);
+    if (!existsSync(noticePath))
+      throw new Error(`Packaged yt-dlp notice is missing: ${noticePath}`);
+  }
+
+  const metadata = JSON.parse(readFileSync(resolve(toolDir, "SOURCES.json"), "utf8"));
+  const binarySha256 = createHash("sha256").update(readFileSync(binaryPath)).digest("hex");
+  if (
+    metadata.tool !== "yt-dlp" ||
+    metadata.platform !== targetPlatform.key ||
+    metadata.version !== ytDlpReleasePlan.version ||
+    metadata.asset?.sha256 !== ytDlpReleasePlan.sha256 ||
+    binarySha256 !== ytDlpReleasePlan.sha256
+  ) {
+    throw new Error(
+      `Packaged yt-dlp does not match the pinned ${targetPlatform.key} release asset`,
+    );
+  }
+}
+
+function assertPackagedWhisperRuntime(context) {
+  const toolDir = resolve(resolvePackagedResourcesDir(context), "tools", "whisper.cpp");
+  const binaryPath = resolve(toolDir, whisperCppBuildPlan.binaryName);
+  const requiredFiles = ["LICENSE.txt", "THIRD-PARTY-NOTICES.txt", "SOURCES.json"];
+  if (!existsSync(binaryPath)) {
+    throw new Error(`Packaged whisper.cpp binary is missing: ${binaryPath}`);
+  }
+  for (const fileName of requiredFiles) {
+    const filePath = resolve(toolDir, fileName);
+    if (!existsSync(filePath)) {
+      throw new Error(`Packaged whisper.cpp notice is missing: ${filePath}`);
+    }
+  }
+
+  const metadata = JSON.parse(readFileSync(resolve(toolDir, "SOURCES.json"), "utf8"));
+  const binarySha256 = createHash("sha256").update(readFileSync(binaryPath)).digest("hex");
+  const licenseSha256 = createHash("sha256")
+    .update(readFileSync(resolve(toolDir, "LICENSE.txt")))
+    .digest("hex");
+  if (
+    metadata.tool !== "whisper.cpp" ||
+    metadata.platform !== targetPlatform.key ||
+    metadata.version !== whisperCppBuildPlan.version ||
+    metadata.commit !== whisperCppBuildPlan.commit ||
+    metadata.source?.sha256 !== whisperCppBuildPlan.sourceSha256 ||
+    metadata.binary?.name !== whisperCppBuildPlan.binaryName ||
+    metadata.binary?.sha256 !== binarySha256 ||
+    metadata.license?.sha256 !== licenseSha256
+  ) {
+    throw new Error(
+      `Packaged whisper.cpp does not match the pinned ${targetPlatform.key} source build`,
+    );
+  }
+}
+
+async function sha256File(filePath) {
+  const hash = createHash("sha256");
+  for await (const chunk of createReadStream(filePath)) hash.update(chunk);
+  return hash.digest("hex");
+}
+
+async function assertPackagedFfmpegRuntime(context) {
+  const toolDir = resolve(resolvePackagedResourcesDir(context), "tools", "ffmpeg");
+  const executableSuffix = targetPlatform.os === "win32" ? ".exe" : "";
+  const ffmpegPath = resolve(toolDir, "bin", `ffmpeg${executableSuffix}`);
+  const ffprobePath = resolve(toolDir, "bin", `ffprobe${executableSuffix}`);
+  const requiredFiles = ["LICENSE.txt", "THIRD-PARTY-NOTICES.txt", "SOURCES.json"];
+  for (const binaryPath of [ffmpegPath, ffprobePath]) {
+    if (!existsSync(binaryPath)) {
+      throw new Error(`Packaged FFmpeg runtime binary is missing: ${binaryPath}`);
+    }
+  }
+  for (const fileName of requiredFiles) {
+    const filePath = resolve(toolDir, fileName);
+    if (!existsSync(filePath)) {
+      throw new Error(`Packaged FFmpeg runtime notice is missing: ${filePath}`);
+    }
+  }
+
+  const metadata = JSON.parse(readFileSync(resolve(toolDir, "SOURCES.json"), "utf8"));
+  const licenseSha256 = createHash("sha256")
+    .update(readFileSync(resolve(toolDir, "LICENSE.txt")))
+    .digest("hex");
+  const runtimeFiles = metadata.runtimeFiles ?? [];
+  let runtimeFilesMatch = runtimeFiles.length >= 2;
+  for (const file of runtimeFiles) {
+    const filePath = resolve(toolDir, ...file.path.split("/"));
+    if (
+      !existsSync(filePath) ||
+      statSync(filePath).size !== file.sizeBytes ||
+      (await sha256File(filePath)) !== file.sha256
+    ) {
+      runtimeFilesMatch = false;
+      break;
+    }
+  }
+  const buildConfiguration = metadata.build?.buildConfiguration ?? "";
+  // 修复：旧字段 sourceCommit 与计划中的同名缺失值会让 undefined === undefined 通过；清单实际字段是 ffmpegSourceCommit。
+  if (
+    metadata.tool !== "ffmpeg" ||
+    metadata.platform !== targetPlatform.key ||
+    metadata.version !== ffmpegReleasePlan.version ||
+    metadata.provider !== ffmpegReleasePlan.provider ||
+    metadata.providerReleaseUrl !== ffmpegReleasePlan.providerReleaseUrl ||
+    !ffmpegSourceProvenanceMatches(metadata, ffmpegReleasePlan) ||
+    metadata.variant !== ffmpegReleasePlan.variant ||
+    JSON.stringify(metadata.assets) !== JSON.stringify(ffmpegReleasePlan.assets) ||
+    metadata.license?.sha256 !== licenseSha256 ||
+    metadata.build?.ffmpegVersionOutput?.startsWith(ffmpegReleasePlan.expectedVersionPrefix) !==
+      true ||
+    metadata.build?.ffprobeVersionOutput?.startsWith(
+      ffmpegReleasePlan.expectedVersionPrefix.replace(/^ffmpeg/, "ffprobe"),
+    ) !== true ||
+    !buildConfiguration.includes("--enable-gpl") ||
+    buildConfiguration.includes("--enable-nonfree") ||
+    !metadata.requiredEncoders?.includes("libx264") ||
+    !hasPassingFfmpegRuntimeSmoke(metadata.build?.runtimeSmoke) ||
+    !runtimeFiles.some((file) => file.path === `bin/ffmpeg${executableSuffix}`) ||
+    !runtimeFiles.some((file) => file.path === `bin/ffprobe${executableSuffix}`) ||
+    !runtimeFilesMatch
+  ) {
+    throw new Error(
+      `Packaged FFmpeg runtime does not match the pinned ${targetPlatform.key} GPL release`,
+    );
+  }
+
+  if (existsSync(resolve(toolDir, "bin", `ffplay${executableSuffix}`))) {
+    throw new Error(`Packaged FFmpeg runtime unexpectedly includes ffplay: ${toolDir}`);
+  }
+  const encoderOutput = runCommandAndReadStdout(ffmpegPath, ["-hide_banner", "-encoders"]);
+  if (!encoderOutput.includes("libx264")) {
+    throw new Error(`Packaged FFmpeg runtime does not expose libx264: ${ffmpegPath}`);
+  }
+  runCommandAndReadStdout(ffprobePath, ["-version"]);
 }
 
 /** @type {import("electron-builder").Configuration} */
 export default {
   appId: desktopProductIdentity.appId,
-  // Linux deb 打包（fpm）会校验 package metadata 中的 homepage、author.email、maintainer。
-  // CI 环境下若这些字段缺失会在产物阶段直接失败。这里统一在构建配置补齐，避免依赖外部注入。
+  // 安装元数据统一由产品身份、维护者邮箱和显式 HTTPS homepage 生成，不从 legacy Git remote 推导。
   extraMetadata: {
     version: buildMetadata.appVersion,
-    zcodeProductFlavor: desktopProductIdentity.flavor,
-    homepage: "https://zcode.z.ai",
-    author: {
-      name: "ZCode",
-      email: "dev@zcode.z.ai",
-    },
+    ...desktopReleaseMetadata.extraMetadata,
   },
   // macOS 签名阶段会对 Electron Framework 下每个语言包逐个 codesign。
   // 默认全量语言会产生大量 locale.pak 签名调用，显著拉长打包时长。
@@ -490,19 +656,13 @@ export default {
     // 默认也会原样进入安装包。这里统一在主包层做一次裁剪，只移除非运行时文件，LICENSE 继续保留。
     ...PACKAGING_PRUNE_PATTERNS,
     ...createDesktopNativePackagePrunePatterns(targetPlatform.key),
-    "!node_modules/@zcode/**",
+    "!node_modules/@social-harness/**",
     "!node_modules/react/**",
     "!node_modules/react-dom/**",
   ],
-  asarUnpack: [
-    // node-pty 的 target prebuild 还包含 spawn-helper / winpty-agent.exe 等辅助可执行文件，
-    // 整个目标目录必须 unpack；其他平台目录已由 files 规则裁剪。
-    `node_modules/node-pty/prebuilds/${targetPlatform.key}/**`,
-  ],
   beforePack: async (context) => {
-    runTimedSync("beforePack:restoreTargetNodePtyPrebuild", () =>
-      restoreTargetNodePtyPrebuild({ desktopPackageRoot, targetPlatform }),
-    );
+    await enforceProductionReleaseMaterialGate(desktopProductIdentity.flavor, workspaceRoot);
+
     if (context.electronPlatformName !== "win32" || nsisInstallSectionPatched) {
       return;
     }
@@ -556,8 +716,14 @@ export default {
     runTimedSync("afterPack:assertPackagedNativeResourcePolicy", () =>
       assertPackagedNativeResourcePolicy(context),
     );
-    runTimedSync("afterPack:assertPackagedNodePtyPrebuild", () =>
-      assertPackagedNodePtyPrebuild(context),
+    runTimedSync("afterPack:assertPackagedYtDlpResource", () =>
+      assertPackagedYtDlpResource(context),
+    );
+    runTimedSync("afterPack:assertPackagedWhisperRuntime", () =>
+      assertPackagedWhisperRuntime(context),
+    );
+    await runTimedAsync("afterPack:assertPackagedFfmpegRuntime", () =>
+      assertPackagedFfmpegRuntime(context),
     );
     if (actualWindowsTarget) {
       await runTimedAsync("afterPack:writeWindowsInstallManifest", () =>
@@ -621,8 +787,8 @@ export default {
       : []),
     {
       // agent 运行时资产，打包到 resources/glm。
-      // 桌面端内置的是 agent 的 JS bundle（glm/zcode.cjs，由 prepare:agent-bundle 生成），
-      // Host 进程用 app 自带的 Electron Node runtime（ELECTRON_RUN_AS_NODE）执行 `zcode.cjs app-server --stdio`，
+      // 桌面端内置的是 agent 的 JS bundle（glm/social-harness.cjs，由 prepare:agent-bundle 生成），
+      // Host 进程用 app 自带的 Electron Node runtime（ELECTRON_RUN_AS_NODE）执行 `social-harness.cjs app-server --stdio`，
       // 不再随包内置独立 Node 二进制。远端 SSH/WSL 仍走原生二进制（无 Electron）。
       from: `bundled-agents/${targetPlatform.key}/glm`,
       to: "glm",
@@ -636,14 +802,32 @@ export default {
       to: "tools/ripgrep",
       filter: ["**/*"],
     },
+    {
+      // yt-dlp 与上游许可材料一起进入安装包；Host 只从 resources/tools 解析该固定版本，
+      // 不依赖用户 PATH，也不会让桌面安装包读取仓库中的准备缓存。
+      from: `bundled-tools/${targetPlatform.key}/yt-dlp`,
+      to: "tools/yt-dlp",
+      filter: ["**/*"],
+    },
+    {
+      // FFmpeg/ffprobe 与平台动态库、GPL 许可和固定来源一起进入安装包，不要求用户安装工具。
+      from: `bundled-tools/${targetPlatform.key}/ffmpeg`,
+      to: "tools/ffmpeg",
+      filter: ["**/*"],
+    },
+    {
+      // whisper.cpp 在目标平台 runner 上从校验过的官方源码构建；Host 只解析该固定包内路径。
+      from: `bundled-tools/${targetPlatform.key}/whisper.cpp`,
+      to: "tools/whisper.cpp",
+      filter: ["**/*"],
+    },
     ...nativeSearchReleasePlan.extraResourceToolIds.map((toolId) => ({
       from: `bundled-tools/${targetPlatform.key}/${toolId}`,
       to: `tools/${toolId}`,
       filter: ["**/*"],
     })),
   ],
-  // postinstall 会先优先复用 node-pty 自带的 Windows 预编译产物，其他平台再按需 electron-rebuild。
-  // 打包阶段统一复用安装时准备好的原生文件，避免 electron-builder 再触发一轮不受控的本地编译。
+  // 运行时工具在准备资源阶段显式构建或下载；避免 electron-builder 再触发隐式本地编译。
   npmRebuild: false,
   // OAuth deep link 协议注册（macOS 打包后需要 Info.plist 中声明 CFBundleURLTypes）
   protocols: [
@@ -651,7 +835,7 @@ export default {
       // 协议处理器的展示名之前使用小写 scheme，打包产物里的协议描述无法体现产品名。
       // 展示名跟随安装包身份；scheme 仍保持 zcode，因此两个应用中最后注册者会成为默认 handler。
       name: desktopProductIdentity.productName,
-      schemes: ["zcode"],
+      schemes: ["social-harness"],
     },
   ],
   mac: {
@@ -694,13 +878,10 @@ export default {
   linux: {
     target: ["AppImage", "deb", "rpm", "pacman"],
     artifactName: buildDesktopArtifactName("linux"),
-    // desktop 包名是 scoped package（@zcode/desktop），electron-builder 默认会把
-    // Linux executable/Icon 推成 @zcodedesktop。部分桌面环境无法按这个 icon name 命中
-    // hicolor 图标，最终回退成系统齿轮。这里固定成稳定的小写名称，让 Icon=zcode
-    // 与 /usr/share/icons/hicolor/*/apps/zcode.png 保持一致。
+    // desktop 包名来自 npm scope，不能用于桌面文件名或 WM_CLASS；两者都由产品显示名明确生成。
+    ...desktopReleaseMetadata.linux,
     executableName: desktopProductIdentity.linuxExecutableName,
-    category: "Development",
-    maintainer: "ZCode <dev@zcode.z.ai>",
+    category: "AudioVideo",
   },
   deb: {
     // 生产版与 Preview 必须是两个 dpkg package；只改可执行名仍会让安装器把另一版本当成升级替换。
@@ -714,11 +895,12 @@ export default {
     depends: PACMAN_RUNTIME_DEPENDENCIES,
     // Electron Builder 默认把 pacman target 命名为 .pacman；Arch 原生包的标准扩展名是 .pkg.tar.zst。
     artifactName: buildDesktopArtifactName("linux", "pkg.tar.zst"),
+    compression: "zstd",
   },
   rpm: {
     // 与 deb 同一约束：生产版与 Preview 必须是两个独立 rpm 包，否则 dnf 会把另一 flavor 当成升级替换。
-    // rpm 面向 RHEL 8+（glibc 2.28）分发；整包 glibc 下限由 node-pty prebuild 与 bfs/ugrep 抬到 2.28，
-    // Electron 41 主二进制只引用到 2.25，不会更高。fpm 产 rpm 需要构建机提供 rpmbuild 与 xz。
+    // rpm 面向 RHEL 8+（glibc 2.28）分发；bfs/ugrep 抬高 glibc 下限，Electron 41 主二进制只引用到 2.25。
+    // fpm 产 rpm 需要构建机提供 rpmbuild 与 xz。
     packageName: desktopProductIdentity.linuxPackageName,
     // electron-builder 的 rpm 默认 Requires（gtk3/nss/libXtst 等）不包含 Electron ELF 实际
     // DT_NEEDED 的 mesa-libgbm 与 alsa-lib；rockylinux:8 最小化容器实测装完后启动报

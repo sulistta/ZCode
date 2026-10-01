@@ -8,7 +8,7 @@ import type {
   ReactNode,
 } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { TID_CHAT_SEND_BUTTON } from "@zcode/shared";
+import { TID_CHAT_SEND_BUTTON } from "@social-harness/shared";
 import { ArrowUpIcon, Hand, XIcon } from "lucide-react";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { Button } from "@/components/ui/button.js";
@@ -88,6 +88,7 @@ export function ChatPromptEditor({
   excludedSlashCommandNames,
   appSlashCommands,
   enableMentionPanel,
+  enableSlashPanel = true,
 }: {
   workspacePath: string;
   workspaceIdentity?: string;
@@ -148,6 +149,8 @@ export function ChatPromptEditor({
   appSlashCommands?: readonly AppSlashCommand[];
   /** mention 面板开关（透传 LexicalChatInput）。 */
   enableMentionPanel?: boolean;
+  /** slash/skill/subagent 建议面板开关（透传 LexicalChatInput）。 */
+  enableSlashPanel?: boolean;
 }) {
   const { intl } = useZCodeIntl();
   const toolbarRef = useComposerToolbarFit();
@@ -384,6 +387,7 @@ export function ChatPromptEditor({
           excludedSlashCommandNames={excludedSlashCommandNames}
           appSlashCommands={appSlashCommands}
           enableMentionPanel={enableMentionPanel}
+          enableSlashPanel={enableSlashPanel}
         />
         <div ref={toolbarRef} className="group/toolbar flex items-end gap-3">
           <div className="flex min-w-0 flex-1 items-center" data-composer-leading-actions>
@@ -401,6 +405,7 @@ export function ChatPromptEditor({
                   sessionId={taskId}
                   container={resolvedTriggerPanelContainer}
                   showPlugins={enableMentionPanel !== false}
+                  showSlashButton={enableSlashPanel}
                 />
               ) : null}
               {/* 权限/模式选择曾作为 leadingActions 先于动作菜单渲染，导致常驻顺序与产品规范相反。*/}

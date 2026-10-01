@@ -1,11 +1,11 @@
 /* eslint-disable max-lines -- workspace 模型协议与兼容请求处理仍集中在本文件。 */
-import { createInMemorySessionEventStore } from "@zcode/adapters/storage";
-import type { ModelSelection } from "@zcode/contracts";
+import { createInMemorySessionEventStore } from "@social-harness/adapters/storage";
+import type { ModelSelection } from "@social-harness/contracts";
 import {
   zcodeProviderTestModelConnectivityParamsSchema,
   zcodeWorkspaceReadPresentationParamsSchema,
   type ZCodeWorkspaceRef,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type { ZCodeApp, ZCodeAppOptions } from "../app/types.js";
 import { listProtocolSlashCommands } from "./slash-commands.js";
 import {
@@ -94,7 +94,7 @@ export async function createWorkspaceZCodeApp(
             },
           }
         : {}),
-      // Electron/Protocol 主会话之前没有像 CLI/TUI 那样显式开启模型流式，
+      // Electron/Protocol 主会话之前没有像 CLI 那样显式开启模型流式，
       // 导致主 turn 退回 generateText 非流式请求，遇到返回 SSE 的兼容端点会按 JSON 解析失败。
       modelStreaming: options.runtimeConfig?.modelStreaming ?? "on",
     },

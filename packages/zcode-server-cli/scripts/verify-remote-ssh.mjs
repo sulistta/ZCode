@@ -6,7 +6,7 @@
  * 用法：
  *   node scripts/verify-remote-ssh.mjs [--target linux-x64|linux-arm64] [--keep]
  *
- * 前置：docker 可用；已运行 `pnpm --filter @zcode/server-cli stage --target <target>`。
+ * 前置：docker 可用；已运行 `pnpm --filter @social-harness/server-cli stage --target <target>`。
  * `--keep` 保留容器与隧道供手工调试（脚本会打印连接方式）。
  */
 import { spawn } from "node:child_process";
@@ -97,7 +97,7 @@ async function main() {
   });
   await run("ls", [releaseArchive], { quiet: true }).catch(() => {
     throw new Error(
-      `Release archive missing: ${releaseArchive}; run pnpm --filter @zcode/server-cli stage --target ${target}`,
+      `Release archive missing: ${releaseArchive}; run pnpm --filter @social-harness/server-cli stage --target ${target}`,
     );
   });
 
@@ -265,13 +265,6 @@ async function main() {
   });
   assert(replayed.status === 401, `replayed ticket must be 401, got ${replayed.status}`);
   log("ws contracts ok (replayable upgrade, host gate, one-time ticket)");
-
-  // linux 的 pty.node 走 @lydell 补齐路径（打包时特殊处理），必须在真实目标平台验证可加载。
-  log("verify node-pty spawns a real pty on remote");
-  await ssh(
-    "cd /root/zcode-server/runtime && ./node -e \"const pty=require('node-pty');const p=pty.spawn('/bin/echo',['pty-ok'],{cols:80,rows:24});let o='';p.onData(d=>o+=d);p.onExit(()=>{process.exit(o.includes('pty-ok')?0:1)})\"",
-  );
-  log("node-pty ok");
 
   log("verify remote lifecycle status/stop");
   const { stdout: statusOutput } = await ssh("/root/zcode-server/bin/zcode status --json");

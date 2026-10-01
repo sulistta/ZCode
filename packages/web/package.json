@@ -1,17 +1,18 @@
 {
-  "name": "@zcode/web",
+  "name": "@social-harness/web",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test": "node --import tsx --test test/*.test.ts",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix"
   },
   "dependencies": {
-    "@zcode/client": "workspace:*",
-    "@zcode/shared": "workspace:*",
-    "@zcode/ui": "workspace:*",
+    "@social-harness/client": "workspace:*",
+    "@social-harness/shared": "workspace:*",
+    "@social-harness/ui": "workspace:*",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },

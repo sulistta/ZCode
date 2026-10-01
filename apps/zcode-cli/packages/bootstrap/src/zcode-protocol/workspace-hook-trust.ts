@@ -1,13 +1,13 @@
 import { resolve } from "node:path";
-import { workspaceHookPolicySchema } from "@zcode/contracts";
-import type { WorkspaceHookPolicyProvider } from "@zcode/core";
+import { workspaceHookPolicySchema } from "@social-harness/contracts";
+import type { WorkspaceHookPolicyProvider } from "@social-harness/core";
 import {
   zcodeWorkspaceHookTrustGrantParamsSchema,
   zcodeWorkspaceHookTrustGrantReasonCodeSchema,
   zcodeWorkspaceHookTrustGrantResultSchema,
   type ZCodeWorkspaceHookTrustGrantReasonCode,
   type ZCodeWorkspaceHookTrustGrantResult,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   grantWorkspaceHookTrust,
   type WorkspaceHookTrustCliStatus,

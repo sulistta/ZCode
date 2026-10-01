@@ -7,8 +7,6 @@ import {
   BotMessageSquareIcon,
   BugIcon,
   FileCode2Icon,
-  FileDiffIcon,
-  MapIcon,
   MessageSquareTextIcon,
   ListTreeIcon,
   NotepadTextIcon,
@@ -308,14 +306,6 @@ export function SidePaneTabIcon({ tab }: { tab: WorkspaceSidePaneTab }) {
     return <BrowserTabFavicon faviconUrl={tab.faviconUrl} />;
   }
 
-  if (tab.type === "git") {
-    return <FileDiffIcon className="size-3.5" />;
-  }
-
-  if (tab.type === "treemapping") {
-    return <MapIcon className="size-3.5" />;
-  }
-
   if (tab.type === "whiteboard") {
     return <PaletteIcon className="size-3.5" />;
   }
@@ -328,7 +318,7 @@ export function SidePaneTabIcon({ tab }: { tab: WorkspaceSidePaneTab }) {
     return <BugIcon className="size-3.5" />;
   }
 
-  if (tab.type === "terminal" || tab.type === "bash-output") {
+  if (tab.type === "bash-output") {
     return <SquareTerminalIcon className="size-3.5" />;
   }
 
@@ -347,7 +337,7 @@ export function SidePaneTabIcon({ tab }: { tab: WorkspaceSidePaneTab }) {
       return <FileDisplayIcon src={descriptor.fileIconSrc} size={14} className="shrink-0" />;
     }
 
-    return <FileDiffIcon className="size-3.5" />;
+    return <FileCode2Icon className="size-3.5" />;
   }
 
   if (tab.source.type === "multi-file-diff") {
@@ -356,7 +346,7 @@ export function SidePaneTabIcon({ tab }: { tab: WorkspaceSidePaneTab }) {
       return <FileDisplayIcon src={descriptor.fileIconSrc} size={14} className="shrink-0" />;
     }
 
-    return <FileDiffIcon className="size-3.5" />;
+    return <FileCode2Icon className="size-3.5" />;
   }
 
   if (tab.source.path) {
@@ -516,14 +506,6 @@ export function getSidePaneTabTitle(
     return pageTitle || formatMessage({ id: "browser.title" });
   }
 
-  if (tab.type === "git") {
-    return formatMessage({ id: "sidePane.review" });
-  }
-
-  if (tab.type === "treemapping") {
-    return formatMessage({ id: "treemapping.title" });
-  }
-
   if (tab.type === "whiteboard") {
     return tab.title || formatMessage({ id: "whiteboard.title" });
   }
@@ -536,7 +518,7 @@ export function getSidePaneTabTitle(
     return formatMessage({ id: "developerTools.title" });
   }
 
-  if (tab.type === "terminal" || tab.type === "bash-output") {
+  if (tab.type === "bash-output") {
     return tab.title || formatMessage({ id: "terminal.title" });
   }
 

@@ -3,7 +3,7 @@ import {
   isPptxElementReferenceInWorkspaceScope,
   type PptxElementReference,
 } from "@/lib/pptxElementReference.js";
-import { isWorkspaceFilePathInside } from "@/workspace-file-tree/model.js";
+import { isWorkspaceFilePathInside } from "@/lib/workspacePaths.js";
 
 interface PptxElementReferencePreviewScope {
   workspacePath: string;

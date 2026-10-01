@@ -12,24 +12,6 @@
     "source": "https://raw.githubusercontent.com/mattdesl/parse-bmfont-ascii/5f22b037ae7460f629dd681db23cd9b543a76b06/LICENSE.md"
   },
   {
-    "package": "unsafe-pointer@0.2.0",
-    "repo": "justjake/node-unsafe-pointer",
-    "refs": ["v0.2.0", "unsafe-pointer@0.2.0", "0.2.0"],
-    "file": "third-party/upstream/0ab717053f3e24736cd404a0801407fb305db75d1b58f7e6487d14feee30d28a.txt",
-    "sha256": "0ab717053f3e24736cd404a0801407fb305db75d1b58f7e6487d14feee30d28a",
-    "source": "https://registry.npmjs.org/unsafe-pointer/0.2.0",
-    "evidenceKind": "publisher-license-identifier-and-standard-terms",
-    "license": "MIT",
-    "reviewEvidence": {
-      "checkedOn": "2026-09-21",
-      "result": "The versioned npm archive contains no standalone complete LICENSE; existing publisher declaration and original README license sections remain preserved. Upstream authorization/copyright material is still required to close this review.",
-      "npmArchiveSha256": "9c9795688a9e224759468aeee2ff88d917fadc65f7b3480e62571f0853eaa446",
-      "sourceRevision": "f9771c0c21e863e4938a7aed0af89575f9673152",
-      "sourceTreeUrl": "https://api.github.com/repos/justjake/node-unsafe-pointer/git/trees/f9771c0c21e863e4938a7aed0af89575f9673152?recursive=1",
-      "upstreamLicenseFiles": []
-    }
-  },
-  {
     "package": "react-remove-scroll-bar@2.3.8",
     "repo": "theKashey/react-remove-scroll-bar",
     "refs": ["b3b1287aad81def2e2ae707274b74531b61ddbaf"],
@@ -39,9 +21,12 @@
     "evidenceKind": "publisher-license-identifier-and-standard-terms",
     "license": "MIT",
     "reviewEvidence": {
-      "checkedOn": "2026-09-21",
-      "result": "The versioned npm archive contains no standalone complete LICENSE; existing publisher declaration and original README license sections remain preserved. Upstream authorization/copyright material is still required to close this review.",
-      "npmArchiveSha256": "ccc872d7a2dc007cbf9d755f30d56b8d80eabdbe22c44c95a709129bfdc46f01"
+      "checkedOn": "2026-09-29",
+      "result": "The versioned npm archive contains no standalone complete LICENSE. Registry metadata identifies gitHead b3b1287aad81def2e2ae707274b74531b61ddbaf, but GitHub no longer resolves that commit, so no exact upstream copyright/license file was available to verify.",
+      "npmArchiveSha256": "ccc872d7a2dc007cbf9d755f30d56b8d80eabdbe22c44c95a709129bfdc46f01",
+      "sourceRevision": "b3b1287aad81def2e2ae707274b74531b61ddbaf",
+      "sourceCommitLookupUrl": "https://api.github.com/repos/theKashey/react-remove-scroll-bar/commits/b3b1287aad81def2e2ae707274b74531b61ddbaf",
+      "sourceCommitLookupResult": "GitHub returned 422 No commit found for SHA."
     }
   },
   {
@@ -54,16 +39,13 @@
     "evidenceKind": "publisher-license-identifier-and-standard-terms",
     "license": "MIT",
     "reviewEvidence": {
-      "checkedOn": "2026-09-21",
-      "result": "The versioned npm archive contains no standalone complete LICENSE; existing publisher declaration and original README license sections remain preserved. Upstream authorization/copyright material is still required to close this review.",
-      "npmArchiveSha256": "f4dd386c2e705ffb8692a8afdc1e3b8ff09c6b8ef3aee48d0537ff71d8839cd1"
+      "checkedOn": "2026-09-29",
+      "result": "The versioned npm archive contains no standalone complete LICENSE. The upstream version tag quickjs-wasi@2.2.0 resolves to cc1fea4a6a4ac1d960e0db68d35e1459064a1a23; its source tree has no package-level LICENSE, only an extension-specific Mbed TLS license. The publisher-declared MIT terms therefore still lack the package's complete original notice.",
+      "npmArchiveSha256": "f4dd386c2e705ffb8692a8afdc1e3b8ff09c6b8ef3aee48d0537ff71d8839cd1",
+      "sourceRevision": "cc1fea4a6a4ac1d960e0db68d35e1459064a1a23",
+      "sourceTreeUrl": "https://api.github.com/repos/vercel-labs/quickjs-wasi/git/trees/f630cc7f6b66bd531f42725b7ec5363b98eec71a?recursive=1",
+      "upstreamLicenseFiles": ["extensions/crypto/mbedtls/LICENSE"]
     }
-  },
-  {
-    "package": "yoga-layout@3.2.1",
-    "file": "third-party/upstream/52412d7bc7ce4157ea628bbaacb8829e0a9cb3c58f57f99176126bc8cf2bfc85.txt",
-    "sha256": "52412d7bc7ce4157ea628bbaacb8829e0a9cb3c58f57f99176126bc8cf2bfc85",
-    "source": "https://raw.githubusercontent.com/facebook/yoga/v3.2.1/LICENSE"
   },
   {
     "package": "@ai-sdk/provider-utils@4.0.27",
@@ -258,12 +240,6 @@
     }
   },
   {
-    "package": "react-devtools-core@7.0.1",
-    "file": "third-party/upstream/da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93.txt",
-    "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93",
-    "source": "https://raw.githubusercontent.com/facebook/react/3cde211b0cb1c707114c27d7fd23683d02086e31/LICENSE"
-  },
-  {
     "package": "boolbase@1.0.0",
     "repo": "fb55/boolbase",
     "refs": ["v1.0.0", "boolbase@1.0.0", "1.0.0"],
@@ -273,9 +249,11 @@
     "evidenceKind": "publisher-license-identifier-and-standard-terms",
     "license": "ISC",
     "reviewEvidence": {
-      "checkedOn": "2026-09-21",
-      "result": "The versioned npm archive contains no standalone complete LICENSE; existing publisher declaration and original README license sections remain preserved. Upstream authorization/copyright material is still required to close this review.",
-      "npmArchiveSha256": "69628ff8092c5ff940ea4a0f29da98d520615bae138755c9e059033606c6caa8"
+      "checkedOn": "2026-09-29",
+      "result": "The versioned npm archive contains only README.md, index.js, and package.json, with no standalone LICENSE or gitHead. The upstream repository currently exposes only tag v2.0.0; no immutable v1.0.0 source revision or original ISC copyright notice was found. The newer tag's license is not treated as evidence for this older package.",
+      "npmArchiveSha256": "69628ff8092c5ff940ea4a0f29da98d520615bae138755c9e059033606c6caa8",
+      "upstreamTagLookupUrl": "https://api.github.com/repos/fb55/boolbase/tags?per_page=100",
+      "upstreamTagsObserved": ["v2.0.0"]
     }
   },
   {
@@ -413,24 +391,6 @@
     "evidence": "License from the exact upstream release tag."
   },
   {
-    "package": "ansi-to-react@6.2.6",
-    "repo": "nteract/ansi-to-react",
-    "refs": ["145140971e9d83ccac32265f24b1c55dea437896"],
-    "file": "third-party/upstream/2c88816684a40c718113a10062a8335b665cec00d3c7b32e2b3fe9c620a3e03e.txt",
-    "sha256": "2c88816684a40c718113a10062a8335b665cec00d3c7b32e2b3fe9c620a3e03e",
-    "source": "https://registry.npmjs.org/ansi-to-react/6.2.6",
-    "evidenceKind": "publisher-license-identifier-and-standard-terms",
-    "license": "BSD-3-Clause",
-    "reviewEvidence": {
-      "checkedOn": "2026-09-21",
-      "result": "The versioned npm archive contains no standalone complete LICENSE; existing publisher declaration and original README license sections remain preserved. Upstream authorization/copyright material is still required to close this review.",
-      "npmArchiveSha256": "e06fc6be19323cf447f0058975cfcf41923d3422ea613cff2e67d8fd8ee1d655",
-      "sourceRevision": "145140971e9d83ccac32265f24b1c55dea437896",
-      "sourceTreeUrl": "https://api.github.com/repos/nteract/ansi-to-react/git/trees/145140971e9d83ccac32265f24b1c55dea437896?recursive=1",
-      "upstreamLicenseFiles": []
-    }
-  },
-  {
     "package": "@ai-sdk/provider-utils@4.0.23",
     "file": "third-party/upstream/b4f9adb7c568904834d0dd6cc98d16c390d21ca32fc17ae7a267715269bd5529.txt",
     "sha256": "b4f9adb7c568904834d0dd6cc98d16c390d21ca32fc17ae7a267715269bd5529",
@@ -481,8 +441,14 @@
     "file": "third-party/upstream/6f7e6eae2a2afbaa67b266650f7342e7bf8e82cb57f6ab98148b3d6e0fb4450a.txt",
     "sha256": "6f7e6eae2a2afbaa67b266650f7342e7bf8e82cb57f6ab98148b3d6e0fb4450a",
     "source": "https://registry.npmjs.org/keyv/4.5.4",
-    "evidenceKind": "publisher-license-identifier-and-standard-terms",
-    "license": "MIT"
+    "license": "MIT",
+    "reviewEvidence": {
+      "checkedOn": "2026-09-29",
+      "result": "The exact 4.5.4 registry archive declares MIT in package.json and its README says 'MIT © Jared Wray'. The retained notice carries that publisher copyright and the complete standard MIT terms; the archive does not contain a standalone LICENSE file.",
+      "npmArchiveSha256": "eb26f1c561e57af4a4365e6b54f5f3e745e3963747a93845af1f000a747b6098",
+      "npmArchiveIntegrity": "sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==",
+      "licenseSection": "package/README.md:427-429"
+    }
   },
   {
     "package": "@arms/rum-browser@0.1.8",
@@ -490,7 +456,14 @@
     "sha256": "2c976d327b293bd74c257cd53e9b4ecef97a06b1651baa3b24327c97192cb3de",
     "source": "https://registry.npmjs.org/%40arms%2frum-browser%400.1.8",
     "evidenceKind": "publisher-license-identifier-and-standard-terms",
-    "license": "ISC"
+    "license": "ISC",
+    "reviewEvidence": {
+      "checkedOn": "2026-09-29",
+      "result": "The exact registry archive contains no LICENSE, COPYING, or NOTICE file, and README.md does not identify a copyright holder. Registry metadata declares ISC and gitHead b3bb39c51630c034572644f845f5e68b7da994d0; package metadata provides no repository or homepage URL, so the original copyright notice remains unverified.",
+      "npmArchiveSha256": "c931065b3ca66a504fde9fb00cab1100cd771da95226cc67011247a48c0eb377",
+      "npmArchiveIntegrity": "sha512-XqGzZB3ziQf8nNVYCf4lDkwonclPCOQYHjk8XBr8U28u/JrTtMSF1hNYZN4JlKqyLypelGb9Nx7T8BtS5bIEhQ==",
+      "sourceRevision": "b3bb39c51630c034572644f845f5e68b7da994d0"
+    }
   },
   {
     "package": "@arms/rum-core@0.1.4",
@@ -498,7 +471,14 @@
     "sha256": "328eb7864c20ab77607b26ee1913b65a9b880f6300eea9e667b890da896a2f40",
     "source": "https://registry.npmjs.org/%40arms%2frum-core%400.1.4",
     "evidenceKind": "publisher-license-identifier-and-standard-terms",
-    "license": "ISC"
+    "license": "ISC",
+    "reviewEvidence": {
+      "checkedOn": "2026-09-29",
+      "result": "The exact registry archive contains no LICENSE, COPYING, or NOTICE file, and README.md does not identify a copyright holder. Registry metadata declares ISC and gitHead b63b290389cb1ece96a05324414318d12241563f; package metadata provides no repository or homepage URL, so the original copyright notice remains unverified.",
+      "npmArchiveSha256": "9ea195bb1504209879359247a39c8ca2cb46b832e9e5f00932c0c0661d3a083f",
+      "npmArchiveIntegrity": "sha512-if7tvpBnKhKddUKk+/u9iXKUVC+/nugiK6FGHTBuqS6LBLL0Fl8xAm4FTN3hGq07DAmP77RmWaG5mb1vmJ73SQ==",
+      "sourceRevision": "b63b290389cb1ece96a05324414318d12241563f"
+    }
   },
   {
     "package": "@arms/rum-electron@0.0.3",
@@ -506,6 +486,13 @@
     "sha256": "38b6f63a0aa422b5c329e75f1aeecd2b02e83caab1747644c00810870d77bacb",
     "source": "https://registry.npmjs.org/%40arms%2frum-electron%400.0.3",
     "evidenceKind": "publisher-license-identifier-and-standard-terms",
-    "license": "MIT"
+    "license": "MIT",
+    "reviewEvidence": {
+      "checkedOn": "2026-09-29",
+      "result": "The exact registry archive contains no LICENSE, COPYING, or NOTICE file, and README.md does not identify a copyright holder. Registry metadata declares MIT and gitHead d472fec87e50b4bceb552800da99a8e7510bf1e1; package metadata provides no repository or homepage URL, so the original copyright notice remains unverified.",
+      "npmArchiveSha256": "05aa61fd5b6bc4778e9f1f96053dfd5fc1f4e6994576bfe72273d6bd80ee8ff7",
+      "npmArchiveIntegrity": "sha512-ieiMhVQNpkSEv3tgwfQZqhvy8p9cyhl3B7AS4j+8kikDcriNOA5xE0d8JwpItzfOm7kfeYqGbZYwZMF45EDl4Q==",
+      "sourceRevision": "d472fec87e50b4bceb552800da99a8e7510bf1e1"
+    }
   }
 ]

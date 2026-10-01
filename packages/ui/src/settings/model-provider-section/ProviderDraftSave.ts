@@ -1,4 +1,4 @@
-import { isApiKeyAccess, type ProviderApiType } from "@zcode/provider";
+import { isApiKeyAccess, type ProviderApiType } from "@social-harness/provider";
 import {
   getProviderFormLabel,
   type ProviderSettingsFormProvider,

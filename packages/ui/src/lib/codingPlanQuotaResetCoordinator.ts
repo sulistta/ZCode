@@ -1,5 +1,8 @@
-import type { IUsageStatsService } from "@zcode/services";
-import type { CodingPlanResetOpportunityResult, CodingPlanResetScopeRequest } from "@zcode/shared";
+import type { IUsageStatsService } from "@social-harness/services";
+import type {
+  CodingPlanResetOpportunityResult,
+  CodingPlanResetScopeRequest,
+} from "@social-harness/shared";
 import { logger } from "@/logger.js";
 
 const STATUS_POLL_INTERVAL_MS = 5 * 60_000;

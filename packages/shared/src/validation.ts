@@ -410,6 +410,27 @@ export const hostLocalMediaPreviewPathAuthorizeResultMessageSchema = z
   })
   .strict();
 
+export const hostLocalMediaPreviewUrlCreateResultMessageSchema = z
+  .object({
+    type: z.literal("local-media-preview-url-create-result"),
+    requestId: nonEmptyStringSchema,
+    ok: z.boolean(),
+    url: z.string().url().optional(),
+    expiresAt: z.number().int().nonnegative().safe().optional(),
+    error: z.string().optional(),
+  })
+  .strict();
+
+export const hostInstagramCredentialResultMessageSchema = z
+  .object({
+    type: z.literal("instagram-credential-result"),
+    requestId: nonEmptyStringSchema,
+    ok: z.boolean(),
+    serializedCredential: z.string().max(16_384).nullable().optional(),
+    error: z.string().optional(),
+  })
+  .strict();
+
 export const hostCuaPipFocusChangedMessageSchema = z
   .object({
     type: z.literal("cua-pip-focus-changed"),
@@ -473,6 +494,8 @@ export const hostIncomingMessageSchema = z.discriminatedUnion("type", [
   hostOffPeakRunMessageSchema,
   hostBrowserExecuteResultMessageSchema,
   hostLocalMediaPreviewPathAuthorizeResultMessageSchema,
+  hostLocalMediaPreviewUrlCreateResultMessageSchema,
+  hostInstagramCredentialResultMessageSchema,
   hostCuaPipFocusChangedMessageSchema,
   hostProviderProvisioningExecuteMessageSchema,
 ]);
@@ -871,6 +894,29 @@ export const hostLocalMediaPreviewPathAuthorizeRequestResponseSchema = z
   })
   .strict();
 
+export const hostLocalMediaPreviewUrlCreateRequestResponseSchema = z
+  .object({
+    type: z.literal("local-media-preview-url-create-request"),
+    requestId: nonEmptyStringSchema,
+    path: nonEmptyStringSchema,
+  })
+  .strict();
+
+export const hostInstagramCredentialRequestResponseSchema = z
+  .object({
+    type: z.literal("instagram-credential-request"),
+    requestId: nonEmptyStringSchema,
+    operation: z.enum(["get", "set", "delete"]),
+    accountId: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120)
+      .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/),
+    serializedCredential: z.string().max(16_384).optional(),
+  })
+  .strict();
+
 export const networkObservationSchema = z.object({
   transport: z.enum(["http", "websocket", "rpc"]),
   interface: z.string(),
@@ -972,6 +1018,8 @@ export const hostResponseMessageSchema = z.discriminatedUnion("type", [
   hostFeedbackLogArchiveRequestResponseSchema,
   hostBrowserExecuteRequestResponseSchema,
   hostLocalMediaPreviewPathAuthorizeRequestResponseSchema,
+  hostLocalMediaPreviewUrlCreateRequestResponseSchema,
+  hostInstagramCredentialRequestResponseSchema,
   hostNetworkTelemetryBatchResponseSchema,
   hostProviderProvisioningSourceChangedResponseSchema,
   hostProviderProvisioningExecutionResultResponseSchema,

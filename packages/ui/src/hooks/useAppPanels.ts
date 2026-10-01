@@ -1,11 +1,8 @@
 /* eslint-disable max-lines */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createUuid } from "@zcode/shared";
-import type { EmbeddedBrowserOpenUrlRequest, IPlatformService } from "@zcode/shared";
+import { createUuid } from "@social-harness/shared";
+import type { EmbeddedBrowserOpenUrlRequest, IPlatformService } from "@social-harness/shared";
 import type { CodeViewerSource } from "@/lib/codeViewer.js";
-// 保活：side pane terminal 跨 workspace 会话上移到模块级 registry。
-// 关闭 terminal tab 时必须显式 release，杀掉 PTY，避免常驻 registry 造成孤儿进程。
-import { sidePaneTerminalSessionRegistry } from "@/terminal/sidePaneTerminalSessionRegistry.js";
 import {
   buildTaskSidePaneMemoryKey,
   getSidePaneCollapsedPreference,
@@ -18,11 +15,9 @@ import {
   closeSidePaneTabForParent,
   closeVisibleOtherSidePaneTabs,
   closeVisibleSidePaneTabs,
-  closeGitSidePane,
   closeCodeViewerSidePane,
   openWhiteboardSidePane,
   openModelTrajectorySidePane,
-  openTerminalSidePane,
   openSubagentSessionSidePane,
   openSubagentDirectorySidePane,
   openSelectionSideChatPane,
@@ -43,7 +38,6 @@ import {
   BROWSER_USE_OPERATION_INDICATOR_DURATION_MS,
   openCodeViewerSidePane,
   openCodeViewerSidePanes,
-  activateGitSidePane,
   getActiveSidePaneTab,
   getVisibleSidePaneTabs,
   sidePaneOwnerKey,
@@ -54,11 +48,9 @@ import {
   setActiveSidePaneTab,
   syncSubagentSessionSidePaneTabs,
   toggleBrowserSidePane,
-  toggleGitSidePane,
   updateBrowserSidePaneTab,
   stampSidePaneTabsOwnership,
   type BrowserSidePaneMetadata,
-  type TreemappingSidePaneTab,
   type OpenScopedSubagentSideTabRequest,
   type OpenBackgroundBashSideTabRequest,
   openBackgroundBashSidePane,
@@ -75,12 +67,11 @@ import {
 } from "@/lib/workspaceSidePane.js";
 import { isSidePaneTabVisibleForParent } from "@/lib/workspaceSidePane.js";
 import { logger } from "@/logger.js";
-import { getPathLeaf, joinFilePath, toFileUrl } from "@/lib/path.js";
+import { joinFilePath, toFileUrl } from "@/lib/path.js";
 import { shouldOpenWorkflowArtifactInBrowser } from "@/lib/workflowArtifactOpen.js";
 import { useWhiteboardStore } from "@/store/whiteboardStore.js";
 import { useModelTrajectoryOpenBridge } from "@/hooks/useModelTrajectoryOpenBridge.js";
 import { useServices } from "@/hooks/useServices.js";
-import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
 import { clearSelectionSideChat } from "@/lib/selectionSideChatRuntime.js";
 import { clearConversationSelectionReferenceScope } from "@/lib/conversationSelectionReference.js";
 import { subscribeTaskLifecycle } from "@/lib/taskLifecycleEvents.js";
@@ -103,30 +94,6 @@ export interface RecentClosedSidePaneTab {
 }
 
 const RECENT_CLOSED_SIDE_PANE_TAB_LIMIT = 8;
-
-function createTerminalSidePaneTitle(
-  current: WorkspaceSidePaneState | null,
-  workspaceAbsPath: string,
-): string {
-  const baseTitle = getPathLeaf(workspaceAbsPath) || "Terminal";
-  const usedTitles = new Set(
-    current?.tabs
-      .filter((tab) => tab.type === "terminal")
-      .map((tab) => tab.title.trim())
-      .filter(Boolean) ?? [],
-  );
-
-  if (!usedTitles.has(baseTitle)) {
-    return baseTitle;
-  }
-
-  for (let index = 2; ; index += 1) {
-    const candidate = `${baseTitle} ${index}`;
-    if (!usedTitles.has(candidate)) {
-      return candidate;
-    }
-  }
-}
 
 export function useAppPanels(options: {
   workspaceAbsPath: string;
@@ -174,7 +141,6 @@ export function useAppPanels(options: {
   const supportsEmbeddedBrowser = explicitSupportsEmbeddedBrowser ?? Boolean(isDesktop);
   const activeWorkspaceKey = workspaceIdentity?.trim() || workspaceAbsPath;
   const { zcodeAgentService, zcodeSessionService } = useServices();
-  const isOfficeMode = useIsOfficeMode();
   const sidePaneMemoryKey = useMemo(
     () =>
       buildTaskSidePaneMemoryKey({
@@ -186,10 +152,6 @@ export function useAppPanels(options: {
   );
   const initialSidePaneMemoryState = readTaskSidePaneMemoryState(sidePaneMemoryKey);
 
-  // 修复说明：之前终端区域被固定写死在 <main> 底部，页面一进入就会直接挂载 Terminal，
-  // 不仅默认占用高度，还会立刻创建终端会话。这里改成显式开关，默认关闭，
-  // 只有用户主动点击后才渲染 Terminal，这样就不会出现"terminal 不用默认打开"的问题。
-  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
   // 修复说明：右侧共享面板（browser / code-viewer）需要默认关闭。
   // 否则一进工作区就会先占住主会话空间，和"只在用户主动查看时再展开"的预期相反。
   const [sidePaneState, setSidePaneState] = useState<WorkspaceSidePaneState | null>(
@@ -701,55 +663,6 @@ export function useAppPanels(options: {
     });
   }, [commitSidePaneState, isDesktop, platform]);
 
-  const handleToggleGit = useCallback(() => {
-    commitOpenedSidePaneState((current) => {
-      if (isOfficeMode && !current?.tabs.some((tab) => tab.type === "git")) return current;
-      const closingActiveGit = getActiveSidePaneTab(current)?.type === "git";
-      const next = toggleGitSidePane(current);
-      if (closingActiveGit) {
-        syncSidePaneCollapsedWithTabs(next);
-      } else {
-        revealSidePaneForCurrentOwner();
-      }
-      const activeTab = getActiveSidePaneTab(next);
-      logger.info(
-        `[App] 切换右侧面板 mode=${activeTab?.type ?? "none"} workspace=${workspaceAbsPath} tabs=${next?.tabs.length ?? 0}`,
-      );
-      return next;
-    });
-  }, [
-    isOfficeMode,
-    commitOpenedSidePaneState,
-    revealSidePaneForCurrentOwner,
-    syncSidePaneCollapsedWithTabs,
-    workspaceAbsPath,
-  ]);
-
-  const handleOpenGit = useCallback(() => {
-    commitOpenedSidePaneState((current) => {
-      if (isOfficeMode && !current?.tabs.some((tab) => tab.type === "git")) return current;
-      const next = activateGitSidePane(current);
-      // 文件变更查找只需要“确保 Git 面板打开”，不能复用 toggle。
-      // 如果当前已经在 Git tab 上，toggle 会把它关掉，导致切到文件变更范围反而看不到内容。
-      revealSidePaneForCurrentOwner();
-      logger.info(
-        `[App] 打开右侧面板 mode=git workspace=${workspaceAbsPath} tabs=${next.tabs.length}`,
-      );
-      return next;
-    });
-  }, [isOfficeMode, commitOpenedSidePaneState, revealSidePaneForCurrentOwner, workspaceAbsPath]);
-
-  const handleOpenTreemapping = useCallback(
-    (source?: TreemappingSidePaneTab["source"]) => {
-      // Treemapping 功能当前需要从侧边栏隐藏。保留回调形状给消息链路兼容，
-      // 但不再创建 side pane tab，避免 header 或旧入口绕过菜单隐藏。
-      logger.debug(
-        `[App] 已隐藏 treemapping 侧边栏入口 workspace=${workspaceAbsPath} source=${source?.kind ?? "current"}`,
-      );
-    },
-    [workspaceAbsPath],
-  );
-
   const handleOpenWhiteboard = useCallback(() => {
     const board = useWhiteboardStore.getState().createBoard({
       defaultNamePrefix: defaultWhiteboardNamePrefix,
@@ -785,29 +698,6 @@ export function useAppPanels(options: {
       return next;
     });
   }, [commitOpenedSidePaneState, revealSidePaneForCurrentOwner, workspaceAbsPath]);
-
-  const handleOpenTerminalTab = useCallback(() => {
-    if (isOfficeMode) return;
-    revealSidePaneForCurrentOwner();
-    commitOpenedSidePaneState((current) => {
-      const title = createTerminalSidePaneTitle(current, workspaceAbsPath);
-      const next = openTerminalSidePane(current, {
-        title,
-        cwd: workspaceAbsPath,
-        remoteSessionId: workspaceRemoteSessionId,
-      });
-      logger.info(
-        `[App] 新建右侧终端 tab=${title} workspace=${workspaceAbsPath} tabs=${next.tabs.length}`,
-      );
-      return next;
-    });
-  }, [
-    isOfficeMode,
-    commitOpenedSidePaneState,
-    revealSidePaneForCurrentOwner,
-    workspaceAbsPath,
-    workspaceRemoteSessionId,
-  ]);
 
   const handleOpenModelTrajectory = useCallback(
     (params: { taskId: string; title?: string | null }) => {
@@ -1225,18 +1115,6 @@ export function useAppPanels(options: {
     handleOpenModelTrajectory,
   );
 
-  const handleToggleTerminal = useCallback(() => {
-    setIsTerminalOpen((open) => {
-      if (isOfficeMode && !open) return open;
-      const nextOpen = !open;
-      logger.info("[App] 切换底部终端面板", {
-        open: nextOpen,
-        workspace: workspaceAbsPath,
-      });
-      return nextOpen;
-    });
-  }, [isOfficeMode, workspaceAbsPath]);
-
   const handleToggleSidebar = useCallback(() => {
     setIsSidebarVisible((visible) => !visible);
   }, []);
@@ -1266,15 +1144,6 @@ export function useAppPanels(options: {
     logger.info(`[App] 关闭右侧面板 mode=code-viewer workspace=${workspaceAbsPath}`);
     commitSidePaneState((current) => {
       const next = closeCodeViewerSidePane(current);
-      syncSidePaneCollapsedWithTabs(next);
-      return next;
-    });
-  }, [commitSidePaneState, syncSidePaneCollapsedWithTabs, workspaceAbsPath]);
-
-  const handleCloseGit = useCallback(() => {
-    logger.info(`[App] 关闭右侧面板 mode=git workspace=${workspaceAbsPath}`);
-    commitSidePaneState((current) => {
-      const next = closeGitSidePane(current);
       syncSidePaneCollapsedWithTabs(next);
       return next;
     });
@@ -1401,10 +1270,6 @@ export function useAppPanels(options: {
       void closeBrowserTabsWithAuthority(closingTab ? [closingTab] : []).then((authorized) => {
         if (!authorized) return;
         if (closingTab) rememberClosedSidePaneTabs([closingTab]);
-        // 保活：显式关闭 terminal tab 必须真回收 PTY/xterm（registry 常驻，不会随卸载自动回收）。
-        if (closingTab?.type === "terminal") {
-          sidePaneTerminalSessionRegistry.release(tabId);
-        }
         const next = commitSidePaneState((current) =>
           closeSidePaneTabForParent(
             current,
@@ -1443,12 +1308,6 @@ export function useAppPanels(options: {
         for (const tab of closingTabs) {
           if (tab.type === "selection-side-chat") closeSelectionSideChatRuntime(tab);
         }
-        // 保活：批量关闭其他 tab 时，回收其中 terminal tab 的常驻 PTY/xterm。
-        for (const tab of closingTabs) {
-          if (tab.type === "terminal") {
-            sidePaneTerminalSessionRegistry.release(tab.id);
-          }
-        }
         rememberClosedSidePaneTabs(closingTabs);
         commitSidePaneState((current) => {
           const next = closeVisibleOtherSidePaneTabs(current, tabId, activeTaskId);
@@ -1478,12 +1337,6 @@ export function useAppPanels(options: {
       for (const tab of visibleTabs) {
         if (tab.type === "selection-side-chat") closeSelectionSideChatRuntime(tab);
       }
-      // 保活：关闭全部 tab 时，回收其中 terminal tab 的常驻 PTY/xterm。
-      for (const tab of visibleTabs) {
-        if (tab.type === "terminal") {
-          sidePaneTerminalSessionRegistry.release(tab.id);
-        }
-      }
       rememberClosedSidePaneTabs(visibleTabs);
       commitSidePaneState((current) => {
         logger.info(`[App] 关闭全部右侧面板 tabs workspace=${workspaceAbsPath}`);
@@ -1506,8 +1359,7 @@ export function useAppPanels(options: {
   const handleReopenClosedSidePaneTab = useCallback(
     (tabId: string) => {
       const item = allRecentClosedSidePaneTabs.find((entry) => entry.tab.id === tabId);
-      if (!item || (isOfficeMode && (item.tab.type === "terminal" || item.tab.type === "git")))
-        return;
+      if (!item) return;
 
       // 交互说明：最近关闭列表里的 tab 被点回打开时，需要同步展开右侧面板。
       // 否则 tab 状态已经恢复，但用户看到的还是折叠态，会误以为点击没有生效。
@@ -1534,7 +1386,6 @@ export function useAppPanels(options: {
       logger.info(`[App] 重新打开最近关闭右侧面板 tab=${tabId} workspace=${workspaceAbsPath}`);
     },
     [
-      isOfficeMode,
       allRecentClosedSidePaneTabs,
       commitSidePaneState,
       revealSidePaneForCurrentOwner,
@@ -1557,18 +1408,14 @@ export function useAppPanels(options: {
 
   const recentClosedSidePaneTabs = useMemo(
     () =>
-      allRecentClosedSidePaneTabs.filter(
-        (item) =>
-          isSidePaneTabVisibleForParent(item.tab, activeTaskId) &&
-          (!isOfficeMode || (item.tab.type !== "terminal" && item.tab.type !== "git")),
+      allRecentClosedSidePaneTabs.filter((item) =>
+        isSidePaneTabVisibleForParent(item.tab, activeTaskId),
       ),
-    [activeTaskId, allRecentClosedSidePaneTabs, isOfficeMode],
+    [activeTaskId, allRecentClosedSidePaneTabs],
   );
 
   return {
     // 办公模式只隐藏新建入口；过滤面板状态会让已打开的终端和审查在切换时消失。
-    isTerminalOpen,
-    setIsTerminalOpen,
     sidePaneState,
     recentClosedSidePaneTabs,
     isSidePaneCollapsed,
@@ -1582,12 +1429,8 @@ export function useAppPanels(options: {
     handleOpenBrowserUrl,
     handleToggleBrowser,
     handleOpenBrowserTab,
-    handleToggleGit,
-    handleOpenGit,
-    handleOpenTreemapping,
     handleOpenWhiteboard,
     handleOpenDeveloperTools,
-    handleOpenTerminalTab,
     handleOpenModelTrajectory,
     handleOpenSubagentSession,
     handleOpenBackgroundBash,
@@ -1600,11 +1443,9 @@ export function useAppPanels(options: {
     handleOpenWorkflowActorSession,
     handleOpenWorkflowWorkspace,
     handleOpenWorkflowArtifact,
-    handleToggleTerminal,
     handleToggleSidebar,
     handleToggleSidePaneCollapse,
     handleCloseCodeViewer,
-    handleCloseGit,
     handleActivateSidePaneTab,
     handleReorderSidePaneTab,
     handleCloseSidePaneTab,

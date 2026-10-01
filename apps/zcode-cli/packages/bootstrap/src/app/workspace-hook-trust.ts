@@ -1,4 +1,4 @@
-import { createDefaultFileWorkspaceHookTrustStore } from "@zcode/adapters/storage";
+import { createDefaultFileWorkspaceHookTrustStore } from "@social-harness/adapters/storage";
 import {
   InMemoryWorkspaceHookPolicyProvider,
   WorkspaceHookTrustCoordinator,
@@ -8,21 +8,21 @@ import {
   type WorkspaceHookReviewTarget,
   type WorkspaceHookRuntimeAdmissionPort,
   type WorkspaceHookPolicyProvider,
-} from "@zcode/core";
-import { SessionEventType } from "@zcode/contracts";
+} from "@social-harness/core";
+import { SessionEventType } from "@social-harness/contracts";
 import type {
   Logger,
   SessionId,
   WorkspaceHookBundleSnapshot,
   WorkspaceHookPolicy,
   WorkspaceHookAdmissionUpdatedPayload,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type {
   WorkspaceHookReviewDecision,
   WorkspaceHookReviewRequestPayload,
   WorkspaceHookTrustRevokeTarget,
-} from "@zcode/shared/zcode-protocol-v4";
-import type { WorkspaceHookRuntimeRoot } from "@zcode/shared/workspace-hook-discovery";
+} from "@social-harness/shared/zcode-protocol-v4";
+import type { WorkspaceHookRuntimeRoot } from "@social-harness/shared/workspace-hook-discovery";
 import {
   WorkspaceHookReviewController,
   type WorkspaceHookReviewCommandResult,
@@ -87,7 +87,7 @@ export function createWorkspaceHookRuntimeSecurity(input: {
   snapshot?: WorkspaceHookBundleSnapshot;
   userConfigPath: string;
   workingDirectory: string;
-  /** 测试注入临时 HOME；生产不传，Trust store 落在真实 ~/.zcode/security。 */
+  /** Test-only HOME injection; production trust data follows the Social Harness data root. */
   homeDir?: string;
 }): WorkspaceHookRuntimeSecurity | undefined {
   if (!input.snapshot) return undefined;

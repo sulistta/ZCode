@@ -2,8 +2,8 @@ import type {
   OnboardingRecordEntry,
   OnboardingRecordEntryInput,
   OnboardingRecordFile,
-} from "@zcode/shared";
-import { ServiceChannels, type AppSettings } from "@zcode/shared";
+} from "@social-harness/shared";
+import { ServiceChannels, type AppSettings } from "@social-harness/shared";
 import { createServiceDescriptor } from "../descriptors.js";
 
 /** 登录态变化时按 record 回填 settings 的字段范围（settings 仍是运行时唯一事实源）。 */

@@ -1,6 +1,6 @@
 /* oxlint-disable eslint(max-lines) -- Share 与 Desktop 共用的只读 Row/turn presentation 需要保持在同一安全边界。
- * 安全边界约束：本文件被匿名公开分享页（packages/web/src/share）直接引用，新增依赖必须考虑
- * 公开页 bundle 体积与无 Desktop 宿主（window.zcode / PlatformProvider / tab store）的运行环境；
+ * 安全边界约束：本组件会渲染外部分享内容，新增依赖必须考虑不可信内容与无 Desktop 宿主
+ * （window.zcode / PlatformProvider / tab store）的运行环境；
  * Desktop 专属能力（如 open-with 子树）一律由消费方经组件注入，不得静态 import。 */
 import {
   createContext,
@@ -25,7 +25,7 @@ import {
   SquareTerminalIcon,
   WrenchIcon,
 } from "lucide-react";
-import { getCompactToolCallStatusMessageId, type Locale } from "@zcode/shared";
+import { getCompactToolCallStatusMessageId, type Locale } from "@social-harness/shared";
 import type {
   ArtifactRow,
   AssistantTextRow,
@@ -34,7 +34,7 @@ import type {
   TimelineMarkerRow,
   ToolCallRow,
   UserInputRow,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import { MessageResponse, type MessageFileLinkTarget } from "@/components/ai-elements/message.js";
 import {
   Reasoning,
@@ -76,8 +76,8 @@ import { formatAttachmentSize } from "@/lib/chatAttachmentMetadata.js";
 import type { CodeViewerSource } from "@/lib/codeViewer.js";
 import { isAbsoluteFilePath, joinFilePath } from "@/lib/path.js";
 // 仅类型引用，构建期擦除：静态 import OpenSplitButton 会把其整棵 open-with 子树
-// （platform hooks、tab store、workspace-file-tree/model、editorPreference）打进匿名
-// 公开页 bundle，因此打开动作组件改由 Desktop 消费方经 artifactOpenAction 注入。
+// （platform hooks、tab store、workspace 文件预览子树）打进匿名
+// 因此打开动作组件改由 Desktop 消费方经 artifactOpenAction 注入。
 import type { OpenSplitButtonTarget } from "@/OpenSplitButton.js";
 
 export interface ConversationShareReadonlyTimelineProps {
@@ -95,7 +95,7 @@ export interface ConversationShareReadonlyTimelineProps {
   onOpenCodeViewer?: (source: CodeViewerSource) => void;
   /**
    * Desktop 侧注入的 artifact 打开动作组件（实现即 OpenSplitButton）。
-   * 公开分享页不传：一是公开页没有本地打开能力，二是避免 open-with 子树进公开页 bundle。
+   * 只读分享页不传：它没有本地打开能力，且不应打包 open-with 子树。
    */
   artifactOpenAction?: ConversationShareArtifactOpenAction;
   /**

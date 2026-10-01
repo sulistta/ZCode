@@ -25,7 +25,5 @@ allowBuilds:
   geckodriver: true
   koffi: true
   msw: true
-  node-pty: true
   protobufjs: true
   ssh2: true
-  unsafe-pointer: true

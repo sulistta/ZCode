@@ -7,7 +7,7 @@ import type {
   HookEvent,
   SettingsDirectoryLocation,
   SettingsDirectorySource,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   buildWorkspaceHookBundleSnapshot,
   createWorkspaceHookSourceInput,
@@ -17,9 +17,10 @@ import {
   type WorkspaceHookBundleSnapshotData,
   type WorkspaceHookSourceInput,
   type WorkspaceHooksConfig,
-} from "@zcode/shared/workspace-hook-discovery";
-import { parseWorkspaceHookTrustStoreContent } from "@zcode/shared/workspace-hook-trust-store-file";
+} from "@social-harness/shared/workspace-hook-discovery";
+import { parseWorkspaceHookTrustStoreContent } from "@social-harness/shared/workspace-hook-trust-store-file";
 import { createServiceLogger, type ServiceLogger } from "#src/logger/serviceLogger.js";
+import { getSocialHarnessDataRootDir } from "#src/paths.js";
 import type { IHooksService } from "./hooks.js";
 import { atomicWriteWorkspaceHookConfig } from "./workspaceHookConfigMutation.js";
 import {
@@ -32,7 +33,7 @@ import {
 } from "./workspaceHookSettingsModel.js";
 
 const SETTINGS_FILE = "settings.json";
-const ZCODE_CONFIG_FILE = "config.json";
+const SOCIAL_HARNESS_CONFIG_FILE = "config.json";
 const HOOK_EVENTS: readonly HookEvent[] = [
   "SessionStart",
   "UserPromptSubmit",
@@ -54,17 +55,19 @@ function resolveUserHomeDir(): string {
 }
 
 function getRootDir(source: SettingsDirectorySource, workspacePath?: string): string {
-  const baseDir = workspacePath ?? resolveUserHomeDir();
   if (source === "zcode") {
-    return workspacePath ? join(baseDir, ".zcode") : join(baseDir, ".zcode", "cli");
+    return workspacePath
+      ? join(workspacePath, ".zcode")
+      : join(getSocialHarnessDataRootDir(), "cli");
   }
+  const baseDir = workspacePath ?? resolveUserHomeDir();
   return join(baseDir, source === "agents" ? ".agents" : ".claude");
 }
 
 function getConfigPath(source: SettingsDirectorySource, workspacePath?: string): string {
   return join(
     getRootDir(source, workspacePath),
-    source === "zcode" ? ZCODE_CONFIG_FILE : SETTINGS_FILE,
+    source === "zcode" ? SOCIAL_HARNESS_CONFIG_FILE : SETTINGS_FILE,
   );
 }
 
@@ -165,7 +168,7 @@ async function readPersistentWorkspaceHookTrustDigests(
       : isAbsolute(configured)
         ? resolve(configured)
         : resolve(home, configured)
-    : join(home, ".zcode");
+    : getSocialHarnessDataRootDir();
   const trustFilePath = join(storageRoot, "security", "workspace-hook-trust-v1.json");
 
   // 异步读取 + ENOENT 区分：不用 existsSync 预检——同步调用会阻塞服务

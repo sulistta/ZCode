@@ -1,9 +1,9 @@
-import type { IServiceAccessor } from "@zcode/services";
+import type { IServiceAccessor } from "@social-harness/services";
 import {
   type ProviderFamilyDomain,
   resolveModelProviderFamilyIdByProviderId,
   resolveProviderFamilyDomainFromOAuthProvider,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { logger } from "@/logger.js";
 
 function inferProviderFamilyDomainFromSelection(

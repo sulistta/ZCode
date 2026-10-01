@@ -132,7 +132,6 @@
     "parentPackage": "quickjs-wasi@2.2.0",
     "revision": "dec012362bd93876449f3ecff4f835b2eba89bab",
     "source": "https://github.com/vercel-labs/quickjs-wasi/tree/cc1fea4a6a4ac1d960e0db68d35e1459064a1a23/quickjs-ng",
-    "reviewRequired": "Engine notice retained. WASI libc and extension link provenance is not fully established by the npm package.",
     "notices": [
       {
         "source": "https://raw.githubusercontent.com/quickjs-ng/quickjs/dec012362bd93876449f3ecff4f835b2eba89bab/LICENSE",
@@ -243,6 +242,11 @@
         "source": "https://api.github.com/repos/WebAssembly/wasi-sdk/git/trees/wasi-sdk-32?recursive=1",
         "file": "third-party/upstream/5f745b8244890bde0a2258fe32342d60c577fad043e8601d923690a5bfe1b54f.txt",
         "sha256": "5f745b8244890bde0a2258fe32342d60c577fad043e8601d923690a5bfe1b54f"
+      },
+      {
+        "source": "Reproducible build of the npm WASM and extension artifacts from the pinned source and verified wasi-sdk-32 release asset.",
+        "file": "third-party/upstream/quickjs-wasi-2.2.0-reproduction.json",
+        "sha256": "22a808e3d0ddbd9b5b0363f5b67ea6ddd4be794e08a162e2d72dc15b81ab9d6a"
       }
     ]
   }

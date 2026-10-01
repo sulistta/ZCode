@@ -12,7 +12,7 @@
  * 独立输入展示壳，不承载会话编排逻辑，仅做三处适配：
  * 1. useChatViewActiveTaskProvider 来自 @/v4/activeTaskProvider.js（配置面读取）；
  * 2. ChatComposerPasteEvent 收口为本文件导出的结构类型；
- * 3. mention 面板用 enableMentionPanel 控制；slash command 始终读取 CLI workspace catalog。
+ * 3. mention 与 slash 建议面板分别由 enableMentionPanel / enableSlashPanel 控制。
  */
 import { $getPromptMarkdown } from "@/mentions/promptSerialization.js";
 import { PromptClipboardPlugin } from "@/mentions/PromptClipboardPlugin.js";
@@ -1333,6 +1333,8 @@ interface LexicalChatInputProps {
   excludedSlashCommandNames?: readonly string[];
   /** App 层本地斜杠命令（如 `/side`），选中即执行 UI 行为，不发送。 */
   appSlashCommands?: readonly AppSlashCommand[];
+  /** slash/skill/subagent 建议面板开关。 */
+  enableSlashPanel?: boolean;
   /** mention（@/#）面板开关。v4 数据面未就绪时显式关闭，入口保留。 */
   enableMentionPanel?: boolean;
 }
@@ -1364,6 +1366,7 @@ export function LexicalChatInput({
   onPaste,
   excludedSlashCommandNames,
   appSlashCommands,
+  enableSlashPanel = true,
   enableMentionPanel = true,
 }: LexicalChatInputProps) {
   const inputMountedAtRef = useRef(Date.now());
@@ -1499,16 +1502,18 @@ export function LexicalChatInput({
           <LeadingChineseSlashAliasPlugin disabled={disabled} />
           <PasteCapturePlugin disabled={disabled} onPaste={onPaste} />
         </div>
-        <SlashCommandPlugin
-          workspacePath={workspacePath}
-          workspaceIdentity={workspaceIdentity}
-          sessionId={skillCatalogSessionId ?? taskId}
-          provider={activeTaskProvider}
-          container={triggerPanelContainer}
-          disabled={disabled}
-          excludedCommandNames={excludedSlashCommandNames}
-          appCommands={appSlashCommands}
-        />
+        {enableSlashPanel ? (
+          <SlashCommandPlugin
+            workspacePath={workspacePath}
+            workspaceIdentity={workspaceIdentity}
+            sessionId={skillCatalogSessionId ?? taskId}
+            provider={activeTaskProvider}
+            container={triggerPanelContainer}
+            disabled={disabled}
+            excludedCommandNames={excludedSlashCommandNames}
+            appCommands={appSlashCommands}
+          />
+        ) : null}
         {enableMentionPanel ? (
           <MentionPlugin
             workspacePath={workspacePath}

@@ -1,5 +1,5 @@
-import type { McpServerConfig } from "@zcode/contracts";
-import type { ZCodeProtocolMcpServer } from "@zcode/shared";
+import type { McpServerConfig } from "@social-harness/contracts";
+import type { ZCodeProtocolMcpServer } from "@social-harness/shared";
 
 export function protocolMcpServersToRuntimeMcpConfig(
   servers: ZCodeProtocolMcpServer[] | undefined,

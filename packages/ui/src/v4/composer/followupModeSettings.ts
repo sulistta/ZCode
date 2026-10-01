@@ -1,5 +1,5 @@
-import type { AppSettings } from "@zcode/shared";
-import type { InputRouting, SessionConfigState } from "@zcode/shared/zcode-protocol-v4";
+import type { AppSettings } from "@social-harness/shared";
+import type { InputRouting, SessionConfigState } from "@social-harness/shared/zcode-protocol-v4";
 
 export function resolveAppFollowupMode(
   settings: AppSettings | null | undefined,

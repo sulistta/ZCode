@@ -4,10 +4,10 @@ import {
   DesktopCommandIds,
   desktopMenuMessageIds,
   getDesktopMenuMessage,
-  ZCODE_PRODUCT_FLAVOR,
+  SOCIAL_HARNESS_PRODUCT_FLAVOR,
   type DesktopCommandId,
   type Locale,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 
 let desktopTray: Tray | null = null;
 let rebuildDesktopTrayContextMenu: (() => void) | null = null;
@@ -63,17 +63,8 @@ export function createWindowsDesktopTray(options: {
           click: showTrayWindow,
         },
         { type: "separator" },
-        {
-          label: getLabel(desktopMenuMessageIds.fileNewTask),
-          click: () => executeTrayCommand(DesktopCommandIds.NewTask),
-        },
-        {
-          label: getLabel(desktopMenuMessageIds.fileOpenWorkspace),
-          click: () => executeTrayCommand(DesktopCommandIds.OpenWorkspace),
-        },
-        { type: "separator" },
         // 更新入口跟随产品身份：Preview（含生产后端的 Preview）禁用更新器，托盘也不能露出入口。
-        ...(ZCODE_PRODUCT_FLAVOR === "production"
+        ...(SOCIAL_HARNESS_PRODUCT_FLAVOR === "production"
           ? [
               {
                 label: getLabel(desktopMenuMessageIds.helpCheckForUpdates),

@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { Emitter } from "@zcode/rpc";
+import { Emitter } from "@social-harness/rpc";
 import {
   zcodeStorageStartupStateSchema,
   type ZCodeStorageStartupState,
   type DatabaseStartupErrorCode,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 
 const FIRST_STATUS_TIMEOUT_MS = 30_000;
 

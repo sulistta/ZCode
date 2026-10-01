@@ -1,11 +1,11 @@
-import { ModelErrorCode, ModelProtocolError } from "@zcode/contracts";
+import { ModelErrorCode, ModelProtocolError } from "@social-harness/contracts";
 import {
   normalizeModelSelection,
   type ModelSelection,
   type Provider,
   type ProviderModel,
-} from "@zcode/provider";
-import type { ZCodeModelOption } from "@zcode/shared";
+} from "@social-harness/provider";
+import type { ZCodeModelOption } from "@social-harness/shared";
 import type { ProviderRegistryModelSource } from "./provider-registry-model-runtime.js";
 
 export interface ResolvedRegistrySelection {

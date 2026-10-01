@@ -4,9 +4,9 @@ import {
   type SessionEvent,
   type SessionId,
   type SessionStorePort,
-} from "@zcode/contracts";
-import type { AgentRuntime } from "@zcode/core";
-import type { ZCodeSessionSubagentsResult } from "@zcode/shared";
+} from "@social-harness/contracts";
+import type { AgentRuntime } from "@social-harness/core";
+import type { ZCodeSessionSubagentsResult } from "@social-harness/shared";
 import { projectSessionTranscript, type SessionTranscriptMessage } from "../session-transcript.js";
 import {
   collectSubagentChildSessionIds,
@@ -28,7 +28,7 @@ type ObservationDeps = {
   runtime: AgentRuntime;
 };
 
-/** The app owns storage and lifecycle interpretation; the TUI receives a read model. */
+/** The app owns storage and lifecycle interpretation; clients receive a read model. */
 export function createSubagentObservation(deps: ObservationDeps) {
   return {
     async readSubagents(

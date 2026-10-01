@@ -27,9 +27,6 @@ export { useWatchedReaddir } from "./useFileWatcherService.js";
 export { useSystemInfo, useIntranetProbe } from "./useSystemService.js";
 export { useWorkspaceHomePath } from "./useWorkspaceHomePath.js";
 
-// 终端服务
-export { useTerminal } from "./useTerminalService.js";
-
 // 设置服务
 export { useSettings, useRecentProjects } from "./useSettingService.js";
 export { useSkills } from "./useSkills.js";
@@ -46,10 +43,6 @@ export { useAlertDialog } from "./useAlertDialog.js";
 export { useCredentials, useAuthToken } from "./useCredentials.js";
 export { useZCodeAgentService } from "./useZCodeAgentService.js";
 
-// Git pane
-export { useGitAutoRefresh } from "./useGitAutoRefresh.js";
-export { useGitRepository } from "./useGitRepository.js";
-export { useGitActions } from "./useGitActions.js";
 // workspace provider 配置路径
 export { useTaskNativeSessionLogFile } from "./useTaskNativeSessionLogFile.js";
 export { useTaskSessionFilePath } from "./useTaskSessionFilePath.js";

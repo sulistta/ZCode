@@ -3,25 +3,9 @@ export { AppErrorBoundary, ScopedErrorBoundary } from "./ErrorBoundary.js";
 export type { ScopedErrorBoundaryVariant } from "./ErrorBoundary.js";
 export { Button, buttonVariants } from "./components/ui/button.js";
 export { DesktopWindowFrame } from "./DesktopWindowFrame.js";
-export {
-  AssistantCodeCommentFeatureProvider,
-  useAssistantCodeCommentFeatureEnabled,
-} from "./AssistantCodeCommentFeatureProvider.js";
 export { Root } from "./Root.js";
 export { UpdateStatusWindowRoot } from "./UpdateStatusWindowRoot.js";
 export { ConfirmDialogHost } from "./ConfirmDialog.js";
-export { Terminal } from "./Terminal.js";
-export { GitGraphPane } from "./git-graph/GitGraphPane.js";
-export { layoutGitGraph } from "./git-graph/layout.js";
-export type {
-  GitGraphCommit,
-  GitGraphLayout,
-  GitGraphLayoutEdge,
-  GitGraphLayoutOptions,
-  GitGraphLayoutRow,
-  GitGraphRef,
-  GitGraphRefKind,
-} from "./git-graph/layout.js";
 export { SSHDialog, RemoteConnectionDialog } from "./SSHDialog.js";
 export { useTheme } from "./useTheme.js";
 export type { Theme } from "./useTheme.js";
@@ -55,14 +39,11 @@ export {
   useReaddir,
   useSystemInfo,
   useIntranetProbe,
-  useTerminal,
   useSettings,
   useRecentProjects,
   useConfirmDialog,
   useCredentials,
   useAuthToken,
-  useGitRepository,
-  useGitActions,
 } from "./hooks/index.js";
 
 export { ZCodeIntlProvider, useZCodeIntl, LocaleSwitcher } from "./i18n/index.js";

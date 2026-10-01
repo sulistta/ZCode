@@ -3,7 +3,7 @@ import {
   resolveTelemetryProviderScope,
   type ArmsCustomEventPayload,
   type IPlatformService,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { logger } from "@/logger.js";
 import {
   getProviderBusinessErrorUiAction,
@@ -33,7 +33,7 @@ function sanitizeUnderlyingTelemetryText(value: string | undefined): string | un
   return truncateTelemetryText(value);
 }
 
-// provider/model 白名单与归一实现已收敛到 @zcode/shared 的 telemetryRedaction：
+// provider/model 白名单与归一实现已收敛到 @social-harness/shared 的 telemetryRedaction：
 // plan_usage、ui_perf 等事件复用同一条白名单，避免多份副本各自漂移。
 
 interface ChatProviderBusinessRecoveryAction {

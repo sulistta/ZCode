@@ -9,13 +9,13 @@
     },
     "build:desktop-agent": {
       "dependsOn": [
-        "@zcode/shared-types#build",
-        "@zcode/contracts#build",
-        "@zcode/dynamic-workflow#build",
-        "@zcode/core#build",
-        "@zcode/adapters#build",
-        "@zcode/bootstrap#build",
-        "@zcode/i18n#build"
+        "@social-harness/shared-types#build",
+        "@social-harness/contracts#build",
+        "@social-harness/dynamic-workflow#build",
+        "@social-harness/core#build",
+        "@social-harness/adapters#build",
+        "@social-harness/bootstrap#build",
+        "@social-harness/i18n#build"
       ],
       "inputs": [
         "$TURBO_DEFAULT$",
@@ -40,7 +40,7 @@
       ],
       "outputs": ["dist/**"],
       "cache": true,
-      "env": ["ZCODE_ENV", "ZCODE_BUILTIN_PROVIDER_CONFIG_FILE", "NODE_ENV"]
+      "env": ["SOCIAL_HARNESS_ENV", "SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_FILE", "NODE_ENV"]
     },
     "dev": {
       "cache": false,
@@ -54,7 +54,7 @@
     "clean": {
       "cache": false
     },
-    "@zcode/cli#build": {
+    "@social-harness/cli#build": {
       "dependsOn": ["^build"],
       "inputs": [
         "$TURBO_DEFAULT$",
@@ -76,7 +76,7 @@
       ],
       "outputs": ["dist/**"],
       "cache": true,
-      "env": ["ZCODE_ENV", "ZCODE_BUILTIN_PROVIDER_CONFIG_FILE", "NODE_ENV"]
+      "env": ["SOCIAL_HARNESS_ENV", "SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_FILE", "NODE_ENV"]
     }
   }
 }

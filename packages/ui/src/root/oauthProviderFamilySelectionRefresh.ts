@@ -1,15 +1,15 @@
-import type { IServiceAccessor } from "@zcode/services";
-import type { AccountProviderState } from "@zcode/provider";
+import type { IServiceAccessor } from "@social-harness/services";
+import type { AccountProviderState } from "@social-harness/provider";
 import type {
   OAuthProviderId,
   UsageEntitlementSnapshot,
   ZCodeAccountAccess,
   ZCodeProviderAccountAccess,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   getModelProviderFamilySpec,
   resolveProviderFamilyDomainFromOAuthProvider,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { logger } from "@/logger.js";
 import { resolveAccountProviderInspectionAccess } from "@/lib/accountProviderAccess.js";
 import {

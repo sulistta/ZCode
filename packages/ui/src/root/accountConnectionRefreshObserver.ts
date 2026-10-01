@@ -1,5 +1,5 @@
-import { isBuiltinModelProviderId, isStartPlanModelProviderId } from "@zcode/shared";
-import type { ProviderSettingsView } from "@zcode/services";
+import { isBuiltinModelProviderId, isStartPlanModelProviderId } from "@social-harness/shared";
+import type { ProviderSettingsView } from "@social-harness/services";
 import { logger } from "@/logger.js";
 
 export interface AccountConnectionLoss {

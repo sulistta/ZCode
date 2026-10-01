@@ -1,10 +1,6 @@
 import { posix } from "node:path";
 import type { CustomPublishOptions, PackageFileInfo } from "builder-util-runtime";
-import {
-  DEFAULT_ZCODE_ENDPOINT_ORIGIN,
-  normalizeZCodeEndpointOrigin,
-  type ElectronReleaseChannel,
-} from "@zcode/shared";
+import type { ElectronReleaseChannel } from "@social-harness/shared";
 import {
   Provider,
   AppImageUpdater,
@@ -19,26 +15,17 @@ import {
 import type { ProviderRuntimeOptions } from "electron-updater/out/providers/Provider.js";
 import { parse as parseYaml } from "yaml";
 
-const ELECTRON_MANIFEST_API_PATH = "/api/v1/releases/electron/manifest";
-
 const MANIFEST_ACCEPT_HEADER = "application/x-yaml,text/yaml,text/plain,*/*";
 
 interface ManifestUpdateProviderOptions extends CustomPublishOptions {
-  endpointOrigin?: string;
-  manifestUrl?: string;
-  deviceMid?: string;
+  manifestUrl: string;
   releasePlatform?: string;
   releaseChannel?: ElectronReleaseChannel;
-  resolveEndpointOrigin?: () => string | Promise<string>;
   resolveReleaseChannel?: () => ElectronReleaseChannel | Promise<ElectronReleaseChannel>;
 }
 
 function normalizeReleaseChannel(channel: string | null | undefined): ElectronReleaseChannel {
   return channel === "preview" ? "preview" : "stable";
-}
-
-function mapReleaseChannelToApiValue(channel: ElectronReleaseChannel): string {
-  return channel === "preview" ? "3" : "1";
 }
 
 function mapElectronReleaseArch(arch: string): string {
@@ -75,20 +62,16 @@ export function getElectronReleasePlatform(
 }
 
 function buildElectronManifestUrl(options: {
-  endpointOrigin: string;
-  manifestUrl?: string;
+  manifestUrl: string;
   platform: string;
-  deviceMid?: string;
   channel: ElectronReleaseChannel;
 }): URL {
-  const url = options.manifestUrl?.trim()
-    ? new URL(options.manifestUrl.trim())
-    : new URL(ELECTRON_MANIFEST_API_PATH, normalizeZCodeEndpointOrigin(options.endpointOrigin));
-  url.searchParams.set("platform", options.platform);
-  if (options.deviceMid?.trim()) {
-    url.searchParams.set("device_mid", options.deviceMid.trim());
+  const url = new URL(options.manifestUrl);
+  if (url.protocol !== "https:" || url.username || url.password) {
+    throw new Error("Social Harness update manifest must use HTTPS without credentials");
   }
-  url.searchParams.set("channel", mapReleaseChannelToApiValue(options.channel));
+  url.searchParams.set("platform", options.platform);
+  url.searchParams.set("channel", options.channel);
   return url;
 }
 
@@ -182,7 +165,7 @@ export class ManifestUpdateProvider extends Provider<UpdateInfo> {
   private readonly options: ManifestUpdateProviderOptions;
   private readonly releasePlatform: string;
   private readonly linuxExtensions: readonly string[] | null;
-  private resolveBaseUrl = new URL(DEFAULT_ZCODE_ENDPOINT_ORIGIN);
+  private resolveBaseUrl: URL;
 
   constructor(
     options: ManifestUpdateProviderOptions,
@@ -193,9 +176,7 @@ export class ManifestUpdateProvider extends Provider<UpdateInfo> {
     this.options = options;
     this.linuxExtensions = getLinuxUpdateExtensions(updater);
     this.releasePlatform = options.releasePlatform?.trim() || getElectronReleasePlatform();
-    this.resolveBaseUrl = new URL(
-      normalizeZCodeEndpointOrigin(options.endpointOrigin ?? DEFAULT_ZCODE_ENDPOINT_ORIGIN),
-    );
+    this.resolveBaseUrl = new URL("/", options.manifestUrl);
   }
 
   override get isUseMultipleRangeRequest(): boolean {
@@ -203,23 +184,18 @@ export class ManifestUpdateProvider extends Provider<UpdateInfo> {
   }
 
   override async getLatestVersion(): Promise<UpdateInfo> {
-    const endpointOrigin = await this.resolveEndpointOrigin();
     const releaseChannel = await this.resolveReleaseChannel();
     const manifestUrl = buildElectronManifestUrl({
-      endpointOrigin,
       manifestUrl: this.options.manifestUrl,
       platform: this.releasePlatform,
-      deviceMid: this.options.deviceMid,
       channel: releaseChannel,
     });
     this.resolveBaseUrl = new URL("/", manifestUrl);
-    const releaseChannelApiValue = mapReleaseChannelToApiValue(releaseChannel);
 
     const raw = await this.httpRequest(manifestUrl, {
       accept: MANIFEST_ACCEPT_HEADER,
       "X-Platform": this.releasePlatform,
-      "X-Release-Channel": releaseChannelApiValue,
-      ...(this.options.deviceMid?.trim() ? { "X-Device-Mid": this.options.deviceMid.trim() } : {}),
+      "X-Release-Channel": releaseChannel,
     });
     if (!raw) {
       throw new Error(`Empty electron update manifest: ${manifestUrl.toString()}`);
@@ -235,20 +211,12 @@ export class ManifestUpdateProvider extends Provider<UpdateInfo> {
       // preview/stable 切换时旧 manifest 请求可能晚于新请求返回。
       // electron-updater 的 update-available 事件默认不带请求通道，main 进程无法识别过期结果；
       // 这里把本次请求通道随 UpdateInfo 带回去，避免旧通道覆盖更新弹窗内容。
-      zcodeReleaseChannel: releaseChannel,
+      socialHarnessReleaseChannel: releaseChannel,
     } as UpdateInfo;
   }
 
   override resolveFiles(updateInfo: UpdateInfo): ResolvedUpdateFileInfo[] {
     return resolveManifestFiles(updateInfo, this.resolveBaseUrl, this.linuxExtensions);
-  }
-
-  private async resolveEndpointOrigin(): Promise<string> {
-    const resolved =
-      (await this.options.resolveEndpointOrigin?.()) ??
-      this.options.endpointOrigin ??
-      DEFAULT_ZCODE_ENDPOINT_ORIGIN;
-    return normalizeZCodeEndpointOrigin(resolved);
   }
 
   private async resolveReleaseChannel(): Promise<ElectronReleaseChannel> {

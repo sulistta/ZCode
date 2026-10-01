@@ -1,4 +1,4 @@
-import { InternalChannels, type RemoteTarget } from "@zcode/shared";
+import { InternalChannels, type RemoteTarget } from "@social-harness/shared";
 
 export interface RemoteWorkspaceServicePortRegistration {
   attachmentId: string;

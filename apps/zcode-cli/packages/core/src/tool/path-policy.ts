@@ -3,7 +3,7 @@
 // ============================================================
 
 import { isAbsolute, normalize, resolve } from "node:path";
-import { CoreErrorType, createCoreError } from "@zcode/contracts";
+import { CoreErrorType, createCoreError } from "@social-harness/contracts";
 
 interface ToolWorkspacePathOptions {
   inputPath: string;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { SessionDebugSnapshot } from "@zcode/shared";
+import type { SessionDebugSnapshot } from "@social-harness/shared";
 import { useServices } from "@/hooks/useServices.js";
 
 const REFRESH_INTERVAL_MS = 1000;

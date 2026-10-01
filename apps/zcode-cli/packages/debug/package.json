@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.server.json && vite build",
     "dev": "tsx scripts/dev.ts",
-    "lint": "oxlint src server scripts",
+    "lint": "oxlint src server scripts --no-ignore",
     "lint:fix": "oxlint --write src server scripts",
     "start": "node dist-server/server/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit"

@@ -1,7 +1,6 @@
-import { ZCODE_VERSION, type ZCodeEnv } from "@zcode/shared";
+import { SOCIAL_HARNESS_VERSION, type ZCodeEnv } from "@social-harness/shared";
 
-declare const __ZCODE_CDN_BASE_URL__: string | undefined;
-const DEFAULT_CDN_BASE_URL = "https://cdn-zcode.z.ai";
+declare const __SOCIAL_HARNESS_CDN_BASE_URL__: string | undefined;
 
 export interface ResolveRemoteCdnOptions {
   env?: ZCodeEnv;
@@ -23,10 +22,14 @@ export function resolveRemoteCdnBaseUrls(options: ResolveRemoteCdnOptions = {}):
   const override = options.overrideBaseUrl?.trim();
   if (override) return [normalizeBaseUrl(override)];
   const baseUrl =
-    process.env.ZCODE_CDN_BASE_URL?.trim() ||
-    (typeof __ZCODE_CDN_BASE_URL__ === "undefined" ? "" : __ZCODE_CDN_BASE_URL__) ||
-    DEFAULT_CDN_BASE_URL;
+    process.env.SOCIAL_HARNESS_CDN_BASE_URL?.trim() ||
+    (typeof __SOCIAL_HARNESS_CDN_BASE_URL__ === "undefined"
+      ? ""
+      : __SOCIAL_HARNESS_CDN_BASE_URL__) ||
+    "";
+  // 缺少 Social Harness CDN 配置时不能回退到旧 ZCode 地址，避免后台静默下载旧产品运行时。
+  if (!baseUrl.trim()) return [];
   return [
-    `${normalizeBaseUrl(baseUrl)}/zcode/electron/releases/${options.version ?? ZCODE_VERSION}`,
+    `${normalizeBaseUrl(baseUrl)}/social-harness/electron/releases/${options.version ?? SOCIAL_HARNESS_VERSION}`,
   ];
 }

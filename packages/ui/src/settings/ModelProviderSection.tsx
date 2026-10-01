@@ -19,7 +19,7 @@ import {
   resolveModelProviderFamilySpecByProviderId,
   resolveProviderFamilyDomainFromOAuthProvider,
   ZAI_PROVIDER_ID,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { Button } from "@/components/ui/button.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
@@ -834,10 +834,6 @@ export function ModelProviderSection({
           currentDomain: sharedSettings?.providerFamilyDomain,
         });
         await oauthService.logout(providerId);
-        // Coding Plan 官网 webview 使用独立持久 partition，provider Unlink 也属于账号边界。
-        if (typeof platform.executeDesktopCommand === "function") {
-          await platform.executeDesktopCommand(DesktopCommandIds.ClearCodingPlanWebviewStorage);
-        }
         await updateSharedSettings({
           providerFamilyDomain: (nextProviderFamilyDomain ?? "") as never,
           providerFamilyDomainUpdatedAt: Date.now(),

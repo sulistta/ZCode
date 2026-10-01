@@ -1,6 +1,6 @@
 /* eslint-disable max-lines -- 桌面平台 IPC 集中装配，拆散会让权限边界更难审计；行数随平台能力增长。 */
-import { BrowserWindow, dialog, ipcMain, nativeTheme } from "electron";
-import { readZCodeStdioTapDevState } from "@zcode/services/node";
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme } from "electron";
+import { readZCodeStdioTapDevState } from "@social-harness/services/node";
 import {
   DesktopCommandIds,
   appSettingsPatchSchema,
@@ -20,7 +20,7 @@ import {
   type CreateTempTextAttachmentRequest,
   type UpdateStatePayload,
   type WindowControlsOverlayReadyPayload,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { getInstalledEditors } from "./editors.js";
 import { getApplicationIcon } from "./applicationIcons.js";
 import { exportLogs } from "./exportLogs.js";
@@ -55,9 +55,12 @@ import { createTempTextAttachment } from "./tempTextAttachment.js";
 import { registerDesktopSaveFileIpcHandler } from "./desktopSaveFile.js";
 import { registerDesktopPrintToPdfIpcHandler } from "./desktopPrintToPdf.js";
 import { registerCuaPipActiveSessionIpc } from "./desktopCuaPipIpc.js";
+import { createDesktopE2EFilePicker } from "./desktopE2EFilePicker.js";
+import { createDesktopE2ESaveDialog } from "./desktopE2ESaveDialog.js";
 
 export function registerPlatformIpcHandlers(options: {
   fetchHelpConfig?: () => Promise<unknown>;
+  resolveLocalMediaCapability?: (token: string) => string | null;
   logger: {
     info: (...args: unknown[]) => void;
     warn: (...args: unknown[]) => void;
@@ -101,6 +104,15 @@ export function registerPlatformIpcHandlers(options: {
   /** Browser tab 关闭、挂起、恢复与跨重启 shell IPC。 */
   browserViewResidencyHandlers?: BrowserViewResidencyIpcHandlers;
 }) {
+  const e2eFilePicker = createDesktopE2EFilePicker({
+    isPackaged: app.isPackaged,
+    env: process.env,
+  });
+  const e2eSaveDialog = createDesktopE2ESaveDialog({
+    isPackaged: app.isPackaged,
+    env: process.env,
+  });
+
   ipcMain.handle(PlatformChannels.SelectDirectory, async () => {
     const result = await dialog.showOpenDialog({
       properties: ["openDirectory", "createDirectory"],
@@ -122,6 +134,7 @@ export function registerPlatformIpcHandlers(options: {
   });
 
   ipcMain.handle(PlatformChannels.SelectFiles, async () => {
+    if (e2eFilePicker) return e2eFilePicker.selectFiles();
     const result = await dialog.showOpenDialog({
       properties: ["openFile", "multiSelections"],
     });
@@ -131,7 +144,11 @@ export function registerPlatformIpcHandlers(options: {
     return result.filePaths;
   });
 
-  registerDesktopSaveFileIpcHandler(options.logger);
+  registerDesktopSaveFileIpcHandler({
+    logger: options.logger,
+    resolveLocalMediaCapability: options.resolveLocalMediaCapability,
+    e2eSaveDialog,
+  });
   registerDesktopPrintToPdfIpcHandler(options.logger);
 
   ipcMain.handle(

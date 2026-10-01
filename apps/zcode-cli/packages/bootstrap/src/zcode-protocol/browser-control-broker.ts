@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
-import type { BrowserControlPort, TraceContext } from "@zcode/contracts";
+import type { BrowserControlPort, TraceContext } from "@social-harness/contracts";
 import {
   zcodeBrowserExecuteResultSchema,
   zcodeBrowserListResultSchema,
   zcodeProtocolMethods,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   protocolTraceFromTraceContext,
   requireSession,

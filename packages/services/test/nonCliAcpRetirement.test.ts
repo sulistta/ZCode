@@ -6,15 +6,15 @@ import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
-  ZCODE_PROTOCOL_NAME,
-  ZCODE_PROTOCOL_VERSION,
+  SOCIAL_HARNESS_PROTOCOL_NAME,
+  SOCIAL_HARNESS_PROTOCOL_VERSION,
   zcodeSessionStateSnapshotSchema,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { TaskIndexRepo } from "../src/session/taskIndexRepo.js";
 import { createZCodeTaskServiceAdapter } from "../src/zcode-agent/zcodeTaskServiceAdapter.js";
 import {
   getLegacyTaskSessionSnapshotPath,
-  getZCodeDataRootDir,
+  getSocialHarnessDataRootDir,
   setDataBaseDir,
 } from "../src/paths.js";
 import { createMemoryService } from "../src/memory/memoryService.js";
@@ -33,12 +33,12 @@ const meta = {
 };
 
 test("current Project Memory catalog and files remain readable", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-current-memory-"));
+  const dir = await mkdtemp(join(tmpdir(), "social-harness-current-memory-"));
   setDataBaseDir(dir);
   try {
     const workspaceId = "example-0123456789abcdef";
     const memoryRoot = join(
-      getZCodeDataRootDir(),
+      getSocialHarnessDataRootDir(),
       "cli",
       "memories",
       "projects",
@@ -143,7 +143,7 @@ test("missing sessions report the owner error even when a valid ACP snapshot exi
 
 test("current session recovery preserves Desktop and replayable projections", async () => {
   const snapshot = zcodeSessionStateSnapshotSchema.parse({
-    protocol: { name: ZCODE_PROTOCOL_NAME, version: ZCODE_PROTOCOL_VERSION },
+    protocol: { name: SOCIAL_HARNESS_PROTOCOL_NAME, version: SOCIAL_HARNESS_PROTOCOL_VERSION },
     session: {
       sessionId: meta.taskId,
       workspace: { workspacePath: meta.workspacePath, workspaceKey: meta.workspacePath },

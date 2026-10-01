@@ -6,7 +6,7 @@ import {
   type FileSystemTextEncoding,
   type FileSystemReadTextRangeRequest,
   type FileSystemReadTextRangeResult,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import {
   createStreamingTextDecoder,
   decodeTextBuffer,

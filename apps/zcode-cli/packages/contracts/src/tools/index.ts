@@ -18,6 +18,8 @@ export * from "./agent.js";
 export * from "./skill.js";
 export * from "./todo.js";
 export * from "./automation.js";
+export * from "./social-project.js";
+export * from "./social-agent.js";
 export * from "./off-peak.js";
 export * from "./target.js";
 export * from "./plan-mode.js";
@@ -32,7 +34,7 @@ export * from "./websearch.js";
 export * from "./workflow.js";
 export * from "./create-workflow.js";
 // 修订入口：名字常量被 core 的
-// 分派、权限服务的 owner 规则、bootstrap 的 actor 禁用名单与 TUI/headless 旁路读走。
+// 分派、权限服务的 owner 规则、bootstrap 的 actor 禁用名单与 headless 旁路读走。
 export * from "./amend-workflow.js";
 export * from "./saved-workflow.js";
 export * from "./save-workflow.js";

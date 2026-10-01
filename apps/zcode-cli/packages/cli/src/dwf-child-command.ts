@@ -8,9 +8,9 @@
  * `run.ts` 在 parseArgs **之前**分派到这里。
  *
  * payload 不再走 argv（Windows 命令行上限
- * 32,767 字符），harness 写一份自包含的入口文件 `<cwd>/.zcode/workflow-runs/<runId>.mjs`，argv
+ * 32,767 字符），harness 写一份自包含的入口文件 `<cwd>/.social-harness/workflow-runs/<runId>.mjs`，argv
  * 末位只是它的路径。入口文件自带 childMain 与 payload，这里只 `import()` 它并把 CLI 进程的
- * vm/readline/stdio 注入它导出的 `start`——本模块因此**不再依赖 `@zcode/dynamic-workflow-runtime`**。
+ * vm/readline/stdio 注入它导出的 `start`——本模块因此**不再依赖 `@social-harness/dynamic-workflow-runtime`**。
  * 堆上限的 best-effort `v8.setFlagsFromString` 也随 payload 挪进了入口文件。
  */
 
@@ -18,11 +18,11 @@ import { resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { pathToFileURL } from "node:url";
 import { createContext, runInContext } from "node:vm";
-import { ZCODE_DWF_CHILD_COMMAND } from "@zcode/contracts";
-import type { RunContext } from "@zcode/shared-types";
+import { SOCIAL_HARNESS_DWF_CHILD_COMMAND } from "@social-harness/contracts";
+import type { RunContext } from "@social-harness/shared-types";
 
 export function isDwfChildInvocation(argv: readonly string[]): boolean {
-  return argv[0] === ZCODE_DWF_CHILD_COMMAND;
+  return argv[0] === SOCIAL_HARNESS_DWF_CHILD_COMMAND;
 }
 
 /** 入口文件导出面（child-source.ts 的 `renderChildEntry` 生成）。 */
@@ -44,7 +44,7 @@ interface ChildEntryModule {
 export async function runDwfChildCommand(ctx: RunContext, argv: string[]): Promise<number> {
   const entryPath = argv[argv.length - 1];
   if (argv.length === 0 || entryPath === undefined) {
-    ctx.stderr.write(`Usage: ${ZCODE_DWF_CHILD_COMMAND} <entry path>\n`);
+    ctx.stderr.write(`Usage: ${SOCIAL_HARNESS_DWF_CHILD_COMMAND} <entry path>\n`);
     return 1;
   }
 

@@ -105,7 +105,7 @@ export const userInputRowSchema = z.object({
   // nudge），GUI 把它折进默认收起的披露；0 = 整条都是；缺席 = 无（老转录、非工作流会话）。
   epilogueStart: z.number().int().nonnegative().optional(),
   // workflowLaunch：中枢直接启动轮的用户可见行。
-  // 消息文本仍进 text（旧客户端 / TUI 的降级呈现就是那句规范英文）；新客户端用下方
+  // 消息文本仍进 text（旧客户端的降级呈现就是那句规范英文）；新客户端用下方
   // workflowLaunch 元数据画轮尾 run 卡而非气泡。闭集加值的偏斜同 turnHeader.origin 注释。
   origin: z.enum([
     "realUser",

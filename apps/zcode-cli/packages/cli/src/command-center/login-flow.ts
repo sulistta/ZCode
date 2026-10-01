@@ -1,10 +1,10 @@
-import type { TuiSelection, TuiSubmitPrompt } from "@zcode/tui";
-import { getZCodeCopy } from "@zcode/i18n";
+import type { CommandCenterSelection, CommandCenterSubmitPrompt } from "./contracts.js";
+import { getZCodeCopy } from "@social-harness/i18n";
 import type { CommandCenterApp, CommandCenterLoginResult } from "./types.js";
 import { randomUUID } from "node:crypto";
 
-export function buildLoginSelection(locale?: string): TuiSelection {
-  const copy = getZCodeCopy(locale).tui.loginSetup;
+export function buildLoginSelection(locale?: string): CommandCenterSelection {
+  const copy = getZCodeCopy(locale).commandCenter.loginSetup;
   return {
     emptyMessage: copy.emptyMessage,
     filterable: false,
@@ -83,7 +83,7 @@ export function buildLoginSelection(locale?: string): TuiSelection {
 }
 
 export function loginSetupResponse(locale?: string): string {
-  return getZCodeCopy(locale).tui.loginSetup.response;
+  return getZCodeCopy(locale).commandCenter.loginSetup.response;
 }
 
 export function formatLoginResult(result: CommandCenterLoginResult): string {
@@ -115,7 +115,7 @@ export function formatProviderSetupResult(result: {
 }
 
 export async function emitLoginAuthorizeMessage(
-  options: Parameters<TuiSubmitPrompt>[1],
+  options: Parameters<CommandCenterSubmitPrompt>[1],
   authorizeUrl: string,
   providerName: string,
   session: Pick<CommandCenterApp, "sessionId" | "traceId">,

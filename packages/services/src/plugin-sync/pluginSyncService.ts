@@ -19,7 +19,7 @@ import type {
   PluginSyncComponentType,
   PluginSyncImportResult,
   PluginSyncRemoteStatus,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type { IPluginSyncService } from "./pluginSync.js";
 import {
   createPluginSyncArchive,
@@ -29,6 +29,7 @@ import {
 } from "./pluginSyncArchive.js";
 import { normalizePluginSyncRelativePath, resolvePluginSyncPathWithin } from "./pluginSyncPath.js";
 import { checkRemoteSyncDirectoriesWriteAccess } from "../remote-sync/remoteSyncWriteAccess.js";
+import { getSocialHarnessDataRootDir } from "../paths.js";
 
 interface PluginManifestInfo {
   name: string;
@@ -217,11 +218,11 @@ function resolveUserHomeDir(): string {
 }
 
 function getUserZcodeConfigPath(): string {
-  return join(resolveUserHomeDir(), ".zcode", "cli", "config.json");
+  return join(getSocialHarnessDataRootDir(), "cli", "config.json");
 }
 
 function getUserZcodePluginRoot(): string {
-  return join(resolveUserHomeDir(), ".zcode", "plugins");
+  return join(getSocialHarnessDataRootDir(), "plugins");
 }
 
 async function collectLocalUserPluginCandidates(): Promise<PluginSyncCandidate[]> {

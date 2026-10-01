@@ -95,14 +95,12 @@ export function WorkflowArtifactHtmlCard({
   localSourcePath,
   isLatestVersion,
   onOpenBrowserUrl,
-  onReveal,
 }: {
   artifact: WorkflowRunArtifactView;
   bytes: number;
   localSourcePath?: string;
   isLatestVersion: boolean;
   onOpenBrowserUrl?: (url: string) => void;
-  onReveal?: () => void;
 }) {
   const { intl } = useZCodeIntl();
   const openable =
@@ -127,15 +125,7 @@ export function WorkflowArtifactHtmlCard({
               testId: "workflow-artifact-open-in-browser",
             },
           }
-        : onReveal === undefined
-          ? {}
-          : {
-              action: {
-                label: intl.formatMessage({ id: "chat.toolCall.workflow.run.artifacts.reveal" }),
-                onActivate: onReveal,
-                testId: "workflow-artifact-html-reveal",
-              },
-            })}
+        : {})}
     />
   );
 }

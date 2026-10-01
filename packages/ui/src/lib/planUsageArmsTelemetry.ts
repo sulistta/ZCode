@@ -5,7 +5,7 @@ import {
   type ArmsCustomEventPayload,
   type IPlatformService,
   type ZCodeTaskNetworkDebugStatus,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { logger } from "@/logger.js";
 
 const PLAN_USAGE_ARMS_GROUP = "plan_usage";

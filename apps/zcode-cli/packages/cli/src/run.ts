@@ -1,9 +1,10 @@
+/* eslint-disable max-lines -- CLI 入口集中维护参数规范化、运行环境初始化和命令分派，拆散会模糊启动顺序。 */
 import { extractDisallowedToolsArgs, parseGlobalArgs } from "./arguments.js";
-import { createNodeLoggerFactory } from "@zcode/adapters";
-import { getRuntimeInfo, type PresentationSurface } from "@zcode/core";
-import { color, formatJson, supportsColor } from "@zcode/core";
-import { getZCodeCopy, isUiLocale, type UiLocale } from "@zcode/i18n";
-import type { RunContext, GlobalOptions, GlobalOutputFormat } from "@zcode/shared-types";
+import { createNodeLoggerFactory } from "@social-harness/adapters";
+import { getRuntimeInfo, type PresentationSurface } from "@social-harness/core";
+import { color, formatJson, supportsColor } from "@social-harness/core";
+import { getZCodeCopy, isUiLocale, type UiLocale } from "@social-harness/i18n";
+import type { RunContext, GlobalOptions, GlobalOutputFormat } from "@social-harness/shared-types";
 import {
   applyCliRuntimeEnvSanitization,
   loadCliDotenv,
@@ -24,7 +25,6 @@ import { isDwfChildInvocation, runDwfChildCommand } from "./dwf-child-command.js
 import { runPrompt } from "./prompt-command.js";
 import { runPluginsCommand, type PluginsCommandFlags } from "./plugins-command.js";
 import { runSkillsCommand } from "./skills-command.js";
-import { runTuiCommand } from "./tui-command.js";
 import type {
   CliPermissionMode,
   CliResumeRequest,
@@ -40,14 +40,13 @@ const version = typeof __CLI_VERSION__ === "string" ? __CLI_VERSION__ : "0.0.0";
 
 const EMPTY_TARGET_ERROR = "--target requires non-empty text.";
 const DEFAULT_HEADLESS_PROMPT_MODE: CliPermissionMode = "yolo";
-const FORCE_MCS_SCOPE_ERROR = "--force-mcs can only be used with --prompt, --target, or tui.";
+const FORCE_MCS_SCOPE_ERROR = "--force-mcs can only be used with --prompt or --target.";
 const TARGET_REPLACE_REQUIRES_TARGET_ERROR = "--target-replace requires --target.";
 const TARGET_CONFLICTS_WITH_PROMPT_ERROR =
   '--target cannot be used with --prompt. Use either --target <objective> or --prompt "/goal <objective>".';
 const BROWSER_EXECUTABLE_REQUIRES_HEADLESS_ERROR =
   "--browser-executable requires --browser-use=headless.";
-const BROWSER_USE_SCOPE_ERROR =
-  "--browser-use=headless can only be used with --prompt, --target, or tui.";
+const BROWSER_USE_SCOPE_ERROR = "--browser-use=headless can only be used with --prompt or --target.";
 const SURFACE_SCOPE_ERROR =
   "--surface can only be used with --prompt, --target, app-server, or agent-server.";
 const MEMORY_BENCH_SCOPE_ERROR = "--memory-bench can only be used with -p/--prompt.";
@@ -62,16 +61,14 @@ const pluginsCommandFlags = (
   ...(Array.isArray(values.sparse) ? { sparse: values.sparse as string[] } : {}),
 });
 
-const commandName = (positionals: string[]): string => positionals[0] ?? "tui";
+const commandName = (positionals: string[]): string => positionals[0] ?? "help";
 
 const isForceMcsSupportedInvocation = (input: {
   positionals: string[];
   prompt?: string;
   targetRequest?: CliTargetRequest;
 }): boolean =>
-  typeof input.prompt === "string" ||
-  input.targetRequest !== undefined ||
-  commandName(input.positionals) === "tui";
+  typeof input.prompt === "string" || input.targetRequest !== undefined;
 
 const isPresentationSurfaceSupportedInvocation = (input: {
   positionals: string[];
@@ -214,7 +211,7 @@ const runDoctor = (ctx: RunContext, options: GlobalOptions, workingDirectory: st
   }
 
   const colors = supportsColor(ctx.stdout, options.noColor);
-  ctx.stdout.write(`${color.bold("zcode doctor", colors)}\n`);
+  ctx.stdout.write(`${color.bold("social-harness doctor", colors)}\n`);
   ctx.stdout.write(`version: ${payload.cli.version}\n`);
   ctx.stdout.write(`process: ${payload.runtime.processTitle}\n`);
   ctx.stdout.write(`node: ${payload.runtime.node}\n`);
@@ -475,7 +472,7 @@ export const run = async (ctx: RunContext, deps: RunDependencies = {}): Promise<
     env,
     logger:
       deps.logger ??
-      createNodeLoggerFactory({ env }).createLogger("zcode").child({ module: "cli" }),
+      createNodeLoggerFactory({ env }).createLogger("social-harness").child({ module: "cli" }),
     loadDotenv: (dotenvOptions = {}) => {
       const dotenvResult = (deps.loadDotenv ?? loadCliDotenv)(dotenvOptions);
       applyCliRuntimeEnvSanitization(dotenvOptions.env ?? env);
@@ -556,17 +553,6 @@ export const run = async (ctx: RunContext, deps: RunDependencies = {}): Promise<
       );
     case "skills":
       return await runSkillsCommand(ctx, options, commandDeps, parsed.positionals.slice(1));
-    case "tui":
-      return await runTuiCommand(
-        ctx,
-        options,
-        commandDeps,
-        version,
-        mode,
-        resumeRequest,
-        toolDisallowlist,
-        forceMcs,
-      );
     default:
       ctx.stderr.write(`Unknown command: ${commandName(parsed.positionals)}\n\n`);
       writeHelp(ctx.stderr, options.locale, options.detectedLocale);

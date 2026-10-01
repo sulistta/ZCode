@@ -11,7 +11,7 @@ import {
   type CommandEnvelope,
   type CommandPayloadMap,
   type CommandType,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 
 const HEX = Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, "0"));
 
@@ -77,7 +77,7 @@ export function createHostCommandEnvelope<T extends CommandType>(
 
 /** v4 命令被服务端否决（rejected/stale/failed）。code 供调用方结构化分流，不匹配错误文案。 */
 class ZCodeV4CommandRejectedError extends Error {
-  readonly code = "ZCODE_V4_COMMAND_REJECTED";
+  readonly code = "SOCIAL_HARNESS_V4_COMMAND_REJECTED";
 
   constructor(
     readonly commandType: CommandType,

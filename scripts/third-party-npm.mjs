@@ -10,6 +10,8 @@ export const hashBytes = (bytes) => createHash("sha256").update(bytes).digest("h
 const unsupportedCanvas = new Set([
   "@napi-rs/canvas-android-arm64",
   "@napi-rs/canvas-linux-arm-gnueabihf",
+  "@napi-rs/canvas-linux-arm64-musl",
+  "@napi-rs/canvas-linux-x64-musl",
   "@napi-rs/canvas-linux-riscv64-gnu",
 ]);
 const noticeName =
@@ -51,7 +53,11 @@ function productionPackages(projects) {
   function dependencies(deps) {
     for (const [alias, info] of Object.entries(deps ?? {})) {
       const name = info.name ?? alias;
-      if (!own.has(name) && !name.startsWith("@zcode/") && !info.version.startsWith("link:")) {
+      if (
+        !own.has(name) &&
+        !name.startsWith("@social-harness/") &&
+        !info.version.startsWith("link:")
+      ) {
         required.set(`${name}@${info.version}`, { name, version: info.version });
       }
       dependencies(info.dependencies);

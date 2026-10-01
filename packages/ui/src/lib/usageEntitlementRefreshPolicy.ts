@@ -1,9 +1,9 @@
-import type { IUsageStatsService } from "@zcode/services";
+import type { IUsageStatsService } from "@social-harness/services";
 import type {
   UsageEntitlementSnapshot,
   ZCodeAccountAccess,
   ZCodeProviderAccountAccess,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 
 export interface UsageEntitlementRequestOptions {
   invalidateBalanceCache?: boolean;

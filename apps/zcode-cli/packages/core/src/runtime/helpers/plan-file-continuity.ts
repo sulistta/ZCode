@@ -7,7 +7,7 @@ import {
   type FileSystemPort,
   type SessionId,
   type TraceContext,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import {
   systemReminderAttachmentEntry,
   type RuntimeMessageEntry,

@@ -40,15 +40,17 @@ import {
   TID_V4_ATTACHMENT_UPLOAD_PROGRESS,
   TID_V4_ATTACHMENT_UPLOAD_RETRY,
   TID_V4_STOP,
+  parseSocialAccountWorkspaceIdentity,
   testId,
   type PlanIdentitySnapshot,
   type ZCodeProvider,
-} from "@zcode/shared";
+} from "@social-harness/shared";
+import { isConversationSharingAvailable } from "@/lib/conversationSharingAvailability.js";
 import type {
   AttachmentRef,
   ConversationSnapshot,
   SessionConfigState,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import {
   ArrowUpIcon,
   ClipboardPenLineIcon,
@@ -118,7 +120,7 @@ import {
 } from "@/lib/workspaceFileDrag.js";
 import { appendWorkspaceFileMentionToComposer } from "@/lib/workspaceFileComposer.js";
 import { resolveProviderBaseURL } from "@/lib/registryProviderView.js";
-import type { ModelSelectionView } from "@zcode/services";
+import type { ModelSelectionView } from "@social-harness/services";
 import type { ModelSelectionState } from "@/hooks/useModelSelectionView.js";
 import type { ZCodeUiError } from "@/lib/zcodeUiError.js";
 import {
@@ -538,6 +540,7 @@ function ConversationComposerImpl({
   onDropTargetControllerChange,
 }: ConversationComposerProps) {
   const { intl, locale } = useZCodeIntl();
+  const isSocialAccountWorkspace = parseSocialAccountWorkspaceIdentity(workspaceIdentity) !== null;
   const services = useOptionalServices();
   const conversationTelemetry = useScopedConversationTelemetrySupervisor({
     workspacePath,
@@ -599,7 +602,9 @@ function ConversationComposerImpl({
   // 这条线断过一次：composer 原本读一个平行的 sharedContextImport prop，而 SessionPane 从没
   // 传过它（全仓 `sharedContextImport=` 零命中），于是首条消息永远不带 sharedContextRefs。
   // 现在从必然拿到的 snapshot 推导，理由与边界见 resolveAttachableShareContext。
-  const activeShareContext = resolveAttachableShareContext(snapshot?.sharedContextImport);
+  const activeShareContext = isConversationSharingAvailable(workspaceIdentity)
+    ? resolveAttachableShareContext(snapshot?.sharedContextImport)
+    : null;
   const pendingShareContext = activeShareContext?.status === "pending" ? activeShareContext : null;
   const inputApiRef = useRef<LexicalChatInputHandle | null>(null);
   const reportedErrorKeysRef = useRef(new Set<string>());
@@ -967,6 +972,8 @@ function ConversationComposerImpl({
     };
 
     const draft = transferredDraft ?? composerDraft;
+    const restoreScheduledRevision = contentRevisionRef.current;
+    const restoreScheduledMarkdown = inputApiRef.current?.getMarkdown();
     const restoreDraftInto = (api: LexicalChatInputHandle) => {
       if (!draft) {
         if (textRef.current) {
@@ -988,6 +995,15 @@ function ConversationComposerImpl({
     const applyDraft = () => {
       const api = inputApiRef.current;
       if (!api) return;
+      // Bug 根因：初次恢复被排到下一帧，用户在这段间隔输入的正文会被旧草稿覆盖。
+      // 版本与 Editor 内容任一变化时，以当前 Editor 为事实源并持久化，不回放过期快照。
+      if (
+        contentRevisionRef.current !== restoreScheduledRevision ||
+        (restoreScheduledMarkdown !== undefined && api.getMarkdown() !== restoreScheduledMarkdown)
+      ) {
+        persistDraftNow(draftScopeId);
+        return;
+      }
       restoreDraftInto(api);
       // 草稿恢复后把光标交还输入框（切会话/切草稿/挂载）；连接中会话待可编辑后兑现。
       requestComposerFocus();
@@ -1185,7 +1201,11 @@ function ConversationComposerImpl({
         featureId: "conversation.composer.message",
         action: "send",
         trigger: sendTriggerRef.current === "button" ? "button" : "shortcut",
-        workspaceKind: workspaceIdentity?.trim() ? "remote" : "local",
+        workspaceKind:
+          workspaceIdentity?.trim() &&
+          parseSocialAccountWorkspaceIdentity(workspaceIdentity) === null
+            ? "remote"
+            : "local",
       });
       pendingRef.current = true;
       setPending(true);
@@ -1202,15 +1222,17 @@ function ConversationComposerImpl({
       } else {
         const freshSeed: ConversationPromptTelemetrySeed = {
           sendTime: Date.now(),
-          localTtft: !workspaceIdentity?.trim()
-            ? getLocalTtftObserver()?.start(
-                workspacePath,
-                (snapshotRef.current !== null &&
-                  snapshotRef.current.inputRouting.mode !== "startNow") ||
-                  false,
-                trimmed.startsWith("/"),
-              )
-            : undefined,
+          localTtft:
+            !workspaceIdentity?.trim() ||
+            parseSocialAccountWorkspaceIdentity(workspaceIdentity) !== null
+              ? getLocalTtftObserver()?.start(
+                  workspacePath,
+                  (snapshotRef.current !== null &&
+                    snapshotRef.current.inputRouting.mode !== "startNow") ||
+                    false,
+                  trimmed.startsWith("/"),
+                )
+              : undefined,
           extraDetail: buildV4ConversationPromptTelemetryExtraDetail({
             askMode: telemetryConfig?.mode,
             modelName: telemetryConfig?.model,
@@ -2267,20 +2289,26 @@ function ConversationComposerImpl({
           enterSubmits={enterSubmits}
           onModifiedSubmit={modifiedEnterSubmits ? handleModifiedEditorSubmit : undefined}
           submitLabel={sendTooltipTitle}
-          showSlashButton
+          showSlashButton={!isSocialAccountWorkspace}
           // @ 是 Plugin / 文件 / 对话 / 画板主入口；# 会话与 $ / ¥ / ￥ Skills
           // 仍由 MentionPlugin 保留兼容触发，但不在 + 菜单重复展示。
-          showMentionButton
+          showMentionButton={!isSocialAccountWorkspace}
           topContent={topContentNode}
           attachmentAction={attachmentAction}
           inputTestId={TID_V4_COMPOSER_INPUT}
           inputApiRef={inputApiRef}
           promptHistory={promptHistory}
-          // 命令目录必须完整来自 CLI workspace slash catalog；UI 只在
-          // secondary pane 按产品能力隐藏 goal，不再追加任何内建命令或别名。
-          excludedSlashCommandNames={suppressGoalCommands ? ["goal"] : undefined}
+          // Social Account workspace 只用自然语言与账号工具，不展示通用命令目录。
+          excludedSlashCommandNames={
+            isSocialAccountWorkspace
+              ? ["goal", "workflow"]
+              : suppressGoalCommands
+                ? ["goal"]
+                : undefined
+          }
           appSlashCommands={appSlashCommands}
-          enableMentionPanel
+          enableMentionPanel={!isSocialAccountWorkspace}
+          enableSlashPanel={!isSocialAccountWorkspace}
           leadingActions={leadingActionsNode}
           submitControl={submitControlNode}
           className="p-0"

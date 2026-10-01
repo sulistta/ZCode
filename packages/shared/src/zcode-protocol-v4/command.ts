@@ -44,6 +44,8 @@ export const commandPayloadSchemas = {
   // firstInput 缺省 → phase=draft 空会话；携带 → 直接 turnHeader+userInput rows。
   createSession: z.object({
     workspaceId: z.string(),
+    // workspaceId 保持作逻辑隔离 key；账号 workspace 还需物理路径用于运行时 cwd。
+    workspacePath: z.string().trim().min(1).max(4096).optional(),
     firstInput: z
       .object({
         text: z.string(),

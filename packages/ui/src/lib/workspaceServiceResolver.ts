@@ -1,4 +1,5 @@
-import type { IServiceAccessor } from "@zcode/services";
+import type { IServiceAccessor } from "@social-harness/services";
+import { parseSocialAccountWorkspaceIdentity } from "@social-harness/shared";
 import { buildTaskWorkspaceKey } from "@/lib/taskQueryCache.js";
 
 interface WorkspaceServiceTarget {
@@ -25,9 +26,12 @@ export function resolveWorkspaceRemoteSessionId<TServices>(
   state: WorkspaceServiceResolverState<TServices>,
 ): string | undefined {
   const workspaceIdentity = target.workspaceIdentity?.trim();
+  const isSocialAccountWorkspace = parseSocialAccountWorkspaceIdentity(workspaceIdentity) !== null;
   const candidateSessionIds = [
     target.remoteSessionId,
-    workspaceIdentity ? state.sessionIdByWorkspaceIdentity[workspaceIdentity] : undefined,
+    workspaceIdentity && !isSocialAccountWorkspace
+      ? state.sessionIdByWorkspaceIdentity[workspaceIdentity]
+      : undefined,
     // 同一路径可能同时存在于多个 SSH/WSL/Docker endpoint。已有 identity 时若
     // 精确绑定尚未恢复，按 path fallback 会借用另一 endpoint 的 services，导致 sessions-index、
     // provider 和 task RPC 串到错误 Host。identity 缺失时保持 remote-waiting；只有旧版无
@@ -46,7 +50,12 @@ export function isRemoteWorkspaceTarget(
   target: WorkspaceServiceTarget,
   resolvedRemoteSessionId?: string,
 ): boolean {
-  return Boolean(target.workspaceIdentity || target.remoteTarget || resolvedRemoteSessionId);
+  const workspaceIdentity = target.workspaceIdentity?.trim();
+  return Boolean(
+    (workspaceIdentity && parseSocialAccountWorkspaceIdentity(workspaceIdentity) === null) ||
+    target.remoteTarget ||
+    resolvedRemoteSessionId,
+  );
 }
 
 export function resolveWorkspaceServices(

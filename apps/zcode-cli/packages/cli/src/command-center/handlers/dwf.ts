@@ -1,8 +1,8 @@
-import type { TuiSubmitPromptResult } from "@zcode/tui";
+import type { CommandCenterSubmitPromptResult } from "../contracts.js";
 import type {
   DynamicWorkflowRunResumeErrorReason,
   DynamicWorkflowRunSessionSummary,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { CommandCenterDeps } from "../types.js";
 import { splitArgs } from "../utils.js";
 
@@ -24,7 +24,7 @@ const IN_FLIGHT_STATUSES: readonly DynamicWorkflowRunSessionSummary["status"][] 
 export async function handleDwfCommand(
   args: string,
   deps: CommandCenterDeps,
-): Promise<TuiSubmitPromptResult> {
+): Promise<CommandCenterSubmitPromptResult> {
   const app = await deps.getApp();
   const [action = "list", runId] = splitArgs(args);
 
@@ -57,7 +57,7 @@ async function handleCancel(
   runId: string | undefined,
   app: Awaited<ReturnType<CommandCenterDeps["getApp"]>>,
   deps: CommandCenterDeps,
-): Promise<TuiSubmitPromptResult> {
+): Promise<CommandCenterSubmitPromptResult> {
   if (!app.cancelBackgroundTask) return unavailable(deps);
 
   let targetRunId = runId;
@@ -161,11 +161,11 @@ function describeResumeRejection(reason: DynamicWorkflowRunResumeErrorReason): s
   }
 }
 
-function unavailable(deps: CommandCenterDeps): TuiSubmitPromptResult {
+function unavailable(deps: CommandCenterDeps): CommandCenterSubmitPromptResult {
   return respond(deps, "Dynamic workflow runs are not available in this client.");
 }
 
-function respond(deps: CommandCenterDeps, response: string): TuiSubmitPromptResult {
+function respond(deps: CommandCenterDeps, response: string): CommandCenterSubmitPromptResult {
   return {
     mode: deps.getMode?.(),
     response,

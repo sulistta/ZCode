@@ -2,17 +2,17 @@ import { existsSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { atomicWritePrivateTextFile, backupCorruptFile, withFileLock } from "@zcode/shared/node";
+import { atomicWritePrivateTextFile, backupCorruptFile, withFileLock } from "@social-harness/shared/node";
 import { createZCodeCredentialCipher, type ZCodeCredentialCipher } from "./credential-cipher.js";
 
-const ZCODE_DATA_BASE_DIR_ENV_KEY = "ZCODE_DATA_BASE_DIR";
+const SOCIAL_HARNESS_DATA_BASE_DIR_ENV_KEY = "SOCIAL_HARNESS_DATA_BASE_DIR";
 const ZAI_PROVIDER_ID = "zai";
 const credentialChangeListeners = new Map<
   string,
   Set<() => void | Promise<void>>
 >();
 
-export const SHARED_ZCODE_CREDENTIAL_KEYS = {
+export const SHARED_SOCIAL_HARNESS_CREDENTIAL_KEYS = {
   activeProvider: "oauth:active_provider",
   bigmodelAccessToken: "oauth:bigmodel:access_token",
   bigmodelRefreshToken: "oauth:bigmodel:refresh_token",
@@ -77,14 +77,14 @@ export function createSharedZCodeCredentialStore(
 
     async clearZaiLoginCredentials(): Promise<void> {
       await mutateRawCredentialRecord(filePath, async (rawCredentials) => {
-        const activeProviderRaw = rawCredentials[SHARED_ZCODE_CREDENTIAL_KEYS.activeProvider];
+        const activeProviderRaw = rawCredentials[SHARED_SOCIAL_HARNESS_CREDENTIAL_KEYS.activeProvider];
         const activeProvider = activeProviderRaw ? cipher.decrypt(activeProviderRaw) : null;
-        delete rawCredentials[SHARED_ZCODE_CREDENTIAL_KEYS.zaiAccessToken];
-        delete rawCredentials[SHARED_ZCODE_CREDENTIAL_KEYS.zaiRefreshToken];
-        delete rawCredentials[SHARED_ZCODE_CREDENTIAL_KEYS.zaiUserInfo];
-        delete rawCredentials[SHARED_ZCODE_CREDENTIAL_KEYS.zcodeJwtToken];
+        delete rawCredentials[SHARED_SOCIAL_HARNESS_CREDENTIAL_KEYS.zaiAccessToken];
+        delete rawCredentials[SHARED_SOCIAL_HARNESS_CREDENTIAL_KEYS.zaiRefreshToken];
+        delete rawCredentials[SHARED_SOCIAL_HARNESS_CREDENTIAL_KEYS.zaiUserInfo];
+        delete rawCredentials[SHARED_SOCIAL_HARNESS_CREDENTIAL_KEYS.zcodeJwtToken];
         if (activeProvider === ZAI_PROVIDER_ID) {
-          delete rawCredentials[SHARED_ZCODE_CREDENTIAL_KEYS.activeProvider];
+          delete rawCredentials[SHARED_SOCIAL_HARNESS_CREDENTIAL_KEYS.activeProvider];
         }
       });
     },
@@ -241,12 +241,12 @@ export function createSharedZCodeCredentialStore(
         userInfo: cipher.encrypt(JSON.stringify(payload.user)),
       };
       await mutateRawCredentialRecord(filePath, (rawCredentials) => {
-        rawCredentials[SHARED_ZCODE_CREDENTIAL_KEYS.activeProvider] =
+        rawCredentials[SHARED_SOCIAL_HARNESS_CREDENTIAL_KEYS.activeProvider] =
           encryptedCredentials.activeProvider;
-        rawCredentials[SHARED_ZCODE_CREDENTIAL_KEYS.zaiAccessToken] =
+        rawCredentials[SHARED_SOCIAL_HARNESS_CREDENTIAL_KEYS.zaiAccessToken] =
           encryptedCredentials.accessToken;
-        rawCredentials[SHARED_ZCODE_CREDENTIAL_KEYS.zcodeJwtToken] = encryptedCredentials.jwtToken;
-        rawCredentials[SHARED_ZCODE_CREDENTIAL_KEYS.zaiUserInfo] = encryptedCredentials.userInfo;
+        rawCredentials[SHARED_SOCIAL_HARNESS_CREDENTIAL_KEYS.zcodeJwtToken] = encryptedCredentials.jwtToken;
+        rawCredentials[SHARED_SOCIAL_HARNESS_CREDENTIAL_KEYS.zaiUserInfo] = encryptedCredentials.userInfo;
       });
     },
   };
@@ -285,8 +285,8 @@ export function resolveSharedZCodeCredentialsPath(
   }
 
   const env = options.env ?? process.env;
-  const baseDir = options.baseDir ?? env[ZCODE_DATA_BASE_DIR_ENV_KEY] ?? homedir();
-  return join(resolveUserPath(baseDir), ".zcode", "v2", "credentials.json");
+  const baseDir = options.baseDir ?? env[SOCIAL_HARNESS_DATA_BASE_DIR_ENV_KEY] ?? homedir();
+  return join(resolveUserPath(baseDir), ".social-harness", "v1", "config", "credentials.json");
 }
 
 async function readRawCredentialRecord(filePath: string): Promise<Record<string, string>> {

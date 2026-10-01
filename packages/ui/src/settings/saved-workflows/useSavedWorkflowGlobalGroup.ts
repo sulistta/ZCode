@@ -1,7 +1,7 @@
 // 全局工作流组的状态与动作。抽成 hook 让组件文件守住
 // max-lines 400；载体是 `useServices().zcodeAgentService`，RPC 一律带 `{ scope: "global" }`。
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ZCodeSavedWorkflowEntry, ZCodeSavedWorkflowRun } from "@zcode/shared";
+import type { ZCodeSavedWorkflowEntry, ZCodeSavedWorkflowRun } from "@social-harness/shared";
 import { toast } from "@/components/ui/toast.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
@@ -96,7 +96,7 @@ export function useSavedWorkflowGlobalGroup({
     void refresh({ bypassCache: true });
   }, [refresh, refreshSeq]);
 
-  // 目录监听：list 回的绝对目录（`~/.zcode/workflows`）本机可直接 watch。
+  // 目录监听：list 回的绝对目录是 Social Harness 全局 workflow 根，本机可直接 watch。
   useSavedWorkflowsDirectoryWatch({
     fileWatcherService,
     directory: state.dir,

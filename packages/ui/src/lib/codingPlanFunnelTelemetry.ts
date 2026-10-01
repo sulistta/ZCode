@@ -5,8 +5,8 @@ import {
   ZAI_PROVIDER_ID,
   type IPlatformService,
   type UsageEntitlementSnapshot,
-} from "@zcode/shared";
-import type { ProviderSettingsView } from "@zcode/services";
+} from "@social-harness/shared";
+import type { ProviderSettingsView } from "@social-harness/services";
 import { logger } from "@/logger.js";
 import { reportAppTelemetryEvent } from "@/lib/appTelemetry.js";
 

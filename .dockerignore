@@ -29,4 +29,6 @@ packages/desktop/mock-cdn
 *.local
 .env
 .env.*
+**/.env
+**/.env.*
 package-lock.json

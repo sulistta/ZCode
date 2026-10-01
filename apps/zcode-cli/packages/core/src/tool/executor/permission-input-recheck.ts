@@ -4,7 +4,7 @@ import {
   type PermissionBrokerResult,
   type PermissionRuleset,
   type TraceContext,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 
 import type { PermissionDecisionResult, PermissionContext } from "../../permission/service.js";
 import type { ExecutableToolCall, ToolEntry } from "../types.js";

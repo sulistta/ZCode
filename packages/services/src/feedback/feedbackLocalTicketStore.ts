@@ -1,7 +1,11 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import type { FeedbackListQuery, FeedbackTicketStatus, FeedbackTicketSummary } from "@zcode/shared";
+import type {
+  FeedbackListQuery,
+  FeedbackTicketStatus,
+  FeedbackTicketSummary,
+} from "@social-harness/shared";
 import { getFeedbackRootDir } from "#src/paths.js";
 
 interface StoredFeedbackTicket extends FeedbackTicketSummary {

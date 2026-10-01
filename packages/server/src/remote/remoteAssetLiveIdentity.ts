@@ -1,27 +1,27 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { ZCODE_VERSION } from "@zcode/shared";
-import type { IRemoteBackend } from "@zcode/server/remote/backend.js";
-import type { RemoteEnvironment } from "@zcode/server/remote/backend.js";
+import { SOCIAL_HARNESS_VERSION } from "@social-harness/shared";
+import type { IRemoteBackend } from "@social-harness/server/remote/backend.js";
+import type { RemoteEnvironment } from "@social-harness/server/remote/backend.js";
 import {
   REMOTE_BASE,
   type DeployLoggers,
   waitForClose,
-} from "@zcode/server/remote/deployShared.js";
+} from "@social-harness/server/remote/deployShared.js";
 import {
   buildWriteLiteralFileCommand,
   quotePosixPathArg,
-} from "@zcode/server/remote/posixShell.js";
+} from "@social-harness/server/remote/posixShell.js";
 import {
   fetchRemoteAssetManifestRefFromCdn,
   type RemoteAssetManifest,
   type RemoteAssetManifestRef,
-} from "@zcode/server/remote/remoteAssetCache.js";
+} from "@social-harness/server/remote/remoteAssetCache.js";
 import {
   buildReleaseBaseCandidates,
   resolveRemoteCdnBaseUrls,
-} from "@zcode/server/remote/remoteAssetCdn.js";
-import type { RemoteAssetNetworkPort } from "@zcode/server/remote/remoteAssetNetwork.js";
+} from "@social-harness/server/remote/remoteAssetCdn.js";
+import type { RemoteAssetNetworkPort } from "@social-harness/server/remote/remoteAssetNetwork.js";
 
 const REMOTE_ASSET_COMPONENT_META_DIR = `${REMOTE_BASE}/.asset-components`;
 
@@ -205,14 +205,19 @@ async function resolveFreshComponentManifest(
   if (options.mockCdnDir) {
     try {
       const content = await readFile(
-        join(options.mockCdnDir, "releases", ZCODE_VERSION, `manifest-${platformArch}.json`),
+        join(
+          options.mockCdnDir,
+          "releases",
+          SOCIAL_HARNESS_VERSION,
+          `manifest-${platformArch}.json`,
+        ),
         "utf8",
       );
       return {
         manifest: JSON.parse(content) as RemoteAssetManifest,
         releaseBaseCandidatesForComponents: buildReleaseBaseCandidates(
           resolveRemoteCdnBaseUrls(options),
-          ZCODE_VERSION,
+          SOCIAL_HARNESS_VERSION,
         ),
       };
     } catch (error) {
@@ -229,7 +234,7 @@ async function resolveFreshComponentManifest(
         remoteCdnBaseUrl: options.remoteCdnBaseUrl,
         remoteCdnBaseUrls: options.remoteCdnBaseUrls,
         remoteCacheDir: options.remoteCacheDir,
-        version: ZCODE_VERSION,
+        version: SOCIAL_HARNESS_VERSION,
         platformArch,
         manifestRequestTimeoutMs: options.manifestRequestTimeoutMs,
         remoteAssetNetwork: options.remoteAssetNetwork,

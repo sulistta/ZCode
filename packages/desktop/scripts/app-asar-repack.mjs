@@ -11,24 +11,11 @@ async function pathExists(path) {
   }
 }
 
-export function createAppAsarPackArgs({ sourceDir, destinationPath, targetPlatformKey }) {
-  return [
-    "pack",
-    sourceDir,
-    destinationPath,
-    "--unpack",
-    ASAR_UNPACK_NATIVE_GLOB,
-    "--unpack-dir",
-    `node_modules/node-pty/prebuilds/${targetPlatformKey}`,
-  ];
+export function createAppAsarPackArgs({ sourceDir, destinationPath }) {
+  return ["pack", sourceDir, destinationPath, "--unpack", ASAR_UNPACK_NATIVE_GLOB];
 }
 
-export async function replaceAppAsarFromStaging({
-  sourceDir,
-  appAsarPath,
-  targetPlatformKey,
-  runAsarCommand,
-}) {
+export async function replaceAppAsarFromStaging({ sourceDir, appAsarPath, runAsarCommand }) {
   const candidateAsarPath = `${appAsarPath}.next`;
   const candidateUnpackedPath = `${candidateAsarPath}.unpacked`;
   const unpackedPath = `${appAsarPath}.unpacked`;
@@ -43,7 +30,6 @@ export async function replaceAppAsarFromStaging({
       createAppAsarPackArgs({
         sourceDir,
         destinationPath: candidateAsarPath,
-        targetPlatformKey,
       }),
     );
 

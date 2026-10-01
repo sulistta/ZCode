@@ -10,13 +10,11 @@ import {
 } from "react";
 import type {
   AppSettings,
-  IntegratedTerminalShellOption,
-  IntegratedTerminalShellSelection,
   Locale,
   UsageEntitlementSnapshot,
   UserInfo,
   ZCodeInteractionBehavior,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   BUILTIN_MODEL_PROVIDER_IDS,
   TID_SETTINGS_BACK_BUTTON,
@@ -24,7 +22,7 @@ import {
   TID_SETTINGS_SECTION_NAV,
   TID_SETTINGS_USAGE_TAB,
   testId,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { Button } from "@/components/ui/button.js";
 import { toast } from "@/components/ui/toast.js";
 import { DesktopWindowFrame } from "@/DesktopWindowFrame.js";
@@ -684,13 +682,6 @@ export function SettingsPage({
     sharedSettings?.askUserQuestionAutoResolutionEnabled !== false;
   const modelIoFullRetentionEnabled = sharedSettings?.modelIoFullRetentionEnabled === true;
   const [dataBaseDir, setDataBaseDir] = useState("");
-  const [terminalInheritSystemProfile, setTerminalInheritSystemProfile] = useState(true);
-  const [terminalFontFamily, setTerminalFontFamily] = useState("");
-  const [integratedTerminalShell, setIntegratedTerminalShell] =
-    useState<IntegratedTerminalShellSelection>({ mode: "auto" });
-  const [integratedTerminalShellOptions, setIntegratedTerminalShellOptions] = useState<
-    IntegratedTerminalShellOption[]
-  >([]);
   const [httpProxy, setHttpProxy] = useState("");
   const [httpProxyNoProxy, setHttpProxyNoProxy] = useState("");
   const [httpProxyCaCertPath, setHttpProxyCaCertPath] = useState("");
@@ -713,7 +704,6 @@ export function SettingsPage({
   const [zcodeInteractionBehavior, setZCodeInteractionBehavior] =
     useState<ZCodeInteractionBehavior>("queue");
   const [defaultHomeDir, setDefaultHomeDir] = useState("");
-  const [hostPlatform, setHostPlatform] = useState("");
 
   useEffect(() => {
     if (
@@ -772,9 +762,6 @@ export function SettingsPage({
       .get()
       .then((settings: AppSettings) => {
         setDataBaseDir(settings.dataBaseDir ?? "");
-        setTerminalInheritSystemProfile(settings.terminalInheritSystemProfile ?? true);
-        setTerminalFontFamily(settings.terminalFontFamily ?? "");
-        setIntegratedTerminalShell(settings.integratedTerminalShell ?? { mode: "auto" });
         setHttpProxy(settings.httpProxy ?? "");
         setHttpProxyNoProxy(settings.httpProxyNoProxy ?? "");
         setHttpProxyCaCertPath(settings.httpProxyCaCertPath ?? "");
@@ -803,17 +790,6 @@ export function SettingsPage({
       .info()
       .then((info) => {
         setDefaultHomeDir(info.homedir);
-        setHostPlatform(info.platform);
-        if (info.platform !== "win32") {
-          setIntegratedTerminalShellOptions([]);
-          return;
-        }
-        void localHostServices.systemService
-          .listIntegratedTerminalShells()
-          .then(setIntegratedTerminalShellOptions)
-          .catch(() => {
-            setIntegratedTerminalShellOptions([]);
-          });
       })
       .catch(() => {});
   }, [localHostServices.systemService, services.settingService]);
@@ -831,53 +807,6 @@ export function SettingsPage({
     setReceivePreviewUpdates(sharedSettings.receivePreviewUpdates ?? false);
     setAutoDownloadAndInstallUpdates(sharedSettings.autoDownloadAndInstallUpdates ?? false);
   }, [sharedSettings]);
-  const handleTerminalInheritSystemProfileChange = useCallback(
-    async (enabled: boolean) => {
-      await runSettingsActionAsync({
-        featureId: "settings.terminal",
-        action: "toggle_system_profile",
-        trigger: "switch",
-        operation: () => services.settingService.update({ terminalInheritSystemProfile: enabled }),
-        completed: {
-          resultSource: "setting_service",
-          stateAfter: enabled ? "enabled" : "disabled",
-        },
-      });
-      setTerminalInheritSystemProfile(enabled);
-    },
-    [services.settingService],
-  );
-  const handleTerminalFontFamilyChange = useCallback(
-    async (fontFamily: string) => {
-      const normalizedFontFamily = fontFamily.trim();
-      await runSettingsActionAsync({
-        featureId: "settings.terminal",
-        action: "save_font_family",
-        trigger: "button",
-        operation: () =>
-          services.settingService.update({ terminalFontFamily: normalizedFontFamily }),
-        completed: { resultSource: "setting_service", configured: normalizedFontFamily.length > 0 },
-      });
-      setTerminalFontFamily(normalizedFontFamily);
-    },
-    [services.settingService],
-  );
-  const handleIntegratedTerminalShellChange = useCallback(
-    async (selection: IntegratedTerminalShellSelection) => {
-      await runSettingsActionAsync({
-        featureId: "settings.terminal",
-        action: "change_shell",
-        trigger: "select",
-        operation: () => services.settingService.update({ integratedTerminalShell: selection }),
-        completed: {
-          resultSource: "setting_service",
-          valueAfter: selection.mode === "auto" ? "auto" : "explicit",
-        },
-      });
-      setIntegratedTerminalShell(selection);
-    },
-    [services.settingService],
-  );
   const handleNativeSearchEnhancementsEnabledChange = useCallback(
     async (enabled: boolean) => {
       await runSettingsActionAsync({
@@ -1669,16 +1598,11 @@ export function SettingsPage({
                             receivePreviewUpdates={receivePreviewUpdates}
                             autoDownloadAndInstallUpdates={autoDownloadAndInstallUpdates}
                             dataBaseDir={dataBaseDir}
-                            terminalInheritSystemProfile={terminalInheritSystemProfile}
-                            terminalFontFamily={terminalFontFamily}
-                            integratedTerminalShell={integratedTerminalShell}
-                            integratedTerminalShellOptions={integratedTerminalShellOptions}
                             nativeSearchEnhancementsEnabled={nativeSearchEnhancementsEnabled}
                             httpProxy={httpProxy}
                             httpProxyNoProxy={httpProxyNoProxy}
                             httpProxyCaCertPath={httpProxyCaCertPath}
                             defaultHomeDir={defaultHomeDir}
-                            showIntegratedTerminalShell={hostPlatform === "win32"}
                             setLocalePreference={handleFooterLocaleChange}
                             setNotificationEnabled={(enabled) =>
                               runUserAction({
@@ -1724,11 +1648,6 @@ export function SettingsPage({
                             modelIoFullRetentionEnabled={modelIoFullRetentionEnabled}
                             onDataBaseDirChange={handleDataBaseDirChange}
                             onSelectDataBaseDir={selectDirectory}
-                            onTerminalInheritSystemProfileChange={
-                              handleTerminalInheritSystemProfileChange
-                            }
-                            onTerminalFontFamilyChange={handleTerminalFontFamilyChange}
-                            onIntegratedTerminalShellChange={handleIntegratedTerminalShellChange}
                             onNativeSearchEnhancementsEnabledChange={
                               handleNativeSearchEnhancementsEnabledChange
                             }

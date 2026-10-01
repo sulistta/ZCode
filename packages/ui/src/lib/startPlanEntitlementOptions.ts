@@ -1,5 +1,5 @@
-import type { ProviderSettingsView } from "@zcode/services";
-import { resolveModelProviderFamilySpecByProviderId } from "@zcode/shared";
+import type { ProviderSettingsView } from "@social-harness/services";
+import { resolveModelProviderFamilySpecByProviderId } from "@social-harness/shared";
 import type { UseUsageEntitlementOptions } from "@/hooks/useUsageEntitlement.js";
 import { resolveAccountProviderInspectionAccess } from "@/lib/accountProviderAccess.js";
 import { buildUsageEntitlementCacheKey } from "@/lib/usageEntitlementCache.js";

@@ -12,5 +12,140 @@
       "file": "third-party/runtime/node-24.14.0-LICENSE.txt",
       "sha256": "4573185d56580da2b890ba34a85a409257640f1c5632eade4300137266194d18"
     }
+  ],
+  "ytDlp": [
+    {
+      "version": "2026.08.19",
+      "release": "https://github.com/yt-dlp/yt-dlp/releases/tag/2026.08.19",
+      "license": {
+        "source": "https://raw.githubusercontent.com/yt-dlp/yt-dlp/2026.08.19/LICENSE",
+        "file": "third-party/runtime/yt-dlp-2026.08.19-LICENSE.txt",
+        "sha256": "7e12e5df4bae12cb21581ba157ced20e1986a0508dd10d0e8a4ab9a4cf94e85c"
+      },
+      "thirdPartyLicenses": {
+        "source": "https://raw.githubusercontent.com/yt-dlp/yt-dlp/2026.08.19/THIRD_PARTY_LICENSES.txt",
+        "file": "third-party/runtime/yt-dlp-2026.08.19-THIRD_PARTY_LICENSES.txt",
+        "sha256": "472aefe951c7db35e1657c1d13fd337140511ed6f2b329205105ad441c5a02b7"
+      }
+    }
+  ],
+  "whisperCpp": [
+    {
+      "version": "1.9.4",
+      "commit": "927cfce34f31707e17f2bff35c349632fb9e2c3a",
+      "source": "https://github.com/ggml-org/whisper.cpp/archive/refs/tags/v1.9.4.tar.gz",
+      "sourceSha256": "57e280cee375ab02425b806ad5146b99f6eb9357e3c2b31357c8a6af2e2e44ae",
+      "license": {
+        "source": "https://raw.githubusercontent.com/ggml-org/whisper.cpp/v1.9.4/LICENSE",
+        "file": "third-party/runtime/whisper.cpp-v1.9.4-LICENSE.txt",
+        "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+      }
+    }
+  ],
+  "ffmpeg": [
+    {
+      "version": "9.0.1",
+      "license": {
+        "source": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/n9.0.1/COPYING.GPLv3",
+        "file": "third-party/runtime/ffmpeg-9.0.1-GPLv3-LICENSE.txt",
+        "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+      },
+      "archiveInspection": {
+        "checkedOn": "2026-09-30",
+        "method": "Downloaded each exact pinned asset, verified its byte size and SHA-256 against scripts/social-media-tools-config.mjs, and enumerated archive entries without extraction.",
+        "assets": [
+          {
+            "platform": "linux-x64",
+            "provider": "BtbN FFmpeg-Builds",
+            "assetName": "ffmpeg-n9.0.1-84-g946fcce07b-linux64-gpl-shared-9.0.tar.xz",
+            "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-18-13-22/ffmpeg-n9.0.1-84-g946fcce07b-linux64-gpl-shared-9.0.tar.xz",
+            "sizeBytes": 68332020,
+            "sha256": "87b5e8e0f0fac63b41bda52f862e2649dde98ec31f1831b3ec974e68374a36dc",
+            "entryCount": 256,
+            "licensePaths": ["ffmpeg-n9.0.1-84-g946fcce07b-linux64-gpl-shared-9.0/LICENSE.txt"],
+            "licenseSha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+          },
+          {
+            "platform": "linux-arm64",
+            "provider": "BtbN FFmpeg-Builds",
+            "assetName": "ffmpeg-n9.0.1-84-g946fcce07b-linuxarm64-gpl-shared-9.0.tar.xz",
+            "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-18-13-22/ffmpeg-n9.0.1-84-g946fcce07b-linuxarm64-gpl-shared-9.0.tar.xz",
+            "sizeBytes": 57378344,
+            "sha256": "63c8f9d27ac0d69225731dc247dc6d68c5b32101f8bb872f83433513e6acf246",
+            "entryCount": 256,
+            "licensePaths": ["ffmpeg-n9.0.1-84-g946fcce07b-linuxarm64-gpl-shared-9.0/LICENSE.txt"],
+            "licenseSha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+          },
+          {
+            "platform": "win32-x64",
+            "provider": "BtbN FFmpeg-Builds",
+            "assetName": "ffmpeg-n9.0.1-84-g946fcce07b-win64-gpl-shared-9.0.zip",
+            "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-18-13-22/ffmpeg-n9.0.1-84-g946fcce07b-win64-gpl-shared-9.0.zip",
+            "sizeBytes": 85729307,
+            "sha256": "fffbf66963fbcf061eb83ab1b3fef61feedfd260628855c1020d14b7d273b9f9",
+            "entryCount": 238,
+            "licensePaths": ["ffmpeg-n9.0.1-84-g946fcce07b-win64-gpl-shared-9.0/LICENSE.txt"],
+            "licenseSha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+          },
+          {
+            "platform": "win32-arm64",
+            "provider": "BtbN FFmpeg-Builds",
+            "assetName": "ffmpeg-n9.0.1-84-g946fcce07b-winarm64-gpl-shared-9.0.zip",
+            "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-18-13-22/ffmpeg-n9.0.1-84-g946fcce07b-winarm64-gpl-shared-9.0.zip",
+            "sizeBytes": 59920858,
+            "sha256": "e93ef2c7e47ca4145148400ad2df09a30c85d743dd1bc11fab540569d8b12a9c",
+            "entryCount": 238,
+            "licensePaths": ["ffmpeg-n9.0.1-84-g946fcce07b-winarm64-gpl-shared-9.0/LICENSE.txt"],
+            "licenseSha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+          },
+          {
+            "platform": "darwin-x64",
+            "provider": "Martin Riedl FFmpeg Build Server",
+            "assetName": "ffmpeg.zip",
+            "url": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1787081194_9.0.1/ffmpeg.zip",
+            "sizeBytes": 33847553,
+            "sha256": "5bdead62ff504ab9b447cc72b212c4fb481e3f7de5877d427a51bee8136dda40",
+            "entryCount": 1,
+            "entries": ["ffmpeg"],
+            "licensePaths": []
+          },
+          {
+            "platform": "darwin-x64",
+            "provider": "Martin Riedl FFmpeg Build Server",
+            "assetName": "ffprobe.zip",
+            "url": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1787081194_9.0.1/ffprobe.zip",
+            "sizeBytes": 33750750,
+            "sha256": "34511bbcf1988ad2886023bf5ace4f44cf62e6defeb3d194d6f7619e5b061f7f",
+            "entryCount": 1,
+            "entries": ["ffprobe"],
+            "licensePaths": []
+          },
+          {
+            "platform": "darwin-arm64",
+            "provider": "Martin Riedl FFmpeg Build Server",
+            "assetName": "ffmpeg.zip",
+            "url": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1787073674_9.0.1/ffmpeg.zip",
+            "sizeBytes": 28447413,
+            "sha256": "8287a1b2229e05eb41859f073e18e6c52c60a778f2f5e6881070fe51b79407fe",
+            "entryCount": 1,
+            "entries": ["ffmpeg"],
+            "licensePaths": []
+          },
+          {
+            "platform": "darwin-arm64",
+            "provider": "Martin Riedl FFmpeg Build Server",
+            "assetName": "ffprobe.zip",
+            "url": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1787073674_9.0.1/ffprobe.zip",
+            "sizeBytes": 28370930,
+            "sha256": "102a26b8940a053298d9929bfaae71e4b6ef65ba5f19a99a88c433108560741a",
+            "entryCount": 1,
+            "entries": ["ffprobe"],
+            "licensePaths": []
+          }
+        ],
+        "result": "All four BtbN archives include only the FFmpeg GPLv3 text as a license path, and its bytes match the pinned FFmpeg GPLv3 notice. Each Martin Riedl macOS archive contains one executable and no license or source path. This does not establish complete linked-library license aggregates, corresponding source, reproducible build materials, or the Riedl build-script revision that produced the binaries."
+      },
+      "reviewRequired": "Before release, publish corresponding source and reproducible build materials for every bundled GPL build dependency, attest the exact provider build-script revision for each target (the recorded Martin Riedl revision is currently unverified), and complete the platform-specific third-party license aggregate."
+    }
   ]
 }

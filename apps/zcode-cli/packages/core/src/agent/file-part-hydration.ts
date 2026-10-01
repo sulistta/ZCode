@@ -3,7 +3,7 @@ import type {
   FilePart,
   ModelMessageContentBlock,
   ToolArtifactStorePort,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 
 export async function filePartToContentBlock(
   part: FilePart,

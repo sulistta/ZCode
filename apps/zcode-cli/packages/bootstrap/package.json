@@ -1,5 +1,5 @@
 {
-  "name": "@zcode/bootstrap",
+  "name": "@social-harness/bootstrap",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -19,27 +19,27 @@
     "build": "tsc",
     "clean": "node ../../scripts/clean-dist.mjs",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint src",
+    "lint": "oxlint src --no-ignore",
     "lint:fix": "oxlint --write src"
   },
   "dependencies": {
-    "@zcode/adapters": "workspace:*",
-    "@zcode/contracts": "workspace:*",
-    "@zcode/core": "workspace:*",
-    "@zcode/dynamic-workflow": "workspace:*",
-    "@zcode/dynamic-workflow-runtime": "workspace:*",
-    "@zcode/i18n": "workspace:*",
-    "@zcode/provider": "workspace:*",
-    "@zcode/provider-node": "workspace:*",
-    "@zcode/shared": "workspace:*",
-    "@zcode/telemetry": "workspace:*",
+    "@social-harness/adapters": "workspace:*",
+    "@social-harness/contracts": "workspace:*",
+    "@social-harness/core": "workspace:*",
+    "@social-harness/dynamic-workflow": "workspace:*",
+    "@social-harness/dynamic-workflow-runtime": "workspace:*",
+    "@social-harness/i18n": "workspace:*",
+    "@social-harness/provider": "workspace:*",
+    "@social-harness/provider-node": "workspace:*",
+    "@social-harness/shared": "workspace:*",
+    "@social-harness/telemetry": "workspace:*",
     "diff": "^9.0.0",
     "zod": "4.6.5"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "@types/yazl": "^3.3.1",
-    "@zcode/formal-proof": "workspace:*",
+    "@social-harness/formal-proof": "workspace:*",
     "yazl": "^3.3.1"
   }
 }

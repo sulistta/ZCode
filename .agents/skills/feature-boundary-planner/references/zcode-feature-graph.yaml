@@ -230,6 +230,19 @@ nodes:
     codeSeeds:
       - symbol: TaskIndexRepo
         file: packages/services/src/session/taskIndexRepo.ts
+  - id: persistence.storage-scan-roots
+    kind: persistence
+    label: Social Harness v1 roots scanned by storage management
+    aliases:
+      - storage roots resolver
+      - preserved legacy .zcode directory
+    codeSeeds:
+      - symbol: resolveStorageRoots
+        file: packages/services/src/storage/adapters/rootsResolver.ts
+      - symbol: getSocialHarnessDataRootDir
+        file: packages/services/src/paths.ts
+    invariants:
+      - "Storage management scans only .social-harness/v1 roots and never reads or cleans the preserved .zcode directory."
   - id: service.zcode-agent-connection-scope
     kind: service
     label: Host-trusted ZCode Agent attachment connection scope
@@ -355,6 +368,452 @@ nodes:
     codeSeeds:
       - file: apps/zcode-cli/packages/core/src/runtime/methods/turn-model.ts
         symbol: applySubmissionExecutionState
+  - id: capability.social-account-media-library
+    kind: capability
+    label: Account-scoped media library, source URL jobs, and local-file intake
+    aliases:
+      - social media library
+      - local media import
+      - biblioteca de mídia
+      - importação de arquivo local
+      - YouTube metadata search
+      - YouTube URL import
+      - YouTube download jobs
+      - supported HTTPS source URL import
+      - public HTTPS egress proxy
+      - subtitle fallback
+      - WebVTT transcript
+      - local Whisper transcription
+    codeSeeds:
+      - file: packages/ui/src/social-accounts/SocialLibraryHome.tsx
+        symbol: SocialLibraryHome
+      - file: packages/ui/src/social-accounts/SocialYouTubeDiscoveryPanel.tsx
+        symbol: SocialYouTubeDiscoveryPanel
+      - file: packages/ui/src/social-accounts/SocialMediaJobsList.tsx
+        symbol: SocialMediaJobsList
+      - file: packages/ui/src/social-accounts/SocialMediaClipAnalysis.tsx
+        symbol: SocialMediaClipAnalysis
+      - file: packages/ui/src/social-accounts/SocialMediaTranscriptionSetup.tsx
+        symbol: SocialMediaTranscriptionSetup
+      - file: packages/services/src/social-media/app/socialMediaService.ts
+        symbol: createSocialMediaService
+      - file: packages/shared/src/social-media-source.ts
+        symbol: normalizeSocialMediaSourceUrl
+      - file: packages/services/src/social-media/app/socialMediaJobQueue.ts
+        symbol: createSocialMediaJobQueue
+      - file: packages/services/src/social-media/adapters/socialMediaJobDirectories.ts
+        symbol: discardSocialMediaNonResumableOutput
+      - file: packages/services/src/social-media/adapters/ytDlpSourceDownloadOutput.ts
+        symbol: parseYtDlpSourceDownloadOutput
+      - file: packages/services/src/social-media/domain/webVttTranscript.ts
+        symbol: selectYouTubeSubtitleTranscript
+      - file: packages/services/src/social-media/adapters/whisperTranscriber.ts
+        symbol: createWhisperTranscriber
+      - file: packages/services/src/social-media/adapters/ytDlpYouTubeSearch.ts
+        symbol: createYtDlpYouTubeSearchAdapter
+      - file: packages/services/src/social-media/adapters/ytDlpSourceDownload.ts
+        symbol: createYtDlpSourceDownloadAdapter
+      - file: packages/services/src/social-media/adapters/publicHttpsEgressProxy.ts
+        symbol: createPublicHttpsEgressProxy
+    invariants:
+      - "The selected account scopes every catalog read, job action, managed original, and event; renderer contracts expose metadata but no filesystem paths."
+      - "Local file intake requires IPlatformService.canSelectFilePath; other clients can read the catalog but cannot submit local paths."
+      - "YouTube search is read-only and transient; it returns at most ten validated metadata records and never writes the media catalog."
+      - "Source downloads accept normalized single-video YouTube URLs or supported HTTPS yt-dlp URLs; one cross-process serialized Host queue persists progress, cancellation, recovery, and per-account idempotency by canonical source key."
+      - "yt-dlp HTTPS requests use a temporary loopback CONNECT proxy that resolves and pins public-unicast IP addresses on port 443; local and reserved destinations fail closed."
+      - "The Host accepts valid account-language or English timed subtitles before invoking local Whisper, and commits transcript provenance with the terminal job state."
+  - id: surface.social-account-media-library
+    kind: ui-surface
+    label: Account library and native local-file picker
+    codeSeeds:
+      - file: packages/ui/src/social-accounts/SocialLibraryHome.tsx
+        symbol: SocialLibraryHome
+      - file: packages/ui/src/social-accounts/SocialAccountsNavigation.tsx
+        symbol: SocialAccountsNavigation
+      - file: packages/ui/src/social-accounts/SocialYouTubeDiscoveryPanel.tsx
+        symbol: SocialYouTubeDiscoveryPanel
+      - file: packages/ui/src/social-accounts/SocialMediaJobsList.tsx
+        symbol: SocialMediaJobsList
+  - id: service.social-media-catalog
+    kind: service
+    label: Host-owned account-scoped media catalog and durable job records
+    codeSeeds:
+      - file: packages/services/src/social-media/app/socialMediaService.ts
+        symbol: createSocialMediaService
+      - file: packages/services/src/social-media/contract.ts
+        symbol: ISocialMediaService
+      - file: packages/services/src/social-media/adapters/socialMediaCatalogPersistence.ts
+        symbol: readSocialMediaCatalog
+      - file: packages/client/src/remoteServiceAccess.ts
+        symbol: RemoteServiceAccess
+  - id: service.social-media-youtube-search
+    kind: service
+    label: Host-bounded YouTube metadata search
+    codeSeeds:
+      - file: packages/services/src/social-media/app/socialMediaService.ts
+        symbol: searchYouTube
+      - file: packages/services/src/social-media/adapters/ytDlpYouTubeSearch.ts
+        symbol: createYtDlpYouTubeSearchAdapter
+      - file: packages/services/src/social-media/contract.ts
+        symbol: ISocialMediaService
+  - id: service.social-media-source-jobs
+    kind: service
+    label: Host-owned serialized source download and transcription jobs
+    codeSeeds:
+      - file: packages/services/src/social-media/app/socialMediaService.ts
+        symbol: downloadSourceUrl
+      - file: packages/services/src/social-media/app/socialMediaJobQueue.ts
+        symbol: createSocialMediaJobQueue
+      - file: packages/services/src/social-media/contract.ts
+        symbol: ISocialMediaService
+      - file: packages/services/src/social-media/app/ports/socialMediaStore.ts
+        symbol: SocialMediaStore
+  - id: service.social-media-transcription-adapter
+    kind: service
+    label: Host-local subtitle selection and Whisper.cpp transcription adapter
+    aliases:
+      - Whisper.cpp
+      - local transcription fallback
+    codeSeeds:
+      - file: packages/services/src/social-media/adapters/whisperTranscriber.ts
+        symbol: createWhisperTranscriber
+      - file: packages/services/src/social-media/domain/webVttTranscript.ts
+        symbol: parseWebVttTranscript
+  - id: service.social-media-transcription-model-setup
+    kind: service
+    label: Host-owned multilingual transcription model selection and installation
+    codeSeeds:
+      - file: packages/services/src/social-media/app/socialMediaService.ts
+        symbol: getTranscriptionSetup
+      - file: packages/services/src/social-media/app/socialMediaService.ts
+        symbol: selectTranscriptionModel
+      - file: packages/services/src/social-media/adapters/whisperTranscriptionModelManager.ts
+        symbol: createWhisperTranscriptionModelManager
+  - id: service.social-media-source-download-adapter
+    kind: service
+    label: Bounded yt-dlp source download process adapter with public HTTPS egress
+    codeSeeds:
+      - file: packages/services/src/social-media/adapters/ytDlpSourceDownload.ts
+        symbol: createYtDlpSourceDownloadAdapter
+      - file: packages/services/src/social-media/adapters/publicHttpsEgressProxy.ts
+        symbol: createPublicHttpsEgressProxy
+      - file: packages/services/src/social-media/adapters/socialMediaDownloadFinalizer.ts
+        symbol: finalizeSocialMediaSourceUrlDownload
+  - id: service.social-media-clip-candidates
+    kind: service
+    label: Account-scoped read-only podcast and music candidate ranking
+    codeSeeds:
+      - file: packages/services/src/social-media/app/socialMediaService.ts
+        symbol: suggestClipCandidates
+      - file: packages/services/src/social-media/contract.ts
+        symbol: suggestClipCandidates
+      - file: packages/services/src/social-media/domain/clipCandidateRanking.ts
+        symbol: rankPodcastClipCandidates
+      - file: packages/services/src/social-media/domain/musicClipCandidates.ts
+        symbol: rankMusicClipCandidates
+      - file: packages/services/src/social-media/domain/clipCandidateRankingUtils.ts
+        symbol: selectDiverseTopCandidates
+  - id: service.social-media-clip-signal-analysis
+    kind: service
+    label: Bounded local FFmpeg audio and sparse frame evidence extraction
+    codeSeeds:
+      - file: packages/services/src/social-media/adapters/ffmpegClipSignalAnalyzer.ts
+        symbol: createFfmpegClipSignalAnalyzer
+      - file: packages/services/src/social-media/adapters/clipSignalAnalysis.ts
+        symbol: createClipSignalAccumulators
+      - file: packages/services/src/social-media/app/ports/socialMediaClipSignalAnalyzer.ts
+        symbol: SocialMediaClipSignalAnalyzer
+  - id: state.social-media-library-view
+    kind: state-owner
+    label: Renderer library projection and transient picker state
+    codeSeeds:
+      - file: packages/ui/src/social-accounts/SocialLibraryHome.tsx
+        symbol: loadAssets
+      - file: packages/ui/src/social-accounts/SocialLibraryHome.tsx
+        symbol: importFiles
+      - file: packages/ui/src/social-accounts/SocialMediaClipAnalysis.tsx
+        symbol: SocialMediaClipAnalysis
+      - file: packages/shared/src/platform.ts
+        symbol: canSelectFilePath
+  - id: state.social-media-transcription-setup-view
+    kind: state-owner
+    label: Renderer transcription setup snapshot and action state
+    codeSeeds:
+      - file: packages/ui/src/hooks/useSocialMediaTranscriptionSetup.ts
+        symbol: useSocialMediaTranscriptionSetup
+      - file: packages/ui/src/social-accounts/SocialMediaTranscriptionSetup.tsx
+        symbol: SocialMediaTranscriptionSetup
+  - id: persistence.social-media-catalog
+    kind: persistence
+    label: Account-filtered media catalog, durable jobs, and managed original bytes
+    codeSeeds:
+      - file: packages/services/src/social-media/adapters/socialMediaFileStore.ts
+        symbol: createSocialMediaFileStore
+      - file: packages/services/src/social-media/adapters/socialMediaCatalogPersistence.ts
+        symbol: readSocialMediaCatalog
+      - file: packages/services/src/social-media/adapters/socialMediaFileStore.ts
+        symbol: completeTranscription
+  - id: service.social-account-service
+    kind: service
+    label: Local social account identity and editorial profile owner
+    codeSeeds:
+      - file: packages/services/src/social-account/contract.ts
+        symbol: ISocialAccountService
+      - file: packages/services/src/social-account/app/socialAccountService.ts
+        symbol: createSocialAccountService
+  - id: capability.social-project-editing
+    kind: capability
+    label: Account-scoped revisioned social video projects
+    aliases:
+      - social video editor
+      - Reel project
+      - project timeline
+      - edição de vídeo social
+      - projeto de Reel
+    codeSeeds:
+      - file: packages/services/src/social-project/contract.ts
+        symbol: ISocialProjectService
+      - file: packages/shared/src/social-project.ts
+        symbol: socialProjectCommandRequestSchema
+    invariants:
+      - "The Host project service owns accepted documents, revisions, history, idempotency, and edit control; UI and Agent use the same command contract."
+      - "Projects reference managed media by account-scoped mediaId and never store filesystem paths or source bytes."
+  - id: service.opencut-timeline-core
+    kind: service
+    label: Pinned OpenCut timeline primitives and shared Social Project scene evaluation
+    aliases:
+      - preview and export scene math
+      - shared project compositor semantics
+      - frame-clamped clip resize math
+      - nearest-edge timeline move snapping
+    codeSeeds:
+      - file: packages/opencut-core/src/contract.ts
+        symbol: getTimelinePixelsPerSecond
+      - file: packages/opencut-core/src/contract.ts
+        symbol: computeSocialProjectClipResize
+      - file: packages/opencut-core/src/contract.ts
+        symbol: resolveTimelineMoveSnap
+      - file: packages/opencut-core/src/contract.ts
+        symbol: getSocialProjectKeyframedValue
+      - file: packages/opencut-core/src/timelineSnapping.ts
+        symbol: resolveTimelineSnap
+      - file: packages/opencut-core/src/socialProjectScene.ts
+        symbol: buildSocialProjectKeyframeExpression
+      - file: packages/opencut-core/src/socialProjectExpression.ts
+        symbol: compileSocialProjectFfmpegExpression
+      - file: packages/services/src/social-project/adapters/socialProjectExportPlan.ts
+        symbol: buildSocialProjectExportGraph
+      - file: packages/opencut-core/UPSTREAM.md
+    invariants:
+      - "OpenCut contributes stateless timeline and resize primitives; Social Project remains the sole persistence and revision owner."
+      - "Timeline snapping is a stateless preview primitive; the Host project service remains the only accepted-move and revision owner."
+      - "Preview and FFmpeg export consume one shared scene evaluator for layer ordering, clip-local time, keyframes, transitions, audio gain, and color-adjustment semantics."
+  - id: surface.social-project-preview
+    kind: ui-surface
+    label: Accepted-revision project preview and playback controls
+    codeSeeds:
+      - file: packages/ui/src/social-accounts/SocialProjectPreview.tsx
+        symbol: SocialProjectPreview
+      - file: packages/ui/src/social-accounts/SocialProjectPreviewMediaLayer.tsx
+        symbol: SocialProjectPreviewMediaLayer
+    invariants:
+      - "Renderer playhead and media capabilities are local projections; active scene layers and clip math come from the shared editor-core contract."
+  - id: surface.social-project-timeline
+    kind: ui-surface
+    label: Account project timeline with pinned track names, local zoom, move gestures and trim handles
+    aliases:
+      - timeline trim handles
+      - trim gesture
+      - sticky timeline track names
+    codeSeeds:
+      - file: packages/ui/src/social-accounts/SocialProjectTimeline.tsx
+        symbol: SocialProjectTimeline
+      - file: packages/ui/src/social-accounts/useSocialProjectTimelineGestures.ts
+        symbol: useSocialProjectTimelineGestures
+      - file: packages/ui/src/social-accounts/socialProjectTimelineDrag.ts
+        symbol: getSocialProjectClipTrimPreview
+    invariants:
+      - "Zoom, playhead, snapping guides, and in-progress move/trim previews are renderer-local; release submits one command against the revision captured at gesture start and cancel submits none."
+      - "The zoom floor uses project duration and scrollable viewport width after the fixed 88 px track-name column; raising the floor clamps renderer-local zoom without changing the accepted revision."
+      - "Trailing ruler padding follows the OpenCut zoom curve, and scroll/resize measurements are coalesced to one animation frame."
+      - "Trim gestures preserve the opposite edge, map media source deltas through playback rate, and quantize accepted timing to project frames."
+      - "Track names remain pinned to the left edge while scrolling, and ruler virtualization excludes the pinned label width from its visible content range."
+  - id: surface.social-project-clip-inspector
+    kind: ui-surface
+    label: Clip transform, keyframe, and transition inspector
+    aliases:
+      - clip inspector
+      - transform keyframes
+      - clip effects
+      - inspetor de clipe
+    codeSeeds:
+      - file: packages/ui/src/social-accounts/SocialProjectClipActions.tsx
+        symbol: SocialProjectClipActions
+      - file: packages/ui/src/social-accounts/SocialProjectClipEffectsForm.tsx
+        symbol: SocialProjectClipEffectsForm
+      - file: packages/ui/src/social-accounts/SocialProjectKeyframeControls.tsx
+        symbol: SocialProjectKeyframeControls
+    invariants:
+      - "Inspector drafts remain renderer-local until Save, which submits one revisioned put-clip command through the Host project service."
+      - "Accepted preview and FFmpeg export consume the same shared transform, keyframe, and transition semantics."
+  - id: capability.social-account-agent-tools
+    kind: capability
+    label: Host-bound social account Agent tools and restricted runtime toolset
+    aliases:
+      - social account conversation tools
+      - account-scoped agent tools
+      - ferramentas do agente social
+    codeSeeds:
+      - file: packages/services/src/zcode-agent/socialProjectToolRequests.ts
+        symbol: executeSocialProjectAgentRequest
+      - file: apps/zcode-cli/packages/bootstrap/src/zcode-protocol/social-project-port.ts
+        symbol: createProtocolSocialProjectPort
+      - file: apps/zcode-cli/packages/core/src/runtime/helpers/tool-allowlist.ts
+        symbol: resolveBuiltInToolAllowlist
+    invariants:
+      - "The Host derives account scope from the trusted session workspace identity; model parameters never supply account IDs, paths, or credentials."
+      - "Social account runtimes expose only account-scoped Social Harness tools and do not register generic programming or external MCP tools."
+  - id: service.social-project-service
+    kind: service
+    label: Host-owned social project documents and revisioned commands
+    codeSeeds:
+      - file: packages/services/src/social-project/app/socialProjectService.ts
+        symbol: createSocialProjectService
+      - file: packages/services/src/social-project/domain/projectOperations.ts
+        symbol: applySocialProjectOperation
+      - file: packages/services/src/social-project/contract.ts
+        symbol: ISocialProjectService
+  - id: service.social-media-service
+    kind: service
+    label: Host-owned account media catalog and source provenance
+    codeSeeds:
+      - file: packages/services/src/social-media/app/socialMediaService.ts
+        symbol: createSocialMediaService
+      - file: packages/services/src/social-media/contract.ts
+        symbol: ISocialMediaService
+  - id: state.social-project-document
+    kind: state-owner
+    label: Account-scoped project document, edit control, and revision history
+    codeSeeds:
+      - file: packages/services/src/social-project/domain/projectRecord.ts
+        symbol: SocialProjectRecord
+      - file: packages/shared/src/social-project.ts
+        symbol: socialProjectSchema
+  - id: persistence.social-project-catalog
+    kind: persistence
+    label: Private social project catalog with atomic cross-process updates
+    codeSeeds:
+      - file: packages/services/src/social-project/adapters/socialProjectFileStore.ts
+        symbol: createSocialProjectFileStore
+  - id: capability.social-account-setup
+    kind: capability
+    label: Local-first social account creation and editing without account deletion
+    aliases:
+      - social account CRUD
+      - create and edit social account
+      - configuração de conta social
+    codeSeeds:
+      - file: packages/ui/src/social-accounts/SocialAccountsHome.tsx
+        symbol: SocialAccountsHome
+      - file: packages/ui/src/social-accounts/useSocialAccountEditor.ts
+        symbol: useSocialAccountEditor
+    invariants:
+      - "Accounts can be created and edited before Instagram or model authorization. Account deletion is deferred until dependent data can be cleaned up together."
+  - id: surface.social-account-editor
+    kind: ui-surface
+    label: Local social account and editorial setup surface
+    codeSeeds:
+      - file: packages/ui/src/social-accounts/SocialAccountsHome.tsx
+        symbol: SocialAccountsHome
+      - file: packages/ui/src/social-accounts/SocialAccountProfileForm.tsx
+        symbol: SocialAccountProfileForm
+  - id: capability.social-reel-publication
+    kind: capability
+    label: Supervised and policy-authorized Instagram Reel publication from an immutable project export
+    aliases:
+      - approve and publish Reel
+      - Instagram publication reconciliation
+      - publicação aprovada de Reel
+    codeSeeds:
+      - file: packages/ui/src/social-accounts/SocialProjectExportPanel.tsx
+        symbol: SocialProjectExportPanel
+      - file: packages/ui/src/social-accounts/SocialProjectPublicationPanel.tsx
+        symbol: SocialProjectPublicationPanel
+      - file: packages/shared/src/social-publishing.ts
+        symbol: approveInstagramPublicationRequestSchema
+    invariants:
+      - "A supervised proposal waits for user approval; autonomy is admitted only from the current saved account policy and source provenance."
+      - "Publication binds one connected account, completed project revision, export digest, size, duration, and caption."
+      - "Unknown side-effecting Meta outcomes are reconciled manually and never retried automatically."
+  - id: surface.social-project-export
+    kind: ui-surface
+    label: Project export approval and Instagram publication history
+    codeSeeds:
+      - file: packages/ui/src/social-accounts/SocialProjectExportPanel.tsx
+        symbol: SocialProjectExportPanel
+      - file: packages/ui/src/social-accounts/SocialProjectEditor.tsx
+        symbol: SocialProjectEditor
+  - id: service.social-publishing-service
+    kind: service
+    label: Host-owned Instagram authorization, publication approval, and reconciliation
+    codeSeeds:
+      - file: packages/services/src/social-publishing/contract.ts
+        symbol: ISocialPublishingService
+      - file: packages/services/src/social-publishing/app/socialPublishingService.ts
+        symbol: createSocialPublishingService
+      - file: packages/services/src/social-publishing/app/instagramPublicationWorkflow.ts
+        symbol: createInstagramPublicationWorkflow
+    invariants:
+      - "Redeeming a valid PKCE handoff adds a bounded upload credential without invalidating a prior key; Host commits a successful reconnect before retiring the prior key, failure revokes only the new key, and disconnect revokes every account key and its temporary media while holding the per-account lock so the next authorization cannot race that revocation."
+  - id: service.instagram-reel-publisher
+    kind: service
+    label: Meta Instagram Login Reel container and publish HTTP adapter
+    codeSeeds:
+      - file: packages/services/src/social-publishing/adapters/instagramReelPublisher.ts
+        symbol: createInstagramReelPublisher
+  - id: state.instagram-publication
+    kind: state-owner
+    label: Account-scoped immutable approval and publication attempt projection
+    codeSeeds:
+      - file: packages/shared/src/social-publishing.ts
+        symbol: instagramPublicationSchema
+  - id: persistence.instagram-publications
+    kind: persistence
+    label: Private atomic publication attempt records and restart recovery
+    codeSeeds:
+      - file: packages/services/src/social-publishing/adapters/socialPublishingPublicationFileStore.ts
+        symbol: createSocialPublishingPublicationFileStore
+  - id: service.social-project-export-artifact-reader
+    kind: service
+    label: Host-only verified reader for immutable completed export artifacts
+    codeSeeds:
+      - file: packages/services/src/social-publishing/adapters/socialProjectExportArtifactReader.ts
+        symbol: createSocialProjectExportArtifactReader
+  - id: capability.retired-product-endpoint-override
+    kind: capability
+    label: Retired product endpoint, release CDN and support links
+    aliases:
+      - ZCode Endpoint menu
+      - zcodeEndpointOrigin
+      - legacy ZCode support links
+      - legacy ZCode release CDN
+      - retired product documentation link
+      - product-docs quick pick
+    codeSeeds:
+      - file: packages/shared/src/validationAppSettings.ts
+        symbol: discardRetiredZCodeEndpointOrigin
+      - file: packages/desktop/src/main/desktopApplicationMenu.ts
+        symbol: rebuildApplicationMenu
+      - file: packages/desktop/src/main/desktopArchitectureGuard.ts
+        symbol: formatArchitectureMismatchDialogText
+      - file: packages/ui/src/quickpick/quickPickCommands.ts
+        symbol: createQuickPickCommands
+      - file: packages/ui/src/WorkspaceHelpMenuButton.tsx
+        symbol: WorkspaceHelpMenuButton
+      - file: packages/desktop/src/main/remoteCdn.ts
+        symbol: resolveRemoteCdnBaseUrls
+    invariants:
+      - "Historical endpoint settings are discarded; Desktop has no endpoint switcher or links to retired product destinations; remote runtime downloads require an explicit Social Harness CDN."
 edges:
   - from: capability.model-selection
     to: surface.conversation-model-control
@@ -598,3 +1057,190 @@ edges:
     type: emits-model-selection-for
     rank: must-inspect
     condition: Applied runtime model selection is projected through ModelSelected events.
+  - from: capability.social-account-media-library
+    to: surface.social-account-media-library
+    type: renders-in
+    rank: must-inspect
+  - from: surface.social-account-media-library
+    to: state.social-media-library-view
+    type: owns-projection-and-picker-draft
+    rank: must-inspect
+  - from: surface.social-account-media-library
+    to: service.social-media-catalog
+    type: reads-and-submits-through
+    rank: must-inspect
+  - from: surface.social-account-media-library
+    to: service.social-media-youtube-search
+    type: submits-transient-search-through
+    rank: must-inspect
+  - from: surface.social-account-media-library
+    to: service.social-media-source-jobs
+    type: submits-and-observes-account-scoped-download-jobs-through
+    rank: must-inspect
+  - from: surface.social-account-media-library
+    to: service.social-media-clip-candidates
+    type: requests-transient-account-scoped-candidate-suggestions-through
+    rank: must-inspect
+  - from: service.social-media-clip-candidates
+    to: service.social-account-service
+    type: validates-account-through
+    rank: must-inspect
+  - from: service.social-media-clip-candidates
+    to: persistence.social-media-catalog
+    type: reads-managed-original-and-transcript-through
+    rank: must-inspect
+  - from: service.social-media-clip-candidates
+    to: service.social-media-clip-signal-analysis
+    type: requests-local-music-evidence-through
+    rank: must-inspect
+  - from: surface.social-account-media-library
+    to: state.social-media-transcription-setup-view
+    type: projects-host-setup-snapshot-and-local-action-state
+    rank: must-inspect
+  - from: state.social-media-transcription-setup-view
+    to: service.social-media-transcription-model-setup
+    type: reads-setup-and-issues-model-install-commands-through
+    rank: must-inspect
+  - from: service.social-media-youtube-search
+    to: service.social-account-service
+    type: validates-account-through
+    rank: must-inspect
+  - from: service.social-media-youtube-search
+    to: service.social-media-catalog
+    type: shares-contract-without-catalog-writes
+    rank: must-inspect
+    condition: Search returns transient results and does not persist media items or emit catalog changes.
+  - from: service.social-media-source-jobs
+    to: service.social-account-service
+    type: validates-account-through
+    rank: must-inspect
+  - from: service.social-media-source-jobs
+    to: persistence.social-media-catalog
+    type: persists-jobs-and-progress-through
+    rank: must-inspect
+  - from: service.social-media-source-jobs
+    to: service.social-media-source-download-adapter
+    type: launches-owned-download-process-through
+    rank: must-inspect
+  - from: service.social-media-source-jobs
+    to: service.social-media-transcription-adapter
+    type: selects-subtitles-or-launches-local-transcription-through
+    rank: must-inspect
+  - from: service.social-media-source-jobs
+    to: service.social-media-transcription-model-setup
+    type: resolves-selected-installed-model-through
+    rank: must-inspect
+  - from: service.social-media-transcription-adapter
+    to: persistence.social-media-catalog
+    type: commits-transcript-with-terminal-job-state-through
+    rank: must-inspect
+  - from: service.social-media-source-download-adapter
+    to: persistence.social-media-catalog
+    type: finalizes-validated-media-through
+    rank: must-inspect
+  - from: service.social-media-catalog
+    to: persistence.social-media-catalog
+    type: persists-through
+    rank: must-inspect
+  - from: service.social-media-catalog
+    to: service.social-account-service
+    type: validates-account-through
+    rank: must-inspect
+    condition: A media catalog operation is accepted only while the account exists.
+  - from: capability.social-project-editing
+    to: service.social-project-service
+    type: accepts-ui-and-agent-commands-through
+    rank: must-inspect
+  - from: surface.social-project-timeline
+    to: service.opencut-timeline-core
+    type: uses-for-local-scale-ruler-move-snap-and-trim-preview
+    rank: must-inspect
+  - from: surface.social-project-timeline
+    to: service.social-project-service
+    type: submits-one-revisioned-move-or-trim-on-release
+    rank: must-inspect
+  - from: surface.social-project-clip-inspector
+    to: service.social-project-service
+    type: saves-one-revisioned-clip-command-through
+    rank: must-inspect
+  - from: surface.social-project-clip-inspector
+    to: service.opencut-timeline-core
+    type: configures-shared-preview-and-export-properties
+    rank: must-inspect
+  - from: surface.social-project-preview
+    to: service.opencut-timeline-core
+    type: evaluates-accepted-revision-through
+    rank: must-inspect
+  - from: service.social-project-service
+    to: service.opencut-timeline-core
+    type: uses-for-immutable-export-scene-evaluation
+    rank: must-inspect
+  - from: capability.social-account-agent-tools
+    to: service.social-project-service
+    type: submits-account-scoped-commands-through
+    rank: must-inspect
+  - from: capability.conversation-runtime
+    to: capability.social-account-agent-tools
+    type: exposes-operations-for-trusted-social-account-sessions
+    rank: must-inspect
+    condition: Only sessions whose Host-bound workspace identity resolves to one social account receive the project port and restricted toolset.
+  - from: service.social-project-service
+    to: service.social-account-service
+    type: validates-account-through
+    rank: must-inspect
+  - from: service.social-project-service
+    to: service.social-media-catalog
+    type: validates-managed-media-references-through
+    rank: must-inspect
+  - from: service.social-project-service
+    to: state.social-project-document
+    type: owns-and-revisions
+    rank: must-inspect
+  - from: state.social-project-document
+    to: persistence.social-project-catalog
+    type: persists-atomically-through
+    rank: must-inspect
+  - from: capability.social-account-setup
+    to: surface.social-account-editor
+    type: renders-in
+    rank: must-inspect
+  - from: surface.social-account-editor
+    to: service.social-account-service
+    type: creates-and-edits-account-through
+    rank: must-inspect
+  - from: capability.social-reel-publication
+    to: surface.social-project-export
+    type: renders-in
+    rank: must-inspect
+  - from: surface.social-project-export
+    to: service.social-publishing-service
+    type: submits-explicit-export-approval-through
+    rank: must-inspect
+  - from: service.social-publishing-service
+    to: service.social-account-service
+    type: validates-account-through
+    rank: must-inspect
+  - from: service.social-publishing-service
+    to: service.social-project-service
+    type: validates-export-and-current-project-revision-through
+    rank: must-inspect
+  - from: service.social-publishing-service
+    to: service.social-media-service
+    type: validates-automated-publication-source-provenance-through
+    rank: must-inspect
+  - from: service.social-publishing-service
+    to: service.social-project-export-artifact-reader
+    type: opens-and-verifies-private-export-through
+    rank: must-inspect
+  - from: service.social-publishing-service
+    to: service.instagram-reel-publisher
+    type: creates-processes-and-publishes-approved-reel-through
+    rank: must-inspect
+  - from: service.social-publishing-service
+    to: state.instagram-publication
+    type: owns-approval-and-attempt-state
+    rank: must-inspect
+  - from: state.instagram-publication
+    to: persistence.instagram-publications
+    type: persists-before-side-effects-through
+    rank: must-inspect

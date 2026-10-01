@@ -1,7 +1,6 @@
 import { homedir } from "node:os";
 import { Socket } from "node:net";
 import type {
-  IntegratedTerminalShellOption,
   IntranetProbeRequest,
   IntranetProbeResult,
   IntranetProbeServiceResponse,
@@ -11,9 +10,8 @@ import type {
   IntranetProbeTcpTarget,
   IntranetProbeTcpTargetResult,
   SystemInfo,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type { ISystemService } from "./system.js";
-import { listIntegratedTerminalShellOptions } from "./integratedTerminalShells.js";
 
 const DEFAULT_PROBE_TIMEOUT_MS = 800;
 const DEFAULT_PROBE_ATTEMPTS = 2;
@@ -46,9 +44,6 @@ interface TcpProbeParams {
 }
 
 interface CreateSystemServiceOptions {
-  env?: NodeJS.ProcessEnv;
-  isExecutable?: (path: string) => boolean;
-  platform?: NodeJS.Platform;
   tcpProbe?: (params: TcpProbeParams) => Promise<number>;
   serviceProbe?: (params: ServiceProbeParams) => Promise<ServiceProbeResult>;
   now?: () => number;
@@ -345,20 +340,9 @@ export function createSystemService(options: CreateSystemServiceOptions = {}): I
   const tcpProbe = options.tcpProbe ?? probeTcpPort;
   const serviceProbe = options.serviceProbe ?? probeServiceEndpoint;
   const now = options.now ?? Date.now;
-  const env = options.env ?? process.env;
-  const platform = options.platform ?? process.platform;
-
   return {
     async info(): Promise<SystemInfo> {
       return { homedir: homedir(), platform: process.platform };
-    },
-
-    async listIntegratedTerminalShells(): Promise<IntegratedTerminalShellOption[]> {
-      return listIntegratedTerminalShellOptions({
-        env,
-        isExecutable: options.isExecutable,
-        platform,
-      });
     },
 
     async probeIntranet(request: IntranetProbeRequest): Promise<IntranetProbeResult> {

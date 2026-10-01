@@ -3,8 +3,8 @@
 // ============================================================
 // 与 workflow-runs.ts（状态 schema）同居，因为它们是同一份词汇表的两半：schema 说"状态长什么样"，
 // 这里说"事件怎么把它推进一格"。归约必须单一实现：它若长在 bootstrap 的 v4 product-projection 里，
-// 而 TUI 也要同一份状态——
-// 抽出来是为了守住**单时钟**原则（workflow-runs.ts）：投影与 TUI 镜像不允许各归约一份。
+// 客户端也要同一份状态——
+// 抽出来是为了守住**单时钟**原则（workflow-runs.ts）：投影与客户端镜像不允许各归约一份。
 //
 // 本模块是纯函数：无 Date.now、无随机、无 I/O。投影的**非纯部分**（身份闸门、
 // recordDynamicWorkflowRunProgress 接线、cold hydration 归类、state.updated 发射）留在 bootstrap。

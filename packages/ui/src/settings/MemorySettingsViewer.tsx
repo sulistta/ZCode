@@ -1,9 +1,8 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import type { ProjectMemoryWorkspaceSummary } from "@zcode/services";
+import type { ProjectMemoryWorkspaceSummary } from "@social-harness/services";
 import {
   TID_SETTINGS_MEMORY_COUNT,
   TID_SETTINGS_MEMORY_FILE,
-  TID_SETTINGS_MEMORY_FILE_EDITOR_ACTIONS,
   TID_SETTINGS_MEMORY_FILE_ICON,
   TID_SETTINGS_MEMORY_FILE_NAME,
   TID_SETTINGS_MEMORY_FILE_UPDATED_AT,
@@ -14,7 +13,7 @@ import {
   TID_SETTINGS_MEMORY_SEARCH_INPUT,
   TID_SETTINGS_MEMORY_WORKSPACE,
   testId,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { Alert, AlertDescription } from "@/components/ui/alert.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { FileDisplayIcon, resolveFileDisplayDescriptor } from "@/lib/fileDisplay.js";
@@ -23,7 +22,6 @@ import { PluginSearchEmptyState } from "@/settings/PluginInstallEmptyState.js";
 import { SettingsSearchInput } from "@/settings/SettingsSearchInput.js";
 import { SettingsResourceHeaderActions } from "@/settings/SettingsResourceHeaderActions.js";
 import { formatMemoryUpdatedAt } from "@/settings/memoryUpdatedAt.js";
-import { WorkspaceEditorButtonGroup } from "@/WorkspaceEditorButtonGroup.js";
 
 export type MemoryViewerLoadingState = "idle" | "loading" | "ready" | "error";
 
@@ -189,12 +187,6 @@ export function MemorySettingsViewer({
                       </span>
                     </span>
                   </div>
-                  <span
-                    data-testid={testId(TID_SETTINGS_MEMORY_FILE_EDITOR_ACTIONS, file.name)}
-                    className="mr-3 shrink-0"
-                  >
-                    <WorkspaceEditorButtonGroup workspaceAbsPath={file.path} />
-                  </span>
                 </div>
               </Fragment>
             ))}

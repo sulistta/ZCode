@@ -1,4 +1,4 @@
-import { beginLocalTurnPreparation, type LocalTtftDetail } from "@zcode/contracts";
+import { beginLocalTurnPreparation, type LocalTtftDetail } from "@social-harness/contracts";
 import { runtimeInputMetadata } from "../../agent/runtime-input-presentation.js";
 import {
   CoreErrorType,

@@ -2,7 +2,7 @@
 // Skills Section Builder
 // ============================================================
 
-import type { SkillLoadOutcome, SkillMetadata } from "@zcode/contracts";
+import type { SkillLoadOutcome, SkillMetadata } from "@social-harness/contracts";
 import type { ContextSection } from "../types.js";
 import { estimateTokens } from "../utils.js";
 

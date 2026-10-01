@@ -1,4 +1,4 @@
-import type { TuiSubmitPrompt } from "@zcode/tui";
+import type { CommandCenterSubmitPrompt } from "./contracts.js";
 import {
   formatAvailableCommandNames,
   listCustomCommandsForHelp,
@@ -16,7 +16,7 @@ import { handlePluginsCommand } from "./handlers/plugins.js";
 import { handleSkillListCommand } from "./handlers/skill.js";
 import { handleTargetCommand } from "./handlers/goal.js";
 import { recordSlashCommandInHistory } from "./history.js";
-import { attachCurrentSessionMetadata, normalizeTuiPromptInput } from "./metadata.js";
+import { attachCurrentSessionMetadata, normalizeCommandCenterPromptInput } from "./metadata.js";
 import { buildCheckpointSelection, buildSessionSelection } from "./selections.js";
 import {
   AVAILABLE_COMMANDS,
@@ -32,12 +32,12 @@ import {
   loginSetupResponse,
   parseApiKeyLoginArgs,
 } from "./login-flow.js";
-import { loginRequiredResponse } from "../tui-login-state.js";
+import { loginRequiredResponse } from "../command-center-login-state.js";
 import type { CommandCenterDeps } from "./types.js";
 
-export function createCommandCenter(deps: CommandCenterDeps): TuiSubmitPrompt {
+export function createCommandCenter(deps: CommandCenterDeps): CommandCenterSubmitPrompt {
   return async (input, options) => {
-    const promptInput = normalizeTuiPromptInput(input);
+    const promptInput = normalizeCommandCenterPromptInput(input);
     const command = parseSlashCommand(promptInput.text);
     const hasAttachments = (promptInput.attachments?.length ?? 0) > 0;
 
@@ -208,7 +208,7 @@ export function createCommandCenter(deps: CommandCenterDeps): TuiSubmitPrompt {
       if (command.name === "init") {
         const app = await deps.getApp();
         const prompt = command.args ? `/init ${command.args}` : "/init";
-        // TUI 已知 slash command 若没有显式分支，会落到文件末尾的
+        // 已知 slash command 若没有显式分支，会落到文件末尾的
         // resume 兜底。/init 是普通 prompt command，必须交给 app.submitPrompt
         // 进入 bootstrap resolver，才能和 app --stdio 复用同一套展开逻辑。
         return attachCurrentSessionMetadata(await app.submitPrompt(prompt, options), deps, app);

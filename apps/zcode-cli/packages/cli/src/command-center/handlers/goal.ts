@@ -1,11 +1,11 @@
-import type { TuiSubmitPromptResult } from "@zcode/tui";
+import type { CommandCenterSubmitPromptResult } from "../contracts.js";
 import { attachCurrentSessionMetadata } from "../metadata.js";
 import { buildTargetReplaceSelection } from "../selections.js";
 import type {
   CommandCenterApp,
   CommandCenterDeps,
   CommandCenterTarget,
-  TuiSubmitOptions,
+  CommandCenterSubmitOptions,
 } from "../types.js";
 import { splitArgs } from "../utils.js";
 
@@ -15,8 +15,8 @@ const PLAN_MODE_GOAL_CONTINUATION_SKIPPED_MESSAGE =
 export async function handleTargetCommand(
   args: string,
   deps: CommandCenterDeps,
-  options: TuiSubmitOptions,
-): Promise<TuiSubmitPromptResult> {
+  options: CommandCenterSubmitOptions,
+): Promise<CommandCenterSubmitPromptResult> {
   const app = await deps.getApp();
   const trimmed = args.trim();
 
@@ -91,8 +91,8 @@ async function continueTargetAfterChange(
   target: CommandCenterTarget,
   app: CommandCenterApp,
   deps: CommandCenterDeps,
-  options: TuiSubmitOptions,
-): Promise<TuiSubmitPromptResult> {
+  options: CommandCenterSubmitOptions,
+): Promise<CommandCenterSubmitPromptResult> {
   if (!app.continueActiveTarget) {
     return {
       mode: deps.getMode?.(),

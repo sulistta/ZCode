@@ -1,14 +1,5 @@
-import type {
-  ZCodeProvider,
-  ZCodeTaskMeta,
-  ZCodeTaskChangeSummary,
-  EditorInfo,
-  GitRepositorySummary,
-  RemoteTarget,
-  UserInfo,
-} from "@zcode/shared";
-import { useState } from "react";
-import { TID_WORKSPACE_HEADER } from "@zcode/shared";
+import type { ZCodeProvider, ZCodeTaskMeta, RemoteTarget, UserInfo } from "@social-harness/shared";
+import { TID_WORKSPACE_HEADER } from "@social-harness/shared";
 import type { ConversationDropTargetController } from "@/v4/composer/conversationDropTarget.js";
 import { cn } from "@/components/lib/utils.js";
 import {
@@ -30,7 +21,6 @@ export function WorkspaceHeader({
   localWorkspacePath,
   projectName,
   activeTaskTitle,
-  activeTaskChangeSummary,
   hasUpdateReady,
   activeTaskId,
   user,
@@ -44,8 +34,6 @@ export function WorkspaceHeader({
   nativeSessionLogExists,
   nativeSessionLogLoading,
   workspaceHeaderState,
-  gitSummary,
-  gitDirtyFileCount,
   isMacDesktop,
   isMacFullscreen,
   isWindowsDesktop,
@@ -53,10 +41,7 @@ export function WorkspaceHeader({
   isDesktop,
   simplifyForNarrowRemote = false,
   isSidebarVisible,
-  isTerminalOpen,
   isSidePaneOpen,
-  onRefreshGit,
-  onToggleTerminal,
   onToggleSidePane,
   toggleSidePaneShortcutLabel,
   onReloadSession,
@@ -73,7 +58,6 @@ export function WorkspaceHeader({
   localWorkspacePath?: string;
   projectName: string;
   activeTaskTitle: string;
-  activeTaskChangeSummary?: ZCodeTaskChangeSummary | null;
   hasUpdateReady: boolean;
   activeTaskId: string | null;
   user?: UserInfo | null;
@@ -87,8 +71,6 @@ export function WorkspaceHeader({
   nativeSessionLogExists: boolean;
   nativeSessionLogLoading: boolean;
   workspaceHeaderState: WorkspaceHeaderState;
-  gitSummary: GitRepositorySummary;
-  gitDirtyFileCount: number;
   isMacDesktop?: boolean;
   isMacFullscreen?: boolean;
   isWindowsDesktop?: boolean;
@@ -97,10 +79,7 @@ export function WorkspaceHeader({
   isDesktop?: boolean;
   simplifyForNarrowRemote?: boolean;
   isSidebarVisible: boolean;
-  isTerminalOpen: boolean;
   isSidePaneOpen: boolean;
-  onRefreshGit: () => void;
-  onToggleTerminal: () => void;
   onToggleBrowser: () => void;
   onToggleSidePane: () => void;
   toggleSidePaneShortcutLabel?: string;
@@ -114,7 +93,6 @@ export function WorkspaceHeader({
   onOpenWorkspace: () => void;
   allowOpenWorkspace?: boolean;
 }) {
-  const [selectedEditor, setSelectedEditor] = useState<EditorInfo | null>(null);
   const shouldOffsetHeaderForWindowControls = !isSidebarVisible;
   // Linux 与 Windows 共用内联窗控，不再预留旧悬浮窗控的标题栏区域。
   const usesInlineWindowControls = Boolean(isWindowsDesktop || (isDesktop && !isMacDesktop));
@@ -170,14 +148,11 @@ export function WorkspaceHeader({
             localWorkspacePath={localWorkspacePath}
             projectName={projectName}
             activeTaskTitle={activeTaskTitle}
-            activeTaskChangeSummary={activeTaskChangeSummary}
             activeTaskId={activeTaskId}
             activeTraceId={activeTraceId}
             activeSessionId={activeSessionId}
             activeTaskProvider={activeTaskProvider}
             resolvedActiveTaskMeta={resolvedActiveTaskMeta}
-            gitSummary={gitSummary}
-            gitDirtyFileCount={gitDirtyFileCount}
             sessionLogPath={sessionLogPath}
             nativeSessionLogProvider={nativeSessionLogProvider}
             nativeSessionLogPath={nativeSessionLogPath}
@@ -188,11 +163,9 @@ export function WorkspaceHeader({
             isMacFullscreen={isMacFullscreen}
             isWindowsDesktop={isWindowsDesktop}
             simplifyForNarrowRemote={simplifyForNarrowRemote}
-            selectedEditor={selectedEditor}
             onReloadSession={onReloadSession}
             reloadSessionDisabled={reloadSessionDisabled}
             reloadSessionPending={reloadSessionPending}
-            onRefreshGit={onRefreshGit}
           />
         ) : (
           <div className="min-w-0 flex-1" aria-hidden="true" />
@@ -201,22 +174,14 @@ export function WorkspaceHeader({
           variant={variant}
           activeTaskId={activeTaskId}
           user={user}
-          readOnlyReason={readOnlyReason}
-          workspaceAbsPath={workspaceAbsPath}
-          workspaceIdentity={workspaceIdentity}
-          remoteSessionId={remoteSessionId}
-          remoteTarget={remoteTarget}
           isDesktop={isDesktop}
-          isTerminalOpen={isTerminalOpen}
           isSidePaneOpen={isSidePaneOpen}
-          onToggleTerminal={onToggleTerminal}
           onToggleSidePane={onToggleSidePane}
           toggleSidePaneShortcutLabel={toggleSidePaneShortcutLabel}
           simplifyForNarrowRemote={simplifyForNarrowRemote}
           hideHelpMenu={false}
           showWindowControls={usesInlineWindowControls}
           // 面板操作按钮沿用 macOS 紧凑样式，Windows/Linux 窗控跟随最右侧 Header。
-          onSelectedEditorChange={setSelectedEditor}
         />
       </div>
     </header>

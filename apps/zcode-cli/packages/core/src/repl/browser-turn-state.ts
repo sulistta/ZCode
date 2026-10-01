@@ -1,4 +1,4 @@
-import type { SessionId, TurnId } from "@zcode/contracts";
+import type { SessionId, TurnId } from "@social-harness/contracts";
 
 interface BrowserTurnScreenshotCandidate {
   browserGeneration: number;

@@ -8,7 +8,7 @@ import {
   type FileSystemReadTextRangeResult,
   type ReadTextOutput,
   type TraceContext,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 
 import { estimateTokens } from "../../context/utils.js";
 

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import type { SharedZCodeCredentialStore } from "@zcode/adapters/auth";
-import type { ProviderRuntimeHeadersPort } from "@zcode/core";
+import type { SharedZCodeCredentialStore } from "@social-harness/adapters/auth";
+import type { ProviderRuntimeHeadersPort } from "@social-harness/core";
 import {
   createAccountProviderConfigSnapshot,
   ProviderConfig,
@@ -8,12 +8,12 @@ import {
   ZhipuAccountAccessConfig,
   type AccountProviderConfigSnapshot,
   type ProviderConfigLayerSnapshot,
-} from "@zcode/provider";
+} from "@social-harness/provider";
 import {
   NodeZCodeBuiltinProviderConfigSource,
-  ZCODE_BUILTIN_PROVIDER_CONFIG_FILE_ENV,
-} from "@zcode/provider-node";
-import type { ProviderFamilyDomain } from "@zcode/shared";
+  SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_FILE_ENV,
+} from "@social-harness/provider-node";
+import type { ProviderFamilyDomain } from "@social-harness/shared";
 
 interface StandaloneCodingPlanProvider {
   readonly family: ProviderFamilyDomain;
@@ -48,9 +48,9 @@ async function readStandaloneCodingPlanCatalog(
           : [];
       }),
     };
-  const filePath = env[ZCODE_BUILTIN_PROVIDER_CONFIG_FILE_ENV]?.trim();
+  const filePath = env[SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_FILE_ENV]?.trim();
   if (!filePath) {
-    throw new Error(`${ZCODE_BUILTIN_PROVIDER_CONFIG_FILE_ENV} is required for login`);
+    throw new Error(`${SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_FILE_ENV} is required for login`);
   }
   const source = new NodeZCodeBuiltinProviderConfigSource({
     bundledFilePath: filePath,

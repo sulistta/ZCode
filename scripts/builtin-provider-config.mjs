@@ -12,7 +12,7 @@ export async function resolveBuiltinProviderBuildEnvironment({
   root = repositoryRoot,
   env = process.env,
 } = {}) {
-  let value = env.ZCODE_ENV;
+  let value = env.SOCIAL_HARNESS_ENV;
   if (!value?.trim()) {
     const files = [
       ".env",
@@ -29,12 +29,12 @@ export async function resolveBuiltinProviderBuildEnvironment({
         throw error;
       }
       const parsed = parseEnv(content);
-      if (parsed.ZCODE_ENV !== undefined) value = parsed.ZCODE_ENV;
+      if (parsed.SOCIAL_HARNESS_ENV !== undefined) value = parsed.SOCIAL_HARNESS_ENV;
     }
   }
   const normalized = value?.trim().toLowerCase() || "test";
   if (normalized !== "test" && normalized !== "production") {
-    throw new Error(`Invalid ZCODE_ENV for Built-in Provider build: ${normalized}`);
+    throw new Error(`Invalid SOCIAL_HARNESS_ENV for Built-in Provider build: ${normalized}`);
   }
   return normalized;
 }
@@ -45,7 +45,7 @@ export async function loadBuiltinProviderConfig({ root = repositoryRoot, env = p
   const environment = await resolveBuiltinProviderBuildEnvironment({ root, env });
   const sourcePath = resolve(
     root,
-    env.ZCODE_BUILTIN_PROVIDER_CONFIG_FILE?.trim() || "config/provider/zcode-builtin.json",
+    env.SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_FILE?.trim() || "config/provider/zcode-builtin.json",
   );
   try {
     const content = await readFile(sourcePath, "utf8");

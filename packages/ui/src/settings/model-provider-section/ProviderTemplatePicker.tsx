@@ -1,13 +1,13 @@
-import type { ProviderSettingsView } from "@zcode/services";
+import type { ProviderSettingsView } from "@social-harness/services";
 import { ArrowLeftIcon, ChevronRightIcon, PlusIcon } from "lucide-react";
-import { resolveProviderTemplateName } from "@zcode/provider";
+import { resolveProviderTemplateName } from "@social-harness/provider";
 import type { ReactNode } from "react";
 import {
   TID_MODEL_PROVIDER_TEMPLATE_BACK_BUTTON,
   TID_MODEL_PROVIDER_TEMPLATE_ITEM,
   TID_MODEL_PROVIDER_TEMPLATE_PICKER,
   testId,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { Button } from "@/components/ui/button.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";

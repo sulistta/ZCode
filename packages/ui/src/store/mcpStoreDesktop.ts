@@ -5,8 +5,8 @@ import type {
   MigrateLegacyCommonMcpResult,
   NativeMcpServerRecord,
   SaveCliMcpToUserDirectoryRequest,
-} from "@zcode/shared";
-import type { IMcpSyncService } from "@zcode/services";
+} from "@social-harness/shared";
+import type { IMcpSyncService } from "@social-harness/services";
 import { logger } from "@/logger.js";
 
 export type McpPlatformService = Pick<

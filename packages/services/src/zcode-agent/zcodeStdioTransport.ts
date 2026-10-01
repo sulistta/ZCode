@@ -1,8 +1,8 @@
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import { StringDecoder } from "node:string_decoder";
-import { Emitter } from "@zcode/rpc";
-import type { ZCodeProtocolMessage } from "@zcode/shared";
-import { zcodeProtocolMessageSchema } from "@zcode/shared";
+import { Emitter } from "@social-harness/rpc";
+import type { ZCodeProtocolMessage } from "@social-harness/shared";
+import { zcodeProtocolMessageSchema } from "@social-harness/shared";
 import { createServiceLogger } from "#src/logger/serviceLogger.js";
 import type {
   ZCodeProtocolTransport,
@@ -157,7 +157,7 @@ export class ZCodeStdioTransport implements ZCodeProtocolTransport {
       // coverage CLI bundle 未压缩且带完整 source map，启动/收尾明显慢于发布包。
       // coverage 下继续保留额外写盘宽限；普通窗口覆盖 CLI 的 1500ms 退出 deadline。
       const configuredEofWaitMs =
-        process.env.ZCODE_E2E_COVERAGE === "1"
+        process.env.SOCIAL_HARNESS_E2E_COVERAGE === "1"
           ? E2E_COVERAGE_STDIO_EOF_EXIT_WAIT_MS
           : STDIO_EOF_EXIT_WAIT_MS;
       const remainingCleanupMs =

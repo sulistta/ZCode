@@ -7,7 +7,7 @@ import type {
   BrowserControlListInput,
   BrowserControlPort,
   BrowserErrorCode,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { Browser } from "playwright-core";
 import { createManagedCdpDescriptor } from "./descriptor.js";
 import {

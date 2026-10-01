@@ -6,7 +6,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { createProviderConfigRuntime } from "../src/model-provider/providerConfigRuntime.js";
 import { readLegacyZCodeConfigProviders } from "../src/model-provider/legacyZCodeConfigProviderReader.js";
-import { getAppConfigDir, setDataBaseDir } from "../src/paths.js";
+import { getAppConfigDir, getZCodeDataRootDir, setDataBaseDir } from "../src/paths.js";
 
 const legacyConfig = {
   provider: {
@@ -32,8 +32,10 @@ async function setup() {
   const dir = await mkdtemp(join(tmpdir(), "zcode-provider-migration-"));
   setDataBaseDir(dir);
   const configDir = getAppConfigDir();
+  const legacyConfigDir = join(getZCodeDataRootDir(), "v2");
   await mkdir(configDir, { recursive: true });
-  const legacyPath = join(configDir, "config.json");
+  await mkdir(legacyConfigDir, { recursive: true });
+  const legacyPath = join(legacyConfigDir, "config.json");
   const personalPath = join(configDir, "personal.json");
   const legacyContent = JSON.stringify(legacyConfig);
   await writeFile(legacyPath, legacyContent);
@@ -67,33 +69,15 @@ async function setup() {
   };
 }
 
-test("startup migrates published ZCode config into personal config without changing the source", async () => {
+test("startup ignores ZCode config under the retired data root and leaves it untouched", async () => {
   const fixture = await setup();
   try {
     await fixture.runtime.start();
     const config = await fixture.runtime.configService.read();
     assert.equal(fixture.readCount(), 1);
     assert.deepEqual(fixture.recoveries, []);
-    const rule = config.personalProviders.getRule("custom-example");
-    assert.ok(rule);
-    assert.equal(rule.providerName, "Example provider");
-    assert.equal(rule.enabled, false);
-    assert.equal(rule.config.access?.toJSON().apiKey, "test-only-key");
-    assert.equal(rule.config.api?.baseUrl, "https://provider.example/v1");
-    assert.deepEqual(rule.config.api?.headers, { "X-Example": "test" });
-    assert.deepEqual(rule.config.personalModelIds, ["model-b", "model-a"]);
-    assert.deepEqual(rule.config.modelOrder, ["model-b", "model-a"]);
-    assert.equal(
-      config.personalModels.getExact("custom-example", "model-b")?.properties?.contextWindow,
-      64000,
-    );
+    assert.deepEqual(config.personalProviders.toJSON(), []);
     assert.equal(await readFile(fixture.legacyPath, "utf8"), fixture.legacyContent);
-    const persisted = JSON.parse(await readFile(fixture.personalPath, "utf8"));
-    assert.equal(persisted.schemaVersion, 1);
-    assert.equal(
-      persisted.config.providerConfigRules.providerRules[0].providerId,
-      "custom-example",
-    );
   } finally {
     await fixture.dispose();
   }
@@ -121,16 +105,15 @@ test("startup preserves an existing personal config and never consults the legac
   }
 });
 
-test("invalid legacy config is preserved and does not commit an empty personal config", async () => {
+test("invalid legacy config under the retired root is not read or modified", async () => {
   const fixture = await setup();
   try {
     const invalidContent = '{"provider":';
     await writeFile(fixture.legacyPath, invalidContent);
     await fixture.runtime.start();
-    assert.ok(fixture.recoveries.length > 0);
-    assert.match(String(fixture.recoveries[0]), /stage=json/);
+    assert.deepEqual(fixture.recoveries, []);
+    assert.equal(fixture.readCount(), 1);
     assert.equal(await readFile(fixture.legacyPath, "utf8"), invalidContent);
-    await assert.rejects(readFile(fixture.personalPath), { code: "ENOENT" });
   } finally {
     await fixture.dispose();
   }

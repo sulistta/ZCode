@@ -21,14 +21,6 @@ export function createDesktopNativePackagePrunePatterns(targetPlatformKey) {
     // 只服务 Node 渲染；pnpm 跨平台安装的 8 套 Canvas native 不应带进桌面安装包。
     "!node_modules/@napi-rs/canvas/**",
     "!node_modules/@napi-rs/canvas-*/**",
-    // Linux prebuild 会在 beforePack 复制进 node-pty；源平台包本身不属于桌面运行时。
-    "!node_modules/@lydell/node-pty-*/**",
-    // 桌面运行时统一使用目标 prebuild，禁止把安装机现场编译物或 ABI bin 缓存带进跨平台包。
-    "!node_modules/node-pty/build/**",
-    "!node_modules/node-pty/bin/**",
-    ...SUPPORTED_DESKTOP_PLATFORM_KEYS.filter((key) => key !== targetPlatformKey).map(
-      (key) => `!node_modules/node-pty/prebuilds/${key}/**`,
-    ),
   ];
 }
 
@@ -51,9 +43,8 @@ export function parseAsarListWithPackState(output) {
     });
 }
 
-function isNativeRuntimeFile(path, targetPlatformKey) {
-  if (/\.(?:node|dll|dylib|exe)$/i.test(path)) return true;
-  return path === `/node_modules/node-pty/prebuilds/${targetPlatformKey}/spawn-helper`;
+function isNativeRuntimeFile(path) {
+  return /\.(?:node|dll|dylib|exe)$/i.test(path);
 }
 
 export function findDesktopNativePackageViolations(entries, targetPlatformKey) {
@@ -72,26 +63,7 @@ export function findDesktopNativePackageViolations(entries, targetPlatformKey) {
       continue;
     }
 
-    if (path.startsWith("/node_modules/@lydell/node-pty-")) {
-      violations.push(`不应打包仅用于准备 prebuild 的平台源包: ${path}`);
-      continue;
-    }
-
-    if (
-      path.startsWith("/node_modules/node-pty/build/") ||
-      path.startsWith("/node_modules/node-pty/bin/")
-    ) {
-      violations.push(`不应打包安装机生成的 node-pty 产物: ${path}`);
-      continue;
-    }
-
-    const nodePtyPrebuildMatch = /^\/node_modules\/node-pty\/prebuilds\/([^/]+)/.exec(path);
-    if (nodePtyPrebuildMatch && nodePtyPrebuildMatch[1] !== targetPlatformKey) {
-      violations.push(`node-pty 包含非目标平台 prebuild: ${path}`);
-      continue;
-    }
-
-    if (isNativeRuntimeFile(path, targetPlatformKey) && packState !== "unpack") {
+    if (isNativeRuntimeFile(path) && packState !== "unpack") {
       violations.push(`native 文件仍作为 packed payload 留在 app.asar: ${path}`);
     }
   }

@@ -3,33 +3,33 @@ import {
   localTtftFactsSchema,
   sessionDebugSnapshotSchema,
   type LocalTtftFacts,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 /* oxlint-disable eslint(max-lines) -- ZCode Protocol transport、通知 wiring 和 app-facing session 方法必须共享同一个 client/emitter 上下文。 */
 import { randomUUID } from "node:crypto";
 import { ensureIndependentPlanSupport } from "./independentPlanSupport.js";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { Emitter } from "@zcode/rpc";
-import type { IDisposable } from "@zcode/rpc";
+import { Emitter } from "@social-harness/rpc";
+import type { IDisposable } from "@social-harness/rpc";
 import type {
   AccountProviderConfigSnapshot,
   ModelSelectionView,
   ProviderSource,
-} from "@zcode/provider";
-import { completeNewModelSelection } from "@zcode/provider";
+} from "@social-harness/provider";
+import { completeNewModelSelection } from "@social-harness/provider";
 import type { OffPeakClientConfig } from "#src/coding-plan-subscription/codingPlanSubscription.js";
 import {
-  ZCODE_SESSION_RUNTIME_PREFERENCES_REQUEST_TIMEOUT_MS,
+  SOCIAL_HARNESS_SESSION_RUNTIME_PREFERENCES_REQUEST_TIMEOUT_MS,
   formatLogPrefix,
   resolveWorkspaceKey,
   type TraceId,
-  ZCODE_AGENT_PROVIDER,
-  ZCODE_AGENT_PROVIDER_NOT_READY_CODE,
-  ZCODE_AGENT_PROVIDER_NOT_READY_REASON,
-  ZCODE_MODEL_REASONING_SEPARATOR,
+  SOCIAL_HARNESS_AGENT_PROVIDER,
+  SOCIAL_HARNESS_AGENT_PROVIDER_NOT_READY_CODE,
+  SOCIAL_HARNESS_AGENT_PROVIDER_NOT_READY_REASON,
+  SOCIAL_HARNESS_MODEL_REASONING_SEPARATOR,
   isRemoteWorkspaceIdentity,
-  ZCODE_PROTOCOL_NAME,
-  ZCODE_PROTOCOL_VERSION,
+  SOCIAL_HARNESS_PROTOCOL_NAME,
+  SOCIAL_HARNESS_PROTOCOL_VERSION,
   zcodeMcpListResultSchema,
   zcodePermissionRequestParamsSchema,
   zcodeBrowserListParamsSchema,
@@ -105,6 +105,7 @@ import {
   zcodeWorkspaceUpdateOffPeakToolPolicyResultSchema,
   zcodeWorkspaceUpdateDynamicWorkflowPolicyResultSchema,
   type DynamicWorkflowClientConfig,
+  type SocialProjectAgentScope,
   type AgentLaneResourceSample,
   type ProcessResourceCliLane,
   type ZCodeMcpTelemetryEvent,
@@ -112,7 +113,8 @@ import {
   type ZCodeToolExecResource,
   type ZCodePluginOperationProgressNotification,
   type ZCodeTaskMode,
-} from "@zcode/shared";
+} from "@social-harness/shared";
+import { isSocialAccountConversationWorkspacePath } from "../paths.js";
 import { createServiceLogger } from "#src/logger/serviceLogger.js";
 import { createOfficialMcpIssuanceAudit } from "#src/official-mcp/officialMcpIssuanceAudit.js";
 import type {
@@ -123,7 +125,16 @@ import {
   mergeAutomationMutationToolDenylist,
   mergeOffPeakMutationToolDenylist,
 } from "#src/zcode-agent/automationToolPolicy.js";
-import { ZCODE_AGENT_RUNTIME_UNAVAILABLE_CODE } from "./zcodeAgent.js";
+import { SOCIAL_HARNESS_AGENT_RUNTIME_UNAVAILABLE_CODE } from "./zcodeAgent.js";
+import {
+  executeSocialProjectAgentRequest,
+  isSocialProjectAgentProtocolMethod,
+} from "./socialProjectToolRequests.js";
+import {
+  executeSocialAgentRequest,
+  isSocialAgentProtocolMethod,
+} from "./socialAgentToolRequests.js";
+import type { SocialAgentService } from "../social-agent/contract.js";
 import type {
   ZCodeProtocolRequestId,
   ModelSelection,
@@ -135,7 +146,7 @@ import type {
   ZCodeWorkspacePresentation,
   ZCodeWorkspaceRef,
   ZCodeSessionRuntimePreferencesResult,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type {
   IZCodeAgentService,
   ZCodeAgentBackgroundBashOutputParams,
@@ -277,7 +288,7 @@ import {
   workspaceConfigTopic,
   workspaceConfigTopicWireCandidateSchema,
   utf8JsonByteLength,
-  ZCODE_ATTACHMENT_FAULT_CODES,
+  SOCIAL_HARNESS_ATTACHMENT_FAULT_CODES,
   ZCodeAttachmentFaultError,
   type CommandAck,
   type ConversationTopicWireCandidate,
@@ -285,7 +296,7 @@ import {
   type SessionsIndexTopicWireCandidate,
   type WorkspaceConfigTopicWireCandidate,
   type CommandEnvelope,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import {
   readTrustedZCodeAgentV4Connection,
   readTrustedZCodeAgentV4UnsubscribeRoute,
@@ -302,7 +313,7 @@ import {
   ZCodeProtocolRequestTimeoutError,
   type ZCodeProtocolClient,
 } from "./zcodeProtocolClient.js";
-import { getDataBaseDir } from "../paths.js";
+import { getSocialHarnessDataRootDir } from "../paths.js";
 import {
   collectBrowserAmbientContext,
   type BrowserAmbientContextExecutor,
@@ -312,7 +323,7 @@ import {
   type CuaOperationWorkspaceTarget,
   type CuaOperationStateReporter,
 } from "./cuaOperationTurnTracker.js";
-import type { PipSessionEvent } from "@zcode/zcode-cua/pip-session";
+import type { PipSessionEvent } from "@social-harness/zcode-cua/pip-session";
 import { registerMemoryDiagnosticsProvider } from "#src/memoryDiagnostics.js";
 
 const logger = createServiceLogger("zcode-agent-service");
@@ -462,7 +473,7 @@ function savedWorkflowScopeParam(params: ZCodeAgentSavedWorkflowTarget): {
 }
 
 function ensurePluginManagementWorkspacePath(): string {
-  const workspacePath = join(getDataBaseDir(), ".zcode", PLUGIN_MANAGEMENT_WORKSPACE_DIR_NAME);
+  const workspacePath = join(getSocialHarnessDataRootDir(), PLUGIN_MANAGEMENT_WORKSPACE_DIR_NAME);
   // 插件管理是控制面能力，不能复用可能因真实 workspace 被删而 EPIPE 的会话进程。
   // 这里给它固定一个内部 cwd；真实 workspace 仍通过协议参数传给 CLI 做 workspace-scope 判定。
   mkdirSync(workspacePath, { recursive: true });
@@ -471,7 +482,7 @@ function ensurePluginManagementWorkspacePath(): string {
 
 // NOTE: this counts ONLY the per-session MCP servers passed through the ZCode Protocol
 // session/create params (the app→protocol channel). It is deliberately independent of the
-// CLI/bootstrap MCP servers configured in ~/.zcode/cli/config.json (mcp.servers), which the agent
+// CLI/bootstrap MCP servers configured in the Social Harness cli/config.json (mcp.servers), which the agent
 // runtime connects separately and reports via the `mcp.server.connected`/toolCount events. So a
 // createSession log line with mcpServerCount:0 is EXPECTED when zcode-cua is a CLI-config MCP server
 // (e.g. the product Helper broker path injected through the gated bootstrap env): the model still receives those
@@ -742,7 +753,9 @@ function formatModelSelectionForLog(ref: ModelSelection | undefined): string | n
 
   const base = `${ref.providerId}/${ref.modelId}`;
   const reasoningLevel = ref.options?.reasoningLevel;
-  return reasoningLevel ? `${base}${ZCODE_MODEL_REASONING_SEPARATOR}${reasoningLevel}` : base;
+  return reasoningLevel
+    ? `${base}${SOCIAL_HARNESS_MODEL_REASONING_SEPARATOR}${reasoningLevel}`
+    : base;
 }
 
 function sessionEventKey(params: ZCodeAgentSessionTarget): string {
@@ -840,14 +853,14 @@ interface ActiveWorkspaceClient {
 }
 
 function createRuntimeUnavailableError(params: ZCodeAgentWorkspaceTarget): Error & {
-  code: typeof ZCODE_AGENT_RUNTIME_UNAVAILABLE_CODE;
+  code: typeof SOCIAL_HARNESS_AGENT_RUNTIME_UNAVAILABLE_CODE;
   workspaceKey: string;
 } {
   const error = new Error("ZCode Agent runtime is not running.") as Error & {
-    code: typeof ZCODE_AGENT_RUNTIME_UNAVAILABLE_CODE;
+    code: typeof SOCIAL_HARNESS_AGENT_RUNTIME_UNAVAILABLE_CODE;
     workspaceKey: string;
   };
-  error.code = ZCODE_AGENT_RUNTIME_UNAVAILABLE_CODE;
+  error.code = SOCIAL_HARNESS_AGENT_RUNTIME_UNAVAILABLE_CODE;
   error.workspaceKey = resolveWorkspaceKey(params);
   return error;
 }
@@ -860,6 +873,15 @@ interface CreateZCodeAgentServiceOptions extends Omit<
   mcpStatusIdleTimeoutMs?: number;
   accountProviderConfigSource?: ProviderSource<AccountProviderConfigSnapshot>;
   accountRequestAuthService?: IAccountRequestAuthService;
+  /** Host resolves this scope from the trusted identity bound to the Agent connection. */
+  resolveSocialProjectAgentScope?: (
+    workspaceIdentity: string,
+  ) => Promise<SocialProjectAgentScope | null>;
+  resolveSocialAgentScope?: SocialAgentService["resolveScope"];
+  /** Rejects renderer-supplied account workspace paths or identities that do not match Host state. */
+  validateSocialAccountWorkspace?: (
+    request: Pick<ZCodeAgentWorkspaceTarget, "workspacePath" | "workspaceIdentity">,
+  ) => Promise<boolean>;
   /** Desktop Host 请求 Main 登记 Agent 已授权的精确本地视频路径。 */
   authorizeLocalMediaPreviewPath?: (path: string) => Promise<string>;
   modelSelectionReadinessSource?: ModelSelectionReadinessSource;
@@ -1332,7 +1354,7 @@ export function createZCodeAgentService(
       requestId,
       scope: pending.request.scope,
       sessionId: pending.request.sessionId,
-      timeoutMs: ZCODE_SESSION_RUNTIME_PREFERENCES_REQUEST_TIMEOUT_MS,
+      timeoutMs: SOCIAL_HARNESS_SESSION_RUNTIME_PREFERENCES_REQUEST_TIMEOUT_MS,
       workspaceKey: pending.workspaceKey,
     });
     void pending.client
@@ -1340,7 +1362,7 @@ export function createZCodeAgentService(
         code: -32022,
         message: "Session runtime preferences request timed out",
         data: {
-          timeoutMs: ZCODE_SESSION_RUNTIME_PREFERENCES_REQUEST_TIMEOUT_MS,
+          timeoutMs: SOCIAL_HARNESS_SESSION_RUNTIME_PREFERENCES_REQUEST_TIMEOUT_MS,
         },
       })
       .catch((error: unknown) => {
@@ -2100,6 +2122,53 @@ export function createZCodeAgentService(
         }
       }),
       client.onRequest((request) => {
+        if (isSocialAgentProtocolMethod(request.method)) {
+          void executeSocialAgentRequest({
+            method: request.method,
+            params: request.params,
+            workspaceIdentity: workspace.workspaceIdentity,
+            resolveScope: options?.resolveSocialAgentScope,
+          })
+            .then((result) => {
+              if (result.kind === "result") return client.respond(request.id, result.result);
+              return client.respondError(request.id, {
+                code: result.code,
+                message: result.message,
+              });
+            })
+            .catch((error: unknown) => {
+              logger.warn(undefined, "Social Agent response failed", {
+                errorName: error instanceof Error ? error.name : "UnknownError",
+                event: "social_agent.request_failed",
+                workspaceKey: resolveWorkspaceKey(workspace),
+              });
+            });
+          return;
+        }
+        if (isSocialProjectAgentProtocolMethod(request.method)) {
+          void executeSocialProjectAgentRequest({
+            method: request.method,
+            params: request.params,
+            workspaceIdentity: workspace.workspaceIdentity,
+            resolveScope: options?.resolveSocialProjectAgentScope,
+          })
+            .then((result) => {
+              if (result.kind === "result") return client.respond(request.id, result.result);
+              return client.respondError(request.id, {
+                code: result.code,
+                message: result.message,
+                ...(result.data ? { data: result.data } : {}),
+              });
+            })
+            .catch((error: unknown) => {
+              logger.warn(undefined, "Social project Agent response failed", {
+                errorName: error instanceof Error ? error.name : "UnknownError",
+                event: "social_project.agent_response_failed",
+                workspaceKey: resolveWorkspaceKey(workspace),
+              });
+            });
+          return;
+        }
         if (request.method === zcodeProtocolMethods.sessionRequestRuntimePreferences) {
           const reportResponseFailure = (error: unknown): void => {
             logger.debug(undefined, "运行时偏好响应发送失败", {
@@ -2158,7 +2227,7 @@ export function createZCodeAgentService(
             request: dynamicRequest,
             timeout: setTimeout(
               () => expireSessionRuntimePreferencesRequest(requestId),
-              ZCODE_SESSION_RUNTIME_PREFERENCES_REQUEST_TIMEOUT_MS,
+              SOCIAL_HARNESS_SESSION_RUNTIME_PREFERENCES_REQUEST_TIMEOUT_MS,
             ),
             workspaceKey: resolveWorkspaceKey(workspace),
           });
@@ -2836,10 +2905,10 @@ export function createZCodeAgentService(
     snapshot?: ZCodeAgentProviderReadinessSnapshot;
     workspace: ZCodeAgentWorkspaceTarget;
   }): Error & {
-    code: typeof ZCODE_AGENT_PROVIDER_NOT_READY_CODE;
+    code: typeof SOCIAL_HARNESS_AGENT_PROVIDER_NOT_READY_CODE;
     data: {
       providerCount: number;
-      reason: typeof ZCODE_AGENT_PROVIDER_NOT_READY_REASON;
+      reason: typeof SOCIAL_HARNESS_AGENT_PROVIDER_NOT_READY_REASON;
       revision: string | null;
       workspaceKey: string;
       workspacePath: string;
@@ -2847,19 +2916,19 @@ export function createZCodeAgentService(
   } {
     const workspaceKey = resolveWorkspaceKey(params.workspace);
     const error = new Error("当前没有可用的模型供应商和模型，请先登录或配置 API Key。") as Error & {
-      code: typeof ZCODE_AGENT_PROVIDER_NOT_READY_CODE;
+      code: typeof SOCIAL_HARNESS_AGENT_PROVIDER_NOT_READY_CODE;
       data: {
         providerCount: number;
-        reason: typeof ZCODE_AGENT_PROVIDER_NOT_READY_REASON;
+        reason: typeof SOCIAL_HARNESS_AGENT_PROVIDER_NOT_READY_REASON;
         revision: string | null;
         workspaceKey: string;
         workspacePath: string;
       };
     };
-    error.code = ZCODE_AGENT_PROVIDER_NOT_READY_CODE;
+    error.code = SOCIAL_HARNESS_AGENT_PROVIDER_NOT_READY_CODE;
     error.data = {
       providerCount: params.snapshot?.providerCount ?? 0,
-      reason: ZCODE_AGENT_PROVIDER_NOT_READY_REASON,
+      reason: SOCIAL_HARNESS_AGENT_PROVIDER_NOT_READY_REASON,
       revision: params.snapshot?.revision ?? null,
       workspaceKey,
       workspacePath: params.workspace.workspacePath,
@@ -2869,10 +2938,10 @@ export function createZCodeAgentService(
 
   function isProviderNotReadyError(
     error: unknown,
-  ): error is Error & { code: typeof ZCODE_AGENT_PROVIDER_NOT_READY_CODE } {
+  ): error is Error & { code: typeof SOCIAL_HARNESS_AGENT_PROVIDER_NOT_READY_CODE } {
     return (
       error instanceof Error &&
-      (error as { code?: unknown }).code === ZCODE_AGENT_PROVIDER_NOT_READY_CODE
+      (error as { code?: unknown }).code === SOCIAL_HARNESS_AGENT_PROVIDER_NOT_READY_CODE
     );
   }
 
@@ -3023,7 +3092,29 @@ export function createZCodeAgentService(
     return entry;
   }
 
+  async function assertSocialAccountWorkspace(
+    params: Pick<ZCodeAgentWorkspaceTarget, "workspacePath" | "workspaceIdentity">,
+  ): Promise<void> {
+    const workspaceIdentity = params.workspaceIdentity?.trim() ?? "";
+    if (
+      !workspaceIdentity.startsWith("social-account:") &&
+      !isSocialAccountConversationWorkspacePath(params.workspacePath)
+    ) {
+      return;
+    }
+    // 社交对话的 identity 与 cwd 必须由同一 Host 账户记录派生，不能接受 renderer 的拼接值。
+    const isValid = await options?.validateSocialAccountWorkspace?.({
+      workspacePath: params.workspacePath,
+      ...(workspaceIdentity ? { workspaceIdentity } : {}),
+    });
+    if (isValid) return;
+    const error = new Error("Social account workspace scope is invalid or unavailable");
+    error.name = "SocialAccountWorkspaceScopeError";
+    throw error;
+  }
+
   async function getClient(params: ZCodeAgentWorkspaceTarget) {
+    await assertSocialAccountWorkspace(params);
     const workspaceKey = resolveWorkspaceKey(params);
     const active = activeClientsByWorkspaceKey.get(workspaceKey);
     if (active?.modelExecutionEnabled && isReusableActiveClientEntry(params, active)) {
@@ -3087,6 +3178,7 @@ export function createZCodeAgentService(
     params: ZCodeAgentWorkspaceTarget,
     runtimePolicy: "start-if-needed" | "existing-only" = "start-if-needed",
   ) {
+    await assertSocialAccountWorkspace(params);
     if (runtimePolicy === "existing-only") {
       const workspaceKey = resolveWorkspaceKey(params);
       const active = activeClientsByWorkspaceKey.get(workspaceKey);
@@ -3128,7 +3220,7 @@ export function createZCodeAgentService(
   // 就绪的 workspace 级方法，管理面进程正是为这种「不寄居真实项目」的控制面能力准备的，且不会因
   // 真实 workspace 生命周期被 watchdog 回收；getOrStartReadOnlyClient 反而会把这个合成 workspace
   // 塞进 activeClientsByWorkspaceKey 并跑一遍交互偏好同步，污染会话 client map。两条路径都在本机，
-  // homedir() 即用户家目录，全局根 `~/.zcode/workflows/` 因此解析到真实目录。
+  // Global workflows resolve beneath the selected Social Harness data root.
   // 远程 runtime（SSH/WSL identity 或带 remoteSessionId）的 home 不是本机，绝不选它当载体。
   function isLocalActiveWorkspaceClient(workspace: ZCodeAgentWorkspaceTarget): boolean {
     return (
@@ -3230,8 +3322,8 @@ export function createZCodeAgentService(
     runtimeLifecycleDisposable.dispose();
   }
 
-  // 3.12.2：远端灰度读取不能放进客户端就绪与创建命令：失败时串行重试会阻塞普通聊天。
-  // 注册只判断本地支持能力；灰度、套餐与模型准入仍由 offPeak/create handler 在取号前校验。
+  // Social Harness 不再读取 Coding Plan 灰度；旧 off-peak 工具只在显式测试预览环境可用。
+  // 注册只判断本地支持能力；实际 Social Harness 自动化由账号级 scheduler 负责。
   function isOffPeakToolSupported(params: {
     workspaceIdentity?: string;
     remoteSessionId?: string;
@@ -3242,13 +3334,11 @@ export function createZCodeAgentService(
   }
 
   /**
-   * 动态工作流灰度门：Host 判定一次并在本
-   * 进程内固定。三点理由：
+   * 动态工作流本地开关：Host 判定一次并在本进程内固定。三点理由：
    *   1. 同一次判定同时喂给 workspace/updateDynamicWorkflowPolicy 和 session flag，两者不会
    *      出现"策略说开、create 说关"的裂口；
-   *   2. 判定落在 client 就绪路径上，不能每次建会话都等远端——3.12.2 已因此回归过一次；
-   *   3. 读取失败 fail-closed 且不再重试，避免离线时每条 create 都赔上一次请求超时；
-   *      服务端翻转灰度按设计在下一个 Host 进程生效（provider 侧另有 1h 快照与 forceRefresh）。
+   *   2. 只解析启动时注入的本地覆盖，不在每次建会话时读取网络配置；
+   *   3. 未配置或非法值按 disabled 处理，避免默认打开 Agent workflow 工具。
    * 与 Off-Peak 不同：远程 workspace 同样可用，所以这里不看 workspaceIdentity / remoteSessionId。
    */
   function resolveDynamicWorkflowGate(): Promise<boolean> {
@@ -3276,12 +3366,21 @@ export function createZCodeAgentService(
       // 信封处同源注入；门禁 false 时不写字段（缺省即 fail-closed，与 legacy 一致）。
       const dynamicWorkflowEnabled = await resolveDynamicWorkflowGate();
       const offPeakToolEnabled = isOffPeakToolSupported(params);
-      if (!offPeakToolEnabled && !dynamicWorkflowEnabled) return envelope;
       const payload = commandPayloadSchemas.createSession.parse(envelope.payload);
+      const workspaceId = params.workspaceIdentity?.trim() || params.workspacePath;
+      if (payload.workspaceId !== workspaceId) {
+        throw new Error("V4 createSession workspace key does not match the validated target");
+      }
+      if (payload.workspacePath && payload.workspacePath !== params.workspacePath) {
+        throw new Error("V4 createSession workspace path does not match the validated target");
+      }
       return {
         ...envelope,
         payload: {
           ...payload,
+          // Host 的目标 scope 已由 getClient 校验；CLI 收到 identity 与物理 cwd 的同一份权威配对。
+          workspaceId,
+          workspacePath: params.workspacePath,
           ...(offPeakToolEnabled ? { offPeakToolEnabled: true } : {}),
           // 动态工作流灰度：V4 createSession 是桌面新会话的实际创建路径，不透传则九个工具
           // 永不注册。
@@ -3321,11 +3420,13 @@ export function createZCodeAgentService(
 
   return {
     async prepareStorage(params) {
+      await assertSocialAccountWorkspace(params);
       const client = await processManager.getClient(params);
       wireClient(client, params, "chat");
       await client.storageStartup.wait();
     },
     async getStorageStartupState(params) {
+      await assertSocialAccountWorkspace(params);
       return processManager.getStorageStartupState(params);
     },
     onDynamicStorageStartupState(params) {
@@ -3356,8 +3457,8 @@ export function createZCodeAgentService(
         return {
           available: true,
           workspaceKey,
-          protocolName: ZCODE_PROTOCOL_NAME,
-          protocolVersion: ZCODE_PROTOCOL_VERSION,
+          protocolName: SOCIAL_HARNESS_PROTOCOL_NAME,
+          protocolVersion: SOCIAL_HARNESS_PROTOCOL_VERSION,
           transportKind: client.transportKind === "websocket" ? "websocket" : "stdio",
         };
       } catch (error) {
@@ -3377,10 +3478,12 @@ export function createZCodeAgentService(
         return {
           available: false,
           workspaceKey,
-          protocolName: ZCODE_PROTOCOL_NAME,
-          protocolVersion: ZCODE_PROTOCOL_VERSION,
+          protocolName: SOCIAL_HARNESS_PROTOCOL_NAME,
+          protocolVersion: SOCIAL_HARNESS_PROTOCOL_VERSION,
           reason: error instanceof Error ? error.message : String(error),
-          ...(providerNotReady ? { reasonCode: ZCODE_AGENT_PROVIDER_NOT_READY_REASON } : {}),
+          ...(providerNotReady
+            ? { reasonCode: SOCIAL_HARNESS_AGENT_PROVIDER_NOT_READY_REASON }
+            : {}),
         };
       }
     },
@@ -4028,7 +4131,7 @@ export function createZCodeAgentService(
           }
           return {
             pid: runtime.pid,
-            provider: ZCODE_AGENT_PROVIDER,
+            provider: SOCIAL_HARNESS_AGENT_PROVIDER,
             workspacePath: runtime.workspacePath,
             ...(runtime.lane ? { lane: runtime.lane } : {}),
             children,
@@ -5186,7 +5289,7 @@ export function createZCodeAgentService(
     async conversationAttachmentReadV4(params: ZCodeAgentConversationAttachmentReadParams) {
       if (!readTrustedZCodeAgentV4Connection(params)) {
         throw new ZCodeAttachmentFaultError(
-          ZCODE_ATTACHMENT_FAULT_CODES.shareReadConnectionUntrusted,
+          SOCIAL_HARNESS_ATTACHMENT_FAULT_CODES.shareReadConnectionUntrusted,
         );
       }
       const wireParams = v4ConversationAttachmentReadParamsSchema.parse({
@@ -5208,7 +5311,7 @@ export function createZCodeAgentService(
     async conversationAttachmentStatV4(params: ZCodeAgentConversationAttachmentStatParams) {
       if (!readTrustedZCodeAgentV4Connection(params)) {
         throw new ZCodeAttachmentFaultError(
-          ZCODE_ATTACHMENT_FAULT_CODES.shareStatConnectionUntrusted,
+          SOCIAL_HARNESS_ATTACHMENT_FAULT_CODES.shareStatConnectionUntrusted,
         );
       }
       const wireParams = v4ConversationAttachmentStatParamsSchema.parse({
@@ -5416,7 +5519,7 @@ export function createZCodeAgentService(
         if (
           error instanceof Error &&
           "code" in error &&
-          error.code === ZCODE_AGENT_RUNTIME_UNAVAILABLE_CODE
+          error.code === SOCIAL_HARNESS_AGENT_RUNTIME_UNAVAILABLE_CODE
         ) {
           return { kind: "unavailable", workId: params.workId };
         }

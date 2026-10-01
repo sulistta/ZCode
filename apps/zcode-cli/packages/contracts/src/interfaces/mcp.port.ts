@@ -2,7 +2,7 @@
 
 import type { JsonSchema } from "../model/index.js";
 import type { TraceContext } from "../tracing/tracer.js";
-import type { McpServerFailureKind, OfficialMcpAuthPortFailureReason } from "@zcode/shared";
+import type { McpServerFailureKind, OfficialMcpAuthPortFailureReason } from "@social-harness/shared";
 
 export type McpServerTransportType = "stdio" | "http" | "sse";
 export type McpProtocolVersion = "legacy" | "auto" | "2026-07-28";
@@ -132,10 +132,10 @@ export interface McpToolAnnotations {
   openWorldHint?: boolean;
 }
 
-export const ZCODE_MCP_ERROR_PRESENTATION_META_KEY = "zcode/errorPresentation";
-export const ZCODE_MCP_ERROR_PRESENTATION_MESSAGE_ONLY = "message-only";
+export const SOCIAL_HARNESS_MCP_ERROR_PRESENTATION_META_KEY = "zcode/errorPresentation";
+export const SOCIAL_HARNESS_MCP_ERROR_PRESENTATION_MESSAGE_ONLY = "message-only";
 /** MCP content 中来自模型显式 tab.screenshot() 的 image block 索引。 */
-export const ZCODE_MCP_BROWSER_SCREENSHOT_CONTENT_INDICES_META_KEY =
+export const SOCIAL_HARNESS_MCP_BROWSER_SCREENSHOT_CONTENT_INDICES_META_KEY =
   "zcode/browserScreenshotContentIndices";
 /**
  * 本次 node_repl cell 操作的目标应用身份，供工具卡显示 App 图标。
@@ -144,9 +144,9 @@ export const ZCODE_MCP_BROWSER_SCREENSHOT_CONTENT_INDICES_META_KEY =
  * `zcode.cua/app-associations-v1`，投影成这里的最小形态。producer 那个键本身经
  * `nodeRepl.setResponseMeta` / `nodeRepl.emitStructuredResult` 也能到达 `_meta`，而这两个
  * API 挂在模型可见的 sandbox globals 上，因此不可信、必须在宿主侧丢弃（同
- * `ZCODE_MCP_BROWSER_SCREENSHOT_CONTENT_INDICES_META_KEY` 的处置）。
+ * `SOCIAL_HARNESS_MCP_BROWSER_SCREENSHOT_CONTENT_INDICES_META_KEY` 的处置）。
  */
-export const ZCODE_MCP_NODE_REPL_CUA_APP_META_KEY = "zcode/nodeReplCuaApp";
+export const SOCIAL_HARNESS_MCP_NODE_REPL_CUA_APP_META_KEY = "zcode/nodeReplCuaApp";
 /**
  * 官方 Server MCP 响应头里的 `x-request-id`，附在失败的 tool result 上（值为 string）。
  *
@@ -156,7 +156,7 @@ export const ZCODE_MCP_NODE_REPL_CUA_APP_META_KEY = "zcode/nodeReplCuaApp";
  *
  * 只在 `isError` 时附加：这是给人看的排障线索（拿它去查服务端日志），成功路径上是纯噪声。
  */
-export const ZCODE_MCP_SERVER_REQUEST_ID_META_KEY = "zcode/officialMcpServerRequestId";
+export const SOCIAL_HARNESS_MCP_SERVER_REQUEST_ID_META_KEY = "zcode/officialMcpServerRequestId";
 
 export interface McpToolDescriptor {
   serverName: string;
@@ -178,7 +178,7 @@ export interface McpToolDescriptor {
    * - stdio：结果由插件进程自己产出、可任意伪造，因此**不置位**。
    *
    * 刻意**不**按"插件是否来自官方 marketplace"判定：那会让非官方安装源（含本地自测与
-   * zcode-plugins-test）的官方插件失效，而它也不是真实屏障——详见 `@zcode/shared` 的
+   * zcode-plugins-test）的官方插件失效，而它也不是真实屏障——详见 `@social-harness/shared` 的
    * `isOfficialMcpOriginTrusted`。
    */
   official?: boolean;
@@ -277,7 +277,7 @@ export interface OfficialMcpAuthHeadersPort {
  * （它让官方插件在发布前无法对真实端点自测，而第三方插件本可用 hook 读到同一份凭证，
  * 并非真实屏障）。
  *
- * 实现在 `@zcode/shared`：host 与 adapter 共用同一份，避免一侧放行一侧拒绝。
+ * 实现在 `@social-harness/shared`：host 与 adapter 共用同一份，避免一侧放行一侧拒绝。
  * 异步是为了让 host 侧能按 settings 覆盖解析 origin。
  */
 export interface OfficialMcpTrustedOriginRegistry {

@@ -1,5 +1,5 @@
-import { BUILTIN_MODEL_PROVIDER_IDS, resolveZaiBusinessBaseUrl } from "@zcode/shared";
-import type { CodingPlanSubscriptionProviderId } from "@zcode/shared";
+import { BUILTIN_MODEL_PROVIDER_IDS, resolveZaiBusinessBaseUrl } from "@social-harness/shared";
+import type { CodingPlanSubscriptionProviderId } from "@social-harness/shared";
 import {
   BigModelCodingPlanSubscriptionProvider,
   createZaiLoginAuthHeaders,
@@ -28,7 +28,6 @@ import {
  * Stripe/PayPal/createSign/updateSign/staticConfigs）全部复用父类：
  *   - 购买类已通过 request.providerId 在父类 resolveEndpointConfig 内动态路由
  *     （zai 走 /api/pay + zai host + zai token，bigmodel 走 /api/biz + bigmodel host + bigmodel token）。
- *   - staticConfigs 是平台级 client/configs，与 family 无关。
  */
 export class ZaiCodingPlanSubscriptionProvider extends BigModelCodingPlanSubscriptionProvider {
   protected codingPlanProviderId(): CodingPlanSubscriptionProviderId {

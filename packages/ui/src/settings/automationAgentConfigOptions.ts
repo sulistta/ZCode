@@ -1,5 +1,5 @@
-import type { ZCodeConfigOption, ZCodeProvider } from "@zcode/shared";
-import type { ModelSelectionView } from "@zcode/services";
+import type { ZCodeConfigOption, ZCodeProvider } from "@social-harness/shared";
+import type { ModelSelectionView } from "@social-harness/services";
 import type { ModelSelectGroup, ModelSelectGroupItem } from "@/ModelConfigSelect.js";
 import {
   buildRegistryModelSelectGroups,

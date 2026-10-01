@@ -1,4 +1,4 @@
-import type { ZCodeTaskMeta } from "@zcode/shared";
+import type { ZCodeTaskMeta } from "@social-harness/shared";
 
 type WorkspaceTaskListVersionEntry = readonly [workspaceKey: string, version: number];
 

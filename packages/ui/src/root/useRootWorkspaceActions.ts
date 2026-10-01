@@ -7,8 +7,8 @@ import {
   type RemoteTarget,
   type UserInfo,
   type ZCodeTaskClientMode,
-} from "@zcode/shared";
-import type { IServiceAccessor } from "@zcode/services";
+} from "@social-harness/shared";
+import type { IServiceAccessor } from "@social-harness/services";
 import type { CreateTaskRequest } from "@/app-shell/types.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { reportAppTelemetryEvent } from "@/lib/appTelemetry.js";
@@ -342,8 +342,6 @@ export function useRootWorkspaceActions({
     setUser(null);
     // 退出登录后刷新 Account Source 与 Registry，避免继续展示退出前的 Provider 状态。
     await refreshProviderState();
-    // Coding Plan 官网 webview 使用独立持久 partition，App logout 必须同步清理。
-    await platform.executeDesktopCommand(DesktopCommandIds.ClearCodingPlanWebviewStorage);
     await platform.executeDesktopCommand(DesktopCommandIds.RelaunchApp);
   }, [
     intl,
@@ -528,20 +526,6 @@ export function useRootWorkspaceActions({
     supportsSettings,
   ]);
 
-  const handleCreateScratchWorkspace = useCallback(
-    async (name: string) => {
-      if (!allowOpenWorkspace) {
-        logger.info("[Root] 当前模式不支持从空态菜单创建工作区，已忽略请求");
-        return null;
-      }
-
-      const result = await services.fileService.createScratchWorkspace({ name });
-      await handleSelectProject(result.path);
-      return result.path;
-    },
-    [allowOpenWorkspace, handleSelectProject, services.fileService],
-  );
-
   const handleCreateTask = useCallback(
     (request?: CreateTaskRequest) => {
       startNewTaskFromActiveWorkspace("sidebar new task", request);
@@ -577,7 +561,6 @@ export function useRootWorkspaceActions({
     handleCreateConversationTask,
     handleOpenWorkspace,
     handleOpenFolderFromWorkspaceMenu,
-    handleCreateScratchWorkspace,
     handleCreateTask,
     handleBackFromSettings,
   };

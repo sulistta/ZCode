@@ -1,25 +1,25 @@
 /**
- * 构建期开关：为真时安装包使用 Preview 身份，而后端环境仍由 `ZCODE_ENV` 单独决定。
- * 典型用法是 `ZCODE_ENV=production ZCODE_PREVIEW_IDENTITY=1`，得到一个连接生产后端、
- * 可与正式版并排安装的 `ZCode Preview`。
+ * 构建期开关：为真时安装包使用 Preview 身份，而后端环境仍由 `SOCIAL_HARNESS_ENV` 单独决定。
+ * 典型用法是 `SOCIAL_HARNESS_ENV=production SOCIAL_HARNESS_PREVIEW_IDENTITY=1`，得到一个连接生产后端、
+ * 可与正式版并排安装的 `Social Harness Preview`。
  */
-export const ZCODE_PREVIEW_IDENTITY_ENV = "ZCODE_PREVIEW_IDENTITY";
+export const SOCIAL_HARNESS_PREVIEW_IDENTITY_ENV = "SOCIAL_HARNESS_PREVIEW_IDENTITY";
 
 const PRODUCTION_IDENTITY = Object.freeze({
   flavor: "production",
-  appId: "dev.zcode.app",
-  productName: "ZCode",
-  linuxExecutableName: "zcode",
-  linuxPackageName: "zcode",
+  appId: "dev.socialharness.app",
+  productName: "Social Harness",
+  linuxExecutableName: "social-harness",
+  linuxPackageName: "social-harness",
   cuaHelperInstallVariant: null,
 });
 
 const PREVIEW_IDENTITY = Object.freeze({
   flavor: "preview",
-  appId: "dev.zcode.app.preview",
-  productName: "ZCode Preview",
-  linuxExecutableName: "zcode-preview",
-  linuxPackageName: "zcode-preview",
+  appId: "dev.socialharness.app.preview",
+  productName: "Social Harness Preview",
+  linuxExecutableName: "social-harness-preview",
+  linuxPackageName: "social-harness-preview",
   cuaHelperInstallVariant: "preview",
 });
 
@@ -28,17 +28,17 @@ export const desktopProductIdentities = Object.freeze({
   preview: PREVIEW_IDENTITY,
 });
 
-function normalizeDesktopZCodeEnv(env) {
-  return env.ZCODE_ENV?.trim().toLowerCase() === "production" ? "production" : "test";
+function normalizeDesktopSocialHarnessEnv(env) {
+  return env.SOCIAL_HARNESS_ENV?.trim().toLowerCase() === "production" ? "production" : "test";
 }
 
 /**
  * 开关只有一种开启拼写 `1`（`0` / 空 = 关闭），与 CI workflow 规则和 release 门的
- * `$ZCODE_PREVIEW_IDENTITY == "1"` 精确比较保持同一套语义。其它拼写在构建期直接失败，
+ * `$SOCIAL_HARNESS_PREVIEW_IDENTITY == "1"` 精确比较保持同一套语义。其它拼写在构建期直接失败，
  * 避免 `true` 之类在 YAML 路由层漏匹配、却在脚本层被当成开启，把 Preview 包打进生产验收目录。
  */
 export function isPreviewIdentityRequested(env = process.env) {
-  const value = env[ZCODE_PREVIEW_IDENTITY_ENV]?.trim() ?? "";
+  const value = env[SOCIAL_HARNESS_PREVIEW_IDENTITY_ENV]?.trim() ?? "";
   if (value === "1") {
     return true;
   }
@@ -46,21 +46,21 @@ export function isPreviewIdentityRequested(env = process.env) {
     return false;
   }
   throw new Error(
-    `invalid ${ZCODE_PREVIEW_IDENTITY_ENV}=${env[ZCODE_PREVIEW_IDENTITY_ENV]}; expected 1 or 0`,
+    `invalid ${SOCIAL_HARNESS_PREVIEW_IDENTITY_ENV}=${env[SOCIAL_HARNESS_PREVIEW_IDENTITY_ENV]}; expected 1 or 0`,
   );
 }
 
 /**
- * 产品身份（flavor）与后端环境（`ZCODE_ENV`）是两个轴：
- * - `ZCODE_ENV=test` 一律是 Preview，测试后端不能顶着正式 `ZCode` 身份覆盖用户的正式安装；
- * - `ZCODE_ENV=production` 默认是正式身份，显式 `ZCODE_PREVIEW_IDENTITY=1` 时改用 Preview 身份。
- * 未知 `ZCODE_ENV` 继续按 test 处理，和共享层 normalizeZCodeEnv 的 fail-safe 默认值一致。
+ * 产品身份（flavor）与后端环境（`SOCIAL_HARNESS_ENV`）是两个轴：
+ * - `SOCIAL_HARNESS_ENV=test` 一律是 Preview，测试后端不能顶着正式 Social Harness 身份覆盖用户的正式安装；
+ * - `SOCIAL_HARNESS_ENV=production` 默认是正式身份，显式 `SOCIAL_HARNESS_PREVIEW_IDENTITY=1` 时改用 Preview 身份。
+ * 未知 `SOCIAL_HARNESS_ENV` 继续按 test 处理，保持 fail-safe 默认值。
  */
 export function resolveDesktopProductFlavor(env = process.env) {
   if (isPreviewIdentityRequested(env)) {
     return "preview";
   }
-  return normalizeDesktopZCodeEnv(env) === "production" ? "production" : "preview";
+  return normalizeDesktopSocialHarnessEnv(env) === "production" ? "production" : "preview";
 }
 
 export function resolveDesktopProductIdentity(env = process.env) {
@@ -68,11 +68,114 @@ export function resolveDesktopProductIdentity(env = process.env) {
 }
 
 /**
+ * Resolve the public Instagram bridge origin embedded in a Desktop build.
+ * Preview identities may intentionally remain disconnected, but a production
+ * installer must not ship without the maintainer-operated OAuth/media bridge.
+ */
+export function resolveDesktopInstagramAuthBridgeUrl(
+  value,
+  { productFlavor, isProductionBuild = false },
+) {
+  if (productFlavor !== "production" && productFlavor !== "preview") {
+    throw new Error(
+      `Unsupported desktop product flavor for Instagram bridge config: ${productFlavor}`,
+    );
+  }
+
+  const bridgeUrl = typeof value === "string" ? value.trim() : "";
+  if (!bridgeUrl) {
+    if (isProductionBuild && productFlavor === "production") {
+      throw new Error(
+        "SOCIAL_HARNESS_INSTAGRAM_AUTH_BRIDGE_URL must be set to the public HTTPS bridge origin for production Desktop builds",
+      );
+    }
+    return "";
+  }
+
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(bridgeUrl);
+  } catch {
+    parsedUrl = null;
+  }
+
+  if (
+    !parsedUrl ||
+    parsedUrl.protocol !== "https:" ||
+    !parsedUrl.hostname ||
+    parsedUrl.username ||
+    parsedUrl.password ||
+    parsedUrl.pathname !== "/" ||
+    parsedUrl.search ||
+    parsedUrl.hash
+  ) {
+    throw new Error(
+      "SOCIAL_HARNESS_INSTAGRAM_AUTH_BRIDGE_URL must be a public HTTPS origin without credentials, path, query, or fragment",
+    );
+  }
+
+  return parsedUrl.origin;
+}
+
+/**
+ * Build metadata shipped in desktop installers. The maintainer contact is a release input so a
+ * renamed product cannot silently keep publishing the retired ZCode address.
+ */
+export function resolveDesktopReleaseMetadata(env = process.env) {
+  const email = env.SOCIAL_HARNESS_PACKAGE_MAINTAINER_EMAIL?.trim();
+  const emailDomain = email?.split("@").at(-1)?.toLowerCase();
+  if (
+    !email ||
+    !/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/u.test(email) ||
+    emailDomain === "zcode.z.ai" ||
+    emailDomain?.endsWith(".zcode.z.ai")
+  ) {
+    throw new Error(
+      "SOCIAL_HARNESS_PACKAGE_MAINTAINER_EMAIL must be a valid non-ZCode contact email when packaging a desktop installer",
+    );
+  }
+
+  const homepageValue = env.SOCIAL_HARNESS_PACKAGE_HOMEPAGE?.trim();
+  let homepageUrl;
+  try {
+    homepageUrl = new URL(homepageValue ?? "");
+  } catch {
+    homepageUrl = null;
+  }
+  if (
+    !homepageUrl ||
+    homepageUrl.protocol !== "https:" ||
+    !homepageUrl.hostname ||
+    homepageUrl.username ||
+    homepageUrl.password
+  ) {
+    throw new Error(
+      "SOCIAL_HARNESS_PACKAGE_HOMEPAGE must be set to an approved HTTPS URL without credentials when packaging a desktop installer",
+    );
+  }
+
+  const identity = resolveDesktopProductIdentity(env);
+  return Object.freeze({
+    extraMetadata: Object.freeze({
+      socialHarnessProductFlavor: identity.flavor,
+      desktopName: identity.productName,
+      homepage: homepageUrl.toString(),
+      author: Object.freeze({ name: identity.productName, email }),
+    }),
+    linux: Object.freeze({
+      maintainer: `${identity.productName} Maintainers <${email}>`,
+      vendor: identity.productName,
+      syncDesktopName: true,
+    }),
+  });
+}
+
+/**
  * 产物文件名后缀标记的是后端环境而不是身份：`_TEST` 只出现在测试后端的安装包上。
- * 生产后端的 Preview 包靠 productName（`ZCode Preview-<version>-...`）与正式包区分。
+ * 生产后端的 Preview 包靠 productName 与正式包区分。
  */
 export function resolveDesktopArtifactSuffix(env = process.env) {
-  return normalizeDesktopZCodeEnv(env) === "test" ? "_TEST" : "";
+  return normalizeDesktopSocialHarnessEnv(env) === "test" ? "_TEST" : "";
 }
 
 /**
@@ -84,7 +187,7 @@ export function resolveDesktopArtifactSuffix(env = process.env) {
  */
 export function resolveWindowsAppUserModelIdForFlavor(flavor, runtime = { isPackaged: true }) {
   if (runtime.isPackaged === false) {
-    return "cn.aminer.zcode";
+    return "dev.socialharness.app.local";
   }
   return desktopProductIdentities[flavor === "preview" ? "preview" : "production"].appId;
 }

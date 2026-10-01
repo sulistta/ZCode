@@ -12,19 +12,19 @@ import {
   ChannelServer,
   LoggingChannelServer,
   type ISocket,
-} from "@zcode/rpc";
+} from "@social-harness/rpc";
 import {
   createZCodeAgentConnectionScope,
   IZCodeAgentService,
   ServiceCollection,
-} from "@zcode/services";
-import { createServiceLogger } from "@zcode/services/node";
+} from "@social-harness/services";
+import { createServiceLogger } from "@social-harness/services/node";
 import {
   SERVER_REMOTE_PROTOCOL_VERSION,
-  ZCODE_RPC_HOST_CAPABILITY_HEADER,
-  ZCODE_VERSION,
+  SOCIAL_HARNESS_RPC_HOST_CAPABILITY_HEADER,
+  SOCIAL_HARNESS_VERSION,
   type ServerRemoteInfo,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { createHostCapabilityStore, type HostCapabilityStore } from "./hostCapability.js";
 
 interface CoreHttpServer {
@@ -132,7 +132,7 @@ export async function createCoreHttpServer(
   }
   const info: ServerRemoteInfo = {
     serverId: options.serverId ?? hostname() ?? "zcode-server",
-    version: ZCODE_VERSION,
+    version: SOCIAL_HARNESS_VERSION,
     protocolVersion: SERVER_REMOTE_PROTOCOL_VERSION,
     authRequired: false,
     workspaces: [],
@@ -155,7 +155,7 @@ export async function createCoreHttpServer(
     })),
   );
   app.use("/ws/host", async (context, next) => {
-    const capability = context.req.header(ZCODE_RPC_HOST_CAPABILITY_HEADER);
+    const capability = context.req.header(SOCIAL_HARNESS_RPC_HOST_CAPABILITY_HEADER);
     if (!capabilities.consume(capability)) {
       return context.json({ error: "Invalid or expired host capability" }, 401);
     }

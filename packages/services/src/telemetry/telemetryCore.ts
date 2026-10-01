@@ -1,17 +1,17 @@
 /* oxlint-disable eslint(max-lines) -- telemetry state lock、deviceMid 编排和上报路径共享同一状态文件，拆分会增加锁语义漂移风险。 */
 import {
   createUuid,
-  ZCODE_VERSION,
-  ZCODE_ENV,
-  ZCODE_TELEMETRY_ENABLED,
-  ZCODE_TELEMETRY_REPORT_ENDPOINT,
+  SOCIAL_HARNESS_VERSION,
+  SOCIAL_HARNESS_ENV,
+  SOCIAL_HARNESS_TELEMETRY_ENABLED,
+  SOCIAL_HARNESS_TELEMETRY_REPORT_ENDPOINT,
   buildZCodeSourceHeadersFromContext,
-  rewriteZCodeEndpointUrl,
+  isRetiredZCodeEndpointUrl,
   sanitizeTelemetryEventDetail,
   type TelemetryEventPayload,
   type TelemetryRendererContext,
   type OAuthLoginAttribution,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   ensureDeviceMid,
   ensureDeviceMidInLockedState,
@@ -57,7 +57,6 @@ interface TelemetryCoreDependencies {
   releaseChannel?: string;
   osVersion?: string;
   homeDir?: string;
-  resolveZCodeEndpointOrigin?: () => Promise<string> | string;
   requestTimeoutMs?: number;
   sleep?: (ms: number) => Promise<void>;
   warn?: (message: string) => void;
@@ -111,6 +110,26 @@ function normalizeOsCategory(platform: NodeJS.Platform): string {
   }
 }
 
+export function resolveSocialHarnessTelemetryReportEndpoint(endpoint: string): string | null {
+  const candidate = endpoint.trim();
+  if (!candidate) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(candidate);
+    if (
+      (parsed.protocol !== "https:" && parsed.protocol !== "http:") ||
+      isRetiredZCodeEndpointUrl(parsed)
+    ) {
+      return null;
+    }
+    return candidate;
+  } catch {
+    return null;
+  }
+}
+
 function toLocalDateKey(timestamp: number, timeZone: string): string {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone,
@@ -127,14 +146,14 @@ function toLocalDateKey(timestamp: number, timeZone: string): string {
 
 function resolveTelemetryStateFile(homeDir?: string): string {
   if (homeDir) {
-    return join(homeDir, ".zcode", "v2", "telemetry-state.json");
+    return join(homeDir, ".social-harness", "v1", "config", "telemetry-state.json");
   }
   return join(getAppConfigDir(), "telemetry-state.json");
 }
 
 function resolveTelemetryLockFile(homeDir?: string): string {
   if (homeDir) {
-    return join(homeDir, ".zcode", "v2", "telemetry-state.lock");
+    return join(homeDir, ".social-harness", "v1", "config", "telemetry-state.lock");
   }
   return join(getAppConfigDir(), "telemetry-state.lock");
 }
@@ -289,9 +308,14 @@ export function createTelemetryCore(dependencies: TelemetryCoreDependencies = {}
   const telemetryLogger = createServiceLogger("telemetry-core");
   const warn = dependencies.warn ?? ((message: string) => telemetryLogger.warn(undefined, message));
   let didWarnMarketingParamsLoadFailure = false;
+  let didWarnInvalidReportEndpoint = false;
+  const configuredReportEndpoint = SOCIAL_HARNESS_TELEMETRY_REPORT_ENDPOINT.trim();
+  // 修复依据：旧实现借用通用 ZCode endpoint rewrite；没有显式新 origin 时仍可能向退役主机发送 telemetry。
+  // 现在只直连已配置的 Social Harness telemetry URL，并拒绝退役 host。
+  const reportEndpoint = resolveSocialHarnessTelemetryReportEndpoint(configuredReportEndpoint);
   const randomUUID = dependencies.randomUUID ?? (() => createUuid());
   const now = dependencies.now ?? Date.now;
-  const appVersion = dependencies.appVersion ?? ZCODE_VERSION;
+  const appVersion = dependencies.appVersion ?? SOCIAL_HARNESS_VERSION;
   const platform = dependencies.platform ?? process.platform;
   const osVersion = dependencies.osVersion ?? version();
   const requestTimeoutMs = dependencies.requestTimeoutMs ?? REPORT_REQUEST_TIMEOUT_MS;
@@ -365,7 +389,14 @@ export function createTelemetryCore(dependencies: TelemetryCoreDependencies = {}
     deviceMid: string,
   ): Promise<void> {
     // 总开关关闭或上报端点未配置时，事件到此终止。
-    if (!ZCODE_TELEMETRY_ENABLED || !ZCODE_TELEMETRY_REPORT_ENDPOINT) {
+    if (!SOCIAL_HARNESS_TELEMETRY_ENABLED || !configuredReportEndpoint) {
+      return;
+    }
+    if (!reportEndpoint) {
+      if (!didWarnInvalidReportEndpoint) {
+        didWarnInvalidReportEndpoint = true;
+        warn("Telemetry report endpoint is invalid or retired; event dropped");
+      }
       return;
     }
     let marketingParams: OAuthLoginAttribution | null = null;
@@ -405,23 +436,16 @@ export function createTelemetryCore(dependencies: TelemetryCoreDependencies = {}
       ...(payload.messageId ? { message_id: payload.messageId } : {}),
     });
 
-    const endpoint = String(
-      rewriteZCodeEndpointUrl(
-        ZCODE_TELEMETRY_REPORT_ENDPOINT,
-        (await dependencies.resolveZCodeEndpointOrigin?.()) ?? ZCODE_TELEMETRY_REPORT_ENDPOINT,
-      ),
-    );
-
     const headers = buildZCodeSourceHeadersFromContext({
       appVersion,
       platform,
       arch: dependencies.arch ?? process.arch,
       osVersion,
-      releaseChannel: dependencies.releaseChannel ?? ZCODE_ENV,
+      releaseChannel: dependencies.releaseChannel ?? SOCIAL_HARNESS_ENV,
       clientLanguage: context.clientLanguage,
       clientTimezone: context.clientTimezone,
       deviceMid,
-      endpointOrigin: new URL(endpoint).origin,
+      endpointOrigin: new URL(reportEndpoint).origin,
     });
     const startedAt = Date.now();
     let lastError: TelemetryReportError | null = null;
@@ -429,7 +453,7 @@ export function createTelemetryCore(dependencies: TelemetryCoreDependencies = {}
     for (let attempt = 1; attempt <= REPORT_MAX_ATTEMPTS; attempt += 1) {
       attempts = attempt;
       try {
-        await sendReportAttempt(endpoint, requestBody, headers, userId);
+        await sendReportAttempt(reportEndpoint, requestBody, headers, userId);
         return;
       } catch (error) {
         lastError =

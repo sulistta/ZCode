@@ -1,0 +1,82 @@
+{
+  "package": "quickjs-wasi@2.2.0",
+  "registryArchive": {
+    "url": "https://registry.npmjs.org/quickjs-wasi/-/quickjs-wasi-2.2.0.tgz",
+    "sizeBytes": 934604,
+    "sha256": "f4dd386c2e705ffb8692a8afdc1e3b8ff09c6b8ef3aee48d0537ff71d8839cd1",
+    "integrity": "sha512-zQxXmQMrEoD3S+jQdYsloq4qAuaxKFHZj6hHqOYGwB2iQZH+q9e/lf5zQPXCKOk0WJuAjzRFbO4KwHIp2D05Iw=="
+  },
+  "source": {
+    "tag": "quickjs-wasi@2.2.0",
+    "commit": "cc1fea4a6a4ac1d960e0db68d35e1459064a1a23",
+    "url": "https://github.com/vercel-labs/quickjs-wasi/tree/cc1fea4a6a4ac1d960e0db68d35e1459064a1a23",
+    "submodules": [
+      {
+        "path": "quickjs-ng",
+        "commit": "dec012362bd93876449f3ecff4f835b2eba89bab"
+      }
+    ],
+    "makefileSha256": "417fa227d75b1e22a15d8389ca8b5e8b7b86241c3b1b17288d20523016ef6fa6"
+  },
+  "wasiSdk": {
+    "version": "32.0",
+    "releaseTag": "wasi-sdk-32",
+    "releaseSourceCommit": "249054e5427023344c1906afde0e9073714d1930",
+    "releaseSourceTree": "third-party/upstream/5f745b8244890bde0a2258fe32342d60c577fad043e8601d923690a5bfe1b54f.txt",
+    "asset": {
+      "name": "wasi-sdk-32.0-x86_64-linux.tar.gz",
+      "url": "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-32/wasi-sdk-32.0-x86_64-linux.tar.gz",
+      "sizeBytes": 143157058,
+      "sha256": "55fc523ebfbc98f69d1034fcfcb83d1ff5610cd9ab7eceef6cd097a30ba4ef93"
+    },
+    "linkedSourceCommits": {
+      "config": "f992bcc08219edb283d2ab31dd3871a4a0e8220e",
+      "llvmProject": "4434dabb69916856b824f68a64b029c67175e532",
+      "wasiLibc": "2fc32bc81b9f07f8d9525edea59bfbaf760c06d6"
+    }
+  },
+  "build": {
+    "host": "linux-x64",
+    "command": "make -j6 WASI_SDK=<verified-wasi-sdk-32.0-directory>",
+    "sourceWasUnmodified": true,
+    "result": "The seven compiled artifacts below reproduced byte-for-byte from the pinned source checkout and official WASI SDK asset."
+  },
+  "artifacts": [
+    {
+      "path": "quickjs.wasm",
+      "sha256": "b92a9f3d9cd20c7a0b0163269437115314c96712e3248d2da1b631ca1c8b008e",
+      "matchesNpmArchive": true
+    },
+    {
+      "path": "extensions/base64/base64.so",
+      "sha256": "f51012d6c63195a53ca9f2daa6c3de6b0995873888c8106979813015b3388adc",
+      "matchesNpmArchive": true
+    },
+    {
+      "path": "extensions/crypto/crypto.so",
+      "sha256": "3c0ca1e0ecbca51f88ae22ae5da75ee83e6f87170ec8c7efc2ec9ba52b1bd913",
+      "matchesNpmArchive": true
+    },
+    {
+      "path": "extensions/encoding/encoding.so",
+      "sha256": "50af2847297183c0be2f97948cd83473b0888b424b98af51aaf4200160dce77f",
+      "matchesNpmArchive": true
+    },
+    {
+      "path": "extensions/headers/headers.so",
+      "sha256": "fcc7d25dfdda38d1d57d0a532540f3baa56a957f76f85548919716a174ac9037",
+      "matchesNpmArchive": true
+    },
+    {
+      "path": "extensions/structured-clone/structured-clone.so",
+      "sha256": "76356bc2983ce24b6c503a0cb1fa0308e09c18e60aa38d44ca737454ee769c06",
+      "matchesNpmArchive": true
+    },
+    {
+      "path": "extensions/url/url.so",
+      "sha256": "54167390c210290f0703752527000ba44885606c4ed1ae12be30462c147a9215",
+      "matchesNpmArchive": true
+    }
+  ],
+  "scope": "This closes link provenance for the embedded QuickJS/WASI engine and extension binaries. The separate MIT copyright/license notice for the quickjs-wasi npm package remains open because the published package does not contain a complete original notice."
+}

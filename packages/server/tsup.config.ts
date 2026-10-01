@@ -18,9 +18,9 @@ const { environment: zcodeEnv, content: zcodeBuiltinProviderConfigJson } =
   await loadBuiltinProviderConfig();
 
 export const SERVER_HTTP_DEFINES = {
-  __ZCODE_VERSION__: JSON.stringify(version),
-  __ZCODE_ENV__: JSON.stringify(zcodeEnv),
-  __ZCODE_BUILTIN_PROVIDER_CONFIG_JSON__: JSON.stringify(zcodeBuiltinProviderConfigJson),
+  __SOCIAL_HARNESS_VERSION__: JSON.stringify(version),
+  __SOCIAL_HARNESS_ENV__: JSON.stringify(zcodeEnv),
+  __SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_JSON__: JSON.stringify(zcodeBuiltinProviderConfigJson),
 };
 
 function createSharedDefines() {
@@ -29,7 +29,6 @@ function createSharedDefines() {
 
 export const SERVER_HTTP_EXTERNAL_DEPENDENCIES = [
   "ssh2",
-  "node-pty",
   "undici",
   "axios",
   "form-data",
@@ -59,13 +58,13 @@ export default defineConfig({
   target: "node22",
   // workspace 包的 exports 指向 .ts 源码，node 运行时无法直接加载，需要 bundle 进来
   noExternal: [
-    "@zcode/shared",
-    "@zcode/rpc",
-    "@zcode/services",
-    "@zcode/services/node",
-    "@zcode/client",
+    "@social-harness/shared",
+    "@social-harness/rpc",
+    "@social-harness/services",
+    "@social-harness/services/node",
+    "@social-harness/client",
   ],
-  // ssh2 / node-pty 含 .node native addon，不能被 esbuild 处理。
+  // ssh2 含 .node native addon，不能被 esbuild 处理。
   // undici / axios 这类 CJS 依赖被内联进 ESM bundle 后，运行时会走到
   // require("assert") / require("util") / require("url") 等动态 require，Node 的 ESM wrapper 下会直接报 Dynamic require not supported。
   // HTTP server 场景保留为外部依赖，交给 Node 原生加载；remote 单文件 bundle 仍由 build-remote.ts 负责内联。

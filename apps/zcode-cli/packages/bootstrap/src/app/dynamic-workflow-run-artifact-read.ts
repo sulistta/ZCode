@@ -29,8 +29,8 @@
 import type {
   DynamicWorkflowRunArtifactBytes,
   ToolArtifactStorePort,
-} from "@zcode/contracts";
-import type { JournalStorePort } from "@zcode/dynamic-workflow";
+} from "@social-harness/contracts";
+import type { JournalStorePort } from "@social-harness/dynamic-workflow";
 
 import {
   artifactRowId,

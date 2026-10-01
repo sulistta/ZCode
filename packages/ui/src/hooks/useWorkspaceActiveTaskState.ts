@@ -1,5 +1,5 @@
 import { useMemo, useRef } from "react";
-import type { ZCodeProvider, ZCodeTaskMeta } from "@zcode/shared";
+import type { ZCodeProvider, ZCodeTaskMeta } from "@social-harness/shared";
 import { useActiveTaskSnapshotMeta } from "@/hooks/useActiveTaskSnapshotMeta.js";
 import { useTaskNativeSessionLogFile } from "@/hooks/useTaskNativeSessionLogFile.js";
 import { useTaskSessionFilePath } from "@/hooks/useTaskSessionFilePath.js";
@@ -125,9 +125,6 @@ export function useWorkspaceActiveTaskState({
   const resolvedActiveTaskMeta = useStableResolvedActiveTaskMeta(
     activeTaskMeta ?? activeTaskSnapshotMeta,
   );
-  // store 收尾：taskMessagesByTaskId 已无写入方（旧 ChatView/广播消息回放均退役），
-  // 由消息流派生的实时改动摘要恒为空；摘要展示回落到 task meta.changeSummary（持久化侧）。
-  const activeTaskChangeSummary = null;
   const activeTraceId = resolvedActiveTaskMeta?.traceId ?? null;
   const activeSessionId = resolvedActiveTaskMeta?.taskId ?? null;
   const activeTaskProvider = resolvedActiveTaskMeta?.provider ?? null;
@@ -158,7 +155,6 @@ export function useWorkspaceActiveTaskState({
     activeSessionId,
     activeTaskProvider,
     workspaceHeaderProvider,
-    activeTaskChangeSummary,
     activeTaskTitle,
     taskNativeSessionLogFile,
     taskSessionFile,

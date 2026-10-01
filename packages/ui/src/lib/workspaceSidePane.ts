@@ -1,5 +1,5 @@
-/* eslint-disable max-lines -- Side pane tab 状态集中维护 Browser/Git/CodeViewer/Treemapping/Whiteboard 的打开、复用、关闭和排序规则；拆分需要同步迁移现有内存恢复逻辑。 */
-import { createUuid, type BrowserTabResidencyState } from "@zcode/shared";
+/* eslint-disable max-lines -- Side pane tab 状态集中维护 Browser/CodeViewer/Whiteboard 的打开、复用、关闭和排序规则；拆分需要同步迁移现有内存恢复逻辑。 */
+import { createUuid, type BrowserTabResidencyState } from "@social-harness/shared";
 import { inferMediaPreview, isPptxPreviewPath, type CodeViewerSource } from "@/lib/codeViewer.js";
 import { normalizeCodeViewerSource } from "@/lib/codeViewerSource.js";
 
@@ -25,14 +25,6 @@ export type BrowserSidePaneMetadata = Partial<Pick<BrowserSidePaneTab, "faviconU
 
 export const BROWSER_USE_OPERATION_INDICATOR_DURATION_MS = 5_000;
 
-export interface GitSidePaneTab {
-  id: "git";
-  type: "git";
-  ownerTaskId?: string | null;
-  workspaceKey?: string | null;
-  openedAt?: number;
-}
-
 export interface CodeViewerSidePaneTab {
   id: string;
   type: "code-viewer";
@@ -41,19 +33,6 @@ export interface CodeViewerSidePaneTab {
   openedAt?: number;
   source: CodeViewerSource;
   sourceKey: string | null;
-}
-
-export type TreemappingSidePaneSource =
-  | { kind: "current" }
-  | { kind: "message"; messageId: string; turnIndex?: number };
-
-export interface TreemappingSidePaneTab {
-  id: "treemapping";
-  type: "treemapping";
-  ownerTaskId?: string | null;
-  workspaceKey?: string | null;
-  openedAt?: number;
-  source?: TreemappingSidePaneSource;
 }
 
 export interface WhiteboardSidePaneTab {
@@ -83,17 +62,6 @@ export interface DeveloperToolsSidePaneTab {
   ownerTaskId?: string | null;
   workspaceKey?: string | null;
   openedAt?: number;
-}
-
-export interface TerminalSidePaneTab {
-  id: string;
-  type: "terminal";
-  ownerTaskId?: string | null;
-  workspaceKey?: string | null;
-  openedAt?: number;
-  title: string;
-  cwd?: string;
-  remoteSessionId?: string | null;
 }
 
 /** browser-use 受控浏览器视图（renderer `<webview>` + main CDP）。 */
@@ -516,13 +484,10 @@ export interface OpenScopedSubagentSideTabRequest extends OpenSubagentSideTabReq
 export type WorkspaceSidePaneTab =
   | BackgroundBashSidePaneTab
   | BrowserSidePaneTab
-  | GitSidePaneTab
   | CodeViewerSidePaneTab
-  | TreemappingSidePaneTab
   | WhiteboardSidePaneTab
   | ModelTrajectorySidePaneTab
   | DeveloperToolsSidePaneTab
-  | TerminalSidePaneTab
   | BrowserUseSidePaneTab
   | SubagentSessionSidePaneTab
   | SubagentDirectorySidePaneTab
@@ -568,9 +533,18 @@ export function normalizeWorkspaceSidePaneState(
     return null;
   }
 
-  // Treemapping 当前需要从侧边栏隐藏。旧版本可能已经把 treemapping tab
-  // 写进了 workspace 级 side pane 记忆，这里在状态边界统一过滤，避免恢复后入口继续出现。
-  const filteredTabs = current.tabs.filter((tab) => tab.type !== "treemapping");
+  // 旧版本的 workspace 内存可能包含已移除的 Git、treemapping、code-review 或终端 tab。
+  // 在恢复边界丢弃它们，避免 Social Harness 重新挂载已退役的编程界面或 PTY。
+  const filteredTabs = current.tabs.filter((tab) => {
+    const type = (tab as { type: string }).type;
+    const sourceType = (tab as { source?: { type?: unknown } }).source?.type;
+    return (
+      type !== "git" &&
+      type !== "treemapping" &&
+      type !== "terminal" &&
+      !(type === "code-viewer" && sourceType === "code-review")
+    );
+  });
   if (filteredTabs.length === 0) {
     return null;
   }
@@ -646,10 +620,6 @@ function createBrowserSidePaneTab(options?: {
   };
 }
 
-function createGitSidePaneTab(): GitSidePaneTab {
-  return { id: "git", type: "git", openedAt: Date.now() };
-}
-
 function createModelTrajectorySidePaneTab(options: {
   taskId: string;
   title?: string | null;
@@ -669,21 +639,6 @@ function createDeveloperToolsSidePaneTab(): DeveloperToolsSidePaneTab {
     id: "developer-tools",
     type: "developer-tools",
     openedAt: Date.now(),
-  };
-}
-
-function createTerminalSidePaneTab(options: {
-  title: string;
-  cwd?: string;
-  remoteSessionId?: string | null;
-}): TerminalSidePaneTab {
-  return {
-    id: `terminal:${createUuid()}`,
-    type: "terminal",
-    openedAt: Date.now(),
-    title: options.title,
-    ...(options.cwd ? { cwd: options.cwd } : {}),
-    ...(options.remoteSessionId ? { remoteSessionId: options.remoteSessionId } : {}),
   };
 }
 
@@ -957,7 +912,6 @@ function getCodeViewerTabSourceKey(source: CodeViewerSource): string | null {
 
   if (
     source.type === "file" ||
-    source.type === "code-review" ||
     source.type === "image" ||
     source.type === "media" ||
     source.type === "pdf" ||
@@ -1052,9 +1006,7 @@ export function sidePaneOwnerKey(taskId: string | null | undefined): string {
 }
 
 const WORKSPACE_GLOBAL_SIDE_PANE_TAB_TYPES = new Set<WorkspaceSidePaneTab["type"]>([
-  "git",
   "developer-tools",
-  "treemapping",
 ]);
 
 function isWorkspaceGlobalSidePaneTab(tab: WorkspaceSidePaneTab): boolean {
@@ -1554,12 +1506,6 @@ export function openCodeViewerSidePanes(
   };
 }
 
-export function activateGitSidePane(
-  current: WorkspaceSidePaneState | null,
-): WorkspaceSidePaneState {
-  return activateSidePaneTab(current, createGitSidePaneTab());
-}
-
 export function openWhiteboardSidePane(
   current: WorkspaceSidePaneState | null,
   options: {
@@ -1584,13 +1530,6 @@ export function activateDeveloperToolsSidePane(
   current: WorkspaceSidePaneState | null,
 ): WorkspaceSidePaneState {
   return activateSidePaneTab(current, createDeveloperToolsSidePaneTab());
-}
-
-export function openTerminalSidePane(
-  current: WorkspaceSidePaneState | null,
-  options: { title: string; cwd?: string; remoteSessionId?: string | null },
-): WorkspaceSidePaneState {
-  return activateSidePaneTab(current, createTerminalSidePaneTab(options));
 }
 
 export function openSubagentSessionSidePane(
@@ -2171,28 +2110,11 @@ export function toggleBrowserSidePane(
   });
 }
 
-export function toggleGitSidePane(
-  current: WorkspaceSidePaneState | null,
-): WorkspaceSidePaneState | null {
-  const activeTab = getActiveSidePaneTab(current);
-  if (activeTab?.type === "git") {
-    return closeSidePaneTab(current, activeTab.id);
-  }
-
-  return activateGitSidePane(current);
-}
-
 export function closeCodeViewerSidePane(
   current: WorkspaceSidePaneState | null,
 ): WorkspaceSidePaneState | null {
   const activeTab = getActiveSidePaneTab(current);
   return activeTab?.type === "code-viewer" ? closeSidePaneTab(current, activeTab.id) : current;
-}
-
-export function closeGitSidePane(
-  current: WorkspaceSidePaneState | null,
-): WorkspaceSidePaneState | null {
-  return closeSidePaneTab(current, "git");
 }
 
 export function openBackgroundBashSidePane(

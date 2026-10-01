@@ -13,7 +13,7 @@ import {
   type AmendWorkflowPredecessor,
   type DynamicWorkflowRunSnapshot,
   type ModelCatalogPort,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type {
   ToolHandlerFailure,
   ToolInputResolutionContext,

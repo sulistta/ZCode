@@ -1,4 +1,4 @@
-import type { Logger } from "@zcode/contracts";
+import type { Logger } from "@social-harness/contracts";
 
 interface NormalizeModelToolInputOptions {
   logger?: Logger;

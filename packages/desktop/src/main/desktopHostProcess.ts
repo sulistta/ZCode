@@ -27,12 +27,12 @@ import {
   hostResponseMessageSchema,
   InternalChannels,
   LAUNCH_MARKS_QUERY_KEY,
-  RUNTIME_ZCODE_DEBUG,
+  RUNTIME_SOCIAL_HARNESS_DEBUG,
   serializeLaunchMarks,
   type RemoteTarget,
   type WorkspacePurpose,
-  ZCODE_DESKTOP_CONTEXT_PROMPT_ENABLED_ENV,
-} from "@zcode/shared";
+  SOCIAL_HARNESS_DESKTOP_CONTEXT_PROMPT_ENABLED_ENV,
+} from "@social-harness/shared";
 import { getMainLaunchPartialMarks } from "./desktopLaunchMarks.js";
 import { BroadcastHub } from "./broadcastHub.js";
 import type { TaskRealtimeBus } from "./taskRealtimeBus.js";
@@ -44,6 +44,7 @@ import {
   unregisterHostProcess,
 } from "./resourceManagerWindow.js";
 import { resolveHostResourceUsageResult } from "./resourceManagerHostSampling.js";
+import type { DesktopInstagramCredentialVault } from "./desktopInstagramCredentialVault.js";
 import {
   buildHostProcessEnv,
   hostModulePath,
@@ -224,13 +225,17 @@ export function spawnHostProcess(
     }) => Promise<{ ok: boolean; [k: string]: unknown }>;
     /** Host 已完成附件授权后，由 Main 将本地视频 realpath 加入精确协议授权集合。 */
     authorizeLocalMediaPreviewPath?: (path: string) => Promise<string>;
+    /** 对 Host 已验证的托管媒体签发不含本地路径的短期播放 capability。 */
+    createLocalMediaPreviewUrl?: (path: string) => Promise<{ url: string; expiresAt: number }>;
+    /** Host-only token access backed by Electron safeStorage in Main. */
+    instagramCredentialVault?: DesktopInstagramCredentialVault;
   },
   options?: SpawnHostProcessOptions,
 ): ElectronUtilityProcess {
   const hostId = randomUUID();
   const glmBinaryPath = resolveBundledGlmBinaryPath();
   const execArgv = [
-    ...(RUNTIME_ZCODE_DEBUG ? [`--inspect-brk=${RUNTIME_ZCODE_DEBUG}`] : []),
+    ...(RUNTIME_SOCIAL_HARNESS_DEBUG ? [`--inspect-brk=${RUNTIME_SOCIAL_HARNESS_DEBUG}`] : []),
     "--no-warnings",
   ];
   const child = electronUtilityProcess.fork(hostModulePath, [], {
@@ -239,19 +244,20 @@ export function spawnHostProcess(
     env: {
       ...buildHostProcessEnv(dependencies.hostProcessLocalEnv),
       ...buildHostE2ECoverageEnv(),
-      ZCODE_PROCESS_LABEL: label,
+      SOCIAL_HARNESS_PROCESS_LABEL: label,
       // macOS-only: the Computer Use Helper launcher runs inside this forked host utilityProcess, whose
       // code-signing identity is a nested Electron helper (NOT dev.zcode.app). Publish THIS (main
       // Electron) process's pid — which IS dev.zcode.app — so helperLauncher passes it as
       // `--launcher-pid` and the Helper's signature/peer verification succeeds instead of
       // health-timing out. Env-name mirror of services' LAUNCHER_PID_ENV. Not set on
       // Windows/Linux (CUA is macOS-only; nothing reads it there) to keep the host env pristine.
-      ...(process.platform === "darwin" ? { ZCODE_CUA_LAUNCHER_PID: String(process.pid) } : {}),
+      ...(process.platform === "darwin"
+        ? { SOCIAL_HARNESS_CUA_LAUNCHER_PID: String(process.pid) }
+        : {}),
       ...(dependencies.desktopContextPromptEnabled
         ? {
-            [ZCODE_DESKTOP_CONTEXT_PROMPT_ENABLED_ENV]: dependencies.desktopContextPromptEnabled()
-              ? "1"
-              : "0",
+            [SOCIAL_HARNESS_DESKTOP_CONTEXT_PROMPT_ENABLED_ENV]:
+              dependencies.desktopContextPromptEnabled() ? "1" : "0",
           }
         : {}),
     },
@@ -376,6 +382,81 @@ export function spawnHostProcess(
             error: error instanceof Error ? error.message : String(error),
           });
         });
+      return;
+    }
+
+    if (result.data.type === HostResponseTypes.LocalMediaPreviewUrlCreateRequest) {
+      const request = result.data;
+      const createPreviewUrl = dependencies.createLocalMediaPreviewUrl;
+      if (!createPreviewUrl) {
+        child.postMessage({
+          type: HostMessageTypes.LocalMediaPreviewUrlCreateResult,
+          requestId: request.requestId,
+          ok: false,
+          error: "Local media preview is unavailable.",
+        });
+        return;
+      }
+      void createPreviewUrl(request.path)
+        .then(({ url, expiresAt }) => {
+          child.postMessage({
+            type: HostMessageTypes.LocalMediaPreviewUrlCreateResult,
+            requestId: request.requestId,
+            ok: true,
+            url,
+            expiresAt,
+          });
+        })
+        .catch(() => {
+          // Adapter errors may include the private managed path; return a fixed message.
+          child.postMessage({
+            type: HostMessageTypes.LocalMediaPreviewUrlCreateResult,
+            requestId: request.requestId,
+            ok: false,
+            error: "Local media preview authorization failed.",
+          });
+        });
+      return;
+    }
+
+    if (result.data.type === HostResponseTypes.InstagramCredentialRequest) {
+      const request = result.data;
+      const vault = dependencies.instagramCredentialVault;
+      if (!vault) {
+        child.postMessage({
+          type: HostMessageTypes.InstagramCredentialResult,
+          requestId: request.requestId,
+          ok: false,
+          error: "OS secure credential storage is unavailable.",
+        });
+        return;
+      }
+      void (async () => {
+        let serializedCredential: string | null = null;
+        if (request.operation === "get") {
+          serializedCredential = await vault.get(request.accountId);
+        } else if (request.operation === "set") {
+          if (request.serializedCredential === undefined) {
+            throw new Error("Missing credential payload");
+          }
+          await vault.set(request.accountId, request.serializedCredential);
+        } else {
+          await vault.delete(request.accountId);
+        }
+        child.postMessage({
+          type: HostMessageTypes.InstagramCredentialResult,
+          requestId: request.requestId,
+          ok: true,
+          ...(request.operation === "get" ? { serializedCredential } : {}),
+        });
+      })().catch(() => {
+        child.postMessage({
+          type: HostMessageTypes.InstagramCredentialResult,
+          requestId: request.requestId,
+          ok: false,
+          error: "OS secure credential operation failed.",
+        });
+      });
       return;
     }
 

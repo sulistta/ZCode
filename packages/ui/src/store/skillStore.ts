@@ -1,12 +1,12 @@
 import { create } from "zustand";
 import {
   normalizeAgentProviderToZCodeAgent,
-  ZCODE_AGENT_PROVIDER,
+  SOCIAL_HARNESS_AGENT_PROVIDER,
   type ZCodeProvider,
   type SkillSummary,
   type SkillsCapability,
-} from "@zcode/shared";
-import type { ISkillsService } from "@zcode/services";
+} from "@social-harness/shared";
+import type { ISkillsService } from "@social-harness/services";
 import { shouldExposeE2EStoreBridge } from "@/lib/e2eStoreBridge.js";
 import { logger } from "@/logger.js";
 
@@ -79,7 +79,7 @@ export const useSkillStore = create<SkillStoreState>((set, get) => ({
   workspaceIdentity: null,
   loadedWorkspacePath: null,
   loadedWorkspaceIdentity: null,
-  provider: ZCODE_AGENT_PROVIDER,
+  provider: SOCIAL_HARNESS_AGENT_PROVIDER,
   loadedProvider: null,
   skills: [],
   capability: null,
@@ -94,7 +94,7 @@ export const useSkillStore = create<SkillStoreState>((set, get) => ({
     const currentState = get();
     const hasProvider = typeof providerOrSkillsService === "string";
     const provider = normalizeAgentProviderToZCodeAgent(
-      hasProvider ? providerOrSkillsService : ZCODE_AGENT_PROVIDER,
+      hasProvider ? providerOrSkillsService : SOCIAL_HARNESS_AGENT_PROVIDER,
     );
     const skillsService = hasProvider ? maybeSkillsService : providerOrSkillsService;
     const normalizedWorkspaceIdentity = workspaceIdentity?.trim() || null;
@@ -263,6 +263,6 @@ declare global {
 }
 
 if (shouldExposeE2EStoreBridge()) {
-  // E2E 诊断入口必须由 WDIO 显式打开，不能复用 ZCODE_ENV=test，避免产品测试环境暴露可变全局 store。
+  // E2E 诊断入口必须由 WDIO 显式打开，不能复用 SOCIAL_HARNESS_ENV=test，避免产品测试环境暴露可变全局 store。
   window.__skillStoreE2E = useSkillStore;
 }

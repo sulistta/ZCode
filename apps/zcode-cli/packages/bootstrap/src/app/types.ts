@@ -1,5 +1,5 @@
-import type { ZCodeToolExecResource, BackgroundBashOutputResult } from "@zcode/shared";
-import type { AiSdkModelAdapter } from "@zcode/adapters/model";
+import type { ZCodeToolExecResource, BackgroundBashOutputResult } from "@social-harness/shared";
+import type { AiSdkModelAdapter } from "@social-harness/adapters/model";
 import type {
   AgentRuntime,
   AgentRuntimeConfig,
@@ -20,18 +20,20 @@ import type {
   WorkspaceGenerateTextInput,
   WorkspaceHookReviewTarget,
   WorkspaceHookPolicyProvider,
-} from "@zcode/core";
+} from "@social-harness/core";
 import type {
   WorkspaceHookReviewDecision,
   WorkspaceHookTrustRevokeTarget,
-} from "@zcode/shared/zcode-protocol-v4";
-import type { ZCodeModelOption } from "@zcode/shared";
-import type { EffectiveModelSelectionResult } from "@zcode/shared/model-selection";
-export type { ZCodeModelOption } from "@zcode/shared";
+} from "@social-harness/shared/zcode-protocol-v4";
+import type { ZCodeModelOption } from "@social-harness/shared";
+import type { EffectiveModelSelectionResult } from "@social-harness/shared/model-selection";
+export type { ZCodeModelOption } from "@social-harness/shared";
 import type { ModelProviderSourceTitle } from "../model-config.js";
 import type { ZCodeInstalledPluginData } from "../plugins.js";
 import type {
   AutomationPort,
+  SocialAgentPort,
+  SocialProjectPort,
   OffPeakPort,
   BackgroundTaskCancelResult,
   CollaborationMode,
@@ -90,11 +92,11 @@ import type {
   WorkflowEvent,
   WorkflowRunListItem,
   ExecutionShellSelection,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { NodeReplBrowserBroker } from "./node-repl-browser-broker.js";
 import type { SessionTranscriptMessage } from "../session-transcript.js";
 import type { WorkspaceHookReviewCommandResult } from "./workspace-hook-review-controller.js";
-import type { AgentTelemetryRuntimeOwner, WorkspaceHookPolicy } from "@zcode/contracts";
+import type { AgentTelemetryRuntimeOwner, WorkspaceHookPolicy } from "@social-harness/contracts";
 import type { ProviderRegistryModelSource } from "./provider-registry-model-runtime.js";
 
 export interface WorkspaceHookReviewHostContext {
@@ -180,6 +182,8 @@ export interface ZCodeAppOptions {
   uiLocale?: UiLocale;
   onWorkflowEvent?: (event: WorkflowEvent) => void | Promise<void>;
   automationPort?: AutomationPort;
+  socialAgentPort?: SocialAgentPort;
+  socialProjectPort?: SocialProjectPort;
   offPeakPort?: OffPeakPort;
   /** 首次真实用户执行或 cold-resume fallback 时解析一次，之后由 app 生命周期缓存。 */
   resolveInitialBashShellSelection?: () => Promise<ExecutionShellSelection | undefined>;
@@ -212,7 +216,7 @@ export interface SubmitPromptOptionsBase {
 }
 
 export type SubmitPromptOptions = SubmitPromptOptionsBase &
-  import("@zcode/contracts").TurnBackgroundAttribution;
+  import("@social-harness/contracts").TurnBackgroundAttribution;
 
 export type PrepareUserExecutionBoundary = (
   options?: Pick<SubmitPromptOptions, "abortSignal" | "traceContext">,
@@ -328,7 +332,7 @@ export interface ZCodeApp {
   readSubagents(input?: {
     endedCursor?: string;
     endedLimit?: number;
-  }): Promise<import("@zcode/shared").ZCodeSessionSubagentsResult>;
+  }): Promise<import("@social-harness/shared").ZCodeSessionSubagentsResult>;
   readSubagentTranscript(
     childSessionId: string,
   ): Promise<import("./subagent-observation.js").SubagentTranscriptSnapshot>;

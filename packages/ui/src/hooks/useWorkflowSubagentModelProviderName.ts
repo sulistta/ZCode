@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ZCodeConfigOption } from "@zcode/shared";
+import type { ZCodeConfigOption } from "@social-harness/shared";
 import { selectWorkspaceZCodeState, useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
 
 /**

@@ -1,4 +1,4 @@
-import type { TuiSubmitPromptResult } from "@zcode/tui";
+import type { CommandCenterSubmitPromptResult } from "../contracts.js";
 import { thoughtLevelsToEffortOptions } from "../effort-options.js";
 import { rememberCurrentModelSelection } from "../model-selection.js";
 import type { CommandCenterDeps } from "../types.js";
@@ -8,7 +8,7 @@ const EFFORT_COMMAND_USAGE = "Use /effort <level>, /variant <level>, or /effort 
 export async function handleEffortCommand(
   args: string,
   deps: CommandCenterDeps,
-): Promise<TuiSubmitPromptResult> {
+): Promise<CommandCenterSubmitPromptResult> {
   const app = await deps.getApp();
   const current = app.getThoughtLevel?.();
   const levels = app.listThoughtLevels ? await app.listThoughtLevels() : undefined;

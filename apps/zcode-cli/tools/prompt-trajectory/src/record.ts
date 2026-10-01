@@ -287,7 +287,7 @@ async function loadZCodeModules(): Promise<{
     };
   } catch (error) {
     throw new Error(
-      "Missing built zcode-cli packages. Run `pnpm --filter @zcode/bootstrap^... build && pnpm --filter @zcode/bootstrap build` before `record`.",
+      "Missing built zcode-cli packages. Run `pnpm --filter @social-harness/bootstrap^... build && pnpm --filter @social-harness/bootstrap build` before `record`.",
       { cause: error },
     );
   }

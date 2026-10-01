@@ -5,8 +5,8 @@ import type {
   ModelReasoningContentBlock,
   ModelId,
   ModelProviderId,
-} from "@zcode/contracts";
-import { BUILTIN_MODEL_PROVIDER_IDS } from "@zcode/shared";
+} from "@social-harness/contracts";
+import { BUILTIN_MODEL_PROVIDER_IDS } from "@social-harness/shared";
 import { getStatusCode, unwrapRetryError } from "./failure-inspection.js";
 
 const EMPTY_ASSISTANT_CONTENT_FALLBACK = "(no content)";

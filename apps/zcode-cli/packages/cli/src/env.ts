@@ -3,13 +3,13 @@ import { homedir } from "node:os";
 import { dirname, join, parse, resolve } from "node:path";
 import { config as loadDotenv } from "dotenv";
 import {
-  ZCODE_RUNTIME_ENV_KEY,
+  SOCIAL_HARNESS_RUNTIME_ENV_KEY,
   buildZCodeToolEnvPassthroughEnv,
   normalizeZCodeRuntimeEnv,
   sanitizeZCodeRuntimeEnv,
   sanitizeZCodeRuntimeEnvInPlace,
   type ZCodeRuntimeEnv,
-} from "@zcode/shared/runtime-env";
+} from "@social-harness/shared/runtime-env";
 
 export type CliEnv = Record<string, string | undefined>;
 
@@ -112,12 +112,12 @@ export function shouldLoadCliDotenvForProtocolServer(env: CliEnv): boolean {
 }
 
 function applyCliRuntimeEnvDefaults(env: CliEnv, argv: readonly string[]): void {
-  env[ZCODE_RUNTIME_ENV_KEY] = resolveCliRuntimeEnv(env, argv);
+  env[SOCIAL_HARNESS_RUNTIME_ENV_KEY] = resolveCliRuntimeEnv(env, argv);
   applyBetaStorageDefault(env, argv);
 }
 
 function resolveCliRuntimeEnv(env: CliEnv, argv: readonly string[]): ZCodeRuntimeEnv {
-  const explicit = normalizeZCodeRuntimeEnv(env[ZCODE_RUNTIME_ENV_KEY]);
+  const explicit = normalizeZCodeRuntimeEnv(env[SOCIAL_HARNESS_RUNTIME_ENV_KEY]);
   if (explicit) {
     return explicit;
   }
@@ -131,9 +131,9 @@ function resolveCliRuntimeEnv(env: CliEnv, argv: readonly string[]): ZCodeRuntim
 }
 
 function applyBetaStorageDefault(env: CliEnv, argv: readonly string[]): void {
-  if (env.ZCODE_STORAGE_DIR?.trim()) return;
-  const explicitBeta = env.ZCODE_BETA === "1" || env.ZCODE_ENV === "beta";
-  const invokedAsBeta = argv.some((arg) => /(^|[/\\])zcode-beta(?:$|\.)/u.test(arg));
+  if (env.SOCIAL_HARNESS_STORAGE_DIR?.trim()) return;
+  const explicitBeta = env.SOCIAL_HARNESS_BETA === "1" || env.SOCIAL_HARNESS_ENV === "beta";
+  const invokedAsBeta = argv.some((arg) => /(^|[/\\])social-harness-beta(?:$|\.)/u.test(arg));
   if (!explicitBeta && !invokedAsBeta) return;
-  env.ZCODE_STORAGE_DIR = join(homedir(), ".zcode-beta");
+  env.SOCIAL_HARNESS_STORAGE_DIR = join(homedir(), ".social-harness-beta");
 }

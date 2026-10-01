@@ -1,4 +1,4 @@
-import type { ServiceAuthorityMode } from "@zcode/shared";
+import type { ServiceAuthorityMode } from "@social-harness/shared";
 
 export type ZCodeAgentPresentationSurface = "desktop";
 

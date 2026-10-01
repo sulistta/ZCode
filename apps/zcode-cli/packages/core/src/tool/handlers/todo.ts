@@ -17,7 +17,7 @@ import {
   type TodoReadOutput,
   type TodoWriteInput,
   type TodoWriteOutput,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { ToolEntry, ToolHandler } from "../types.js";
 
 const MAX_TODO_MODEL_BYTES = 100_000;

@@ -396,8 +396,6 @@ export const TID_SETTINGS_MEMORY_FILE_ICON = "settings-memory-file-icon";
 export const TID_SETTINGS_MEMORY_FILE_NAME = "settings-memory-file-name";
 /** Memory 文件更新时间（动态后缀为文件名） */
 export const TID_SETTINGS_MEMORY_FILE_UPDATED_AT = "settings-memory-file-updated-at";
-/** Memory 文件编辑器按钮组（动态后缀为文件名） */
-export const TID_SETTINGS_MEMORY_FILE_EDITOR_ACTIONS = "settings-memory-file-editor-actions";
 /** Memory 原始 Markdown 预览 */
 export const TID_SETTINGS_MEMORY_PREVIEW = "settings-memory-preview";
 /** 常规设置中的 AskUserQuestion 自动继续开关 */
@@ -498,14 +496,6 @@ export const TID_WORKSPACE_MORE_BUTTON = "workspace-more-button";
 export const TID_WORKSPACE_HELP_MENU_TRIGGER = "workspace-help-menu-trigger";
 /** 问号帮助菜单里的「资源管理器」项（仅桌面端） */
 export const TID_WORKSPACE_HELP_MENU_RESOURCE_MANAGER = "workspace-help-menu-resource-manager";
-/** 侧边栏打开工作区文件树按钮（动态后缀为 workspacePath） */
-export const TID_WORKSPACE_FILE_TREE_BUTTON = "workspace-file-tree-button";
-/** 工作区文件树面板 */
-export const TID_WORKSPACE_FILE_TREE_PANEL = "workspace-file-tree-panel";
-/** 工作区文件树刷新按钮 */
-export const TID_WORKSPACE_FILE_TREE_REFRESH_BUTTON = "workspace-file-tree-refresh-button";
-/** 工作区文件树条目（动态后缀为文件绝对路径） */
-export const TID_WORKSPACE_FILE_TREE_ROW = "workspace-file-tree-row";
 // SSH 错误提示
 /** SSH 连接错误信息 */
 export const TID_SSH_ERROR = "ssh-error";

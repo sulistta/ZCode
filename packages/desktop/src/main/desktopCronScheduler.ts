@@ -3,10 +3,11 @@
 // 把 host 回报的 CronRunResult 转回 scheduler 结算。scheduler 只碰 tasks-index，createTask 在 host 域执行。
 import { utilityProcess as electronUtilityProcess } from "electron";
 import type { UtilityProcess as ElectronUtilityProcess } from "electron";
-import { HostMessageTypes } from "@zcode/shared";
+import { HostMessageTypes } from "@social-harness/shared";
 import { buildHostProcessEnv, schedulerModulePath } from "./desktopRuntimeEnv.js";
 import { ingestSchedulerSelfResourceSample } from "./processResourceSelfHeapSource.js";
 import { registerSchedulerProcess, unregisterSchedulerProcess } from "./resourceManagerWindow.js";
+import { routeCronDispatchRequest } from "./cronDispatchRouter.js";
 import type {
   MainToSchedulerMessage,
   SchedulerToMainMessage,
@@ -63,7 +64,7 @@ export function spawnCronScheduler(deps: CronSchedulerDeps): CronSchedulerHandle
     execArgv: ["--no-warnings"],
     env: {
       ...buildHostProcessEnv(deps.hostProcessLocalEnv),
-      ZCODE_PROCESS_LABEL: "scheduler",
+      SOCIAL_HARNESS_PROCESS_LABEL: "scheduler",
     },
   });
 
@@ -104,52 +105,12 @@ export function spawnCronScheduler(deps: CronSchedulerDeps): CronSchedulerHandle
     }
 
     if (msg.type === "cron-dispatch-request") {
-      if (isDisposing) {
-        // App 退出时 Cron 与 Host 并行收口；进入 disposing 后继续派发会把新任务
-        // 发送给正在关闭的 Host。明确拒绝派发，避免为了保持串行而额外增加 1.5 秒退出延迟。
-        postToScheduler({
-          type: "cron-dispatch-result",
-          runId: msg.runId,
-          ok: false,
-          failureKind: "transient",
-          error: "app is shutting down",
-        });
-        return;
-      }
-      const host = deps.resolveDispatchHost();
-      if (!host) {
-        // 没有可派发的本地 host（无窗口/未就绪）：按 transient 回执，scheduler 退避后重试。
-        postToScheduler({
-          type: "cron-dispatch-result",
-          runId: msg.runId,
-          ok: false,
-          failureKind: "transient",
-          error: "no local host available",
-        });
-        return;
-      }
-      try {
-        host.postMessage({
-          type: HostMessageTypes.CronRun,
-          automationId: msg.automationId,
-          runId: msg.runId,
-          prompt: msg.prompt,
-          targetTaskId: msg.targetTaskId,
-          modelSelection: msg.modelSelection,
-          mode: msg.mode,
-          workspacePath: msg.workspacePath,
-          workspaceIdentity: msg.workspaceIdentity,
-        });
-      } catch (error) {
-        deps.logger.warn("[cron-scheduler] forward CronRun to host failed:", error);
-        postToScheduler({
-          type: "cron-dispatch-result",
-          runId: msg.runId,
-          ok: false,
-          failureKind: "transient",
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
+      routeCronDispatchRequest(msg, {
+        isDisposing,
+        postToScheduler,
+        resolveDispatchHost: deps.resolveDispatchHost,
+        logger: deps.logger,
+      });
       return;
     }
 

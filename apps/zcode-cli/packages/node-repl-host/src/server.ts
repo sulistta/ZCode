@@ -3,9 +3,9 @@ import { resolve } from "node:path";
 import { isMainThread, parentPort, Worker, workerData } from "node:worker_threads";
 import { INVALID_PARAMS, Server, type Tool } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
-import { JsInputJsonSchema } from "@zcode/contracts/tools/node-repl";
-// 值导入必须走 @zcode/core/repl 这条深路径：barrel 会把 core 的整张图拖进 bundle
-// （tool handlers → @zcode/dynamic-workflow → typescript，实测 21.7MB 且求值即崩
+import { JsInputJsonSchema } from "@social-harness/contracts/tools/node-repl";
+// 值导入必须走 @social-harness/core/repl 这条深路径：barrel 会把 core 的整张图拖进 bundle
+// （tool handlers → @social-harness/dynamic-workflow → typescript，实测 21.7MB 且求值即崩
 // ERR_AMBIGUOUS_MODULE_SYNTAX）。宿主只需要 REPL 会话本身。
 // 类型也一并从 /repl 取：总入口的顶层副作用会把 Agent、Bash 注册表和工作流编译器
 // 打入每个 REPL Worker，Worker 会重复承担这份开销。
@@ -13,8 +13,8 @@ import {
   NodeReplSession,
   type NodeReplRequestMeta,
   type NodeReplRunResult,
-} from "@zcode/core/repl";
-import { createComputerUseRuntime, type ComputerUseRuntime } from "@zcode/zcode-cua";
+} from "@social-harness/core/repl";
+import { createComputerUseRuntime, type ComputerUseRuntime } from "@social-harness/zcode-cua";
 import { z } from "zod";
 import { createBrowserBridgeGlobals, type ActiveNodeReplCall } from "./browser-bridge.js";
 import {
@@ -40,12 +40,12 @@ const MAX_SYNC_TIMEOUT_MS = 120_000;
 const UNTRUSTED_SESSION_KEY = "__unscoped__";
 const WORKER_KIND = "zcode-node-repl-call";
 export const NODE_REPL_MCP_PROCESS_TITLE = "zcode-node-repl-mcp";
-const pluginRoot = process.env.ZCODE_PLUGIN_ROOT ?? process.cwd();
+const pluginRoot = process.env.SOCIAL_HARNESS_PLUGIN_ROOT ?? process.cwd();
 // CUA 与 Browser Use 共用 node_repl host，但文档和 native 依赖必须按领域隔离；
 // 否则 CUA skill 会因为 host root 恰好来自 Browser Use 而再次产生隐式依赖。
 const browserDocumentationRoot = resolve(pluginRoot, "docs");
 const cuaDocumentationRoot = resolve(
-  process.env.ZCODE_CUA_PLUGIN_ROOT ?? pluginRoot,
+  process.env.SOCIAL_HARNESS_CUA_PLUGIN_ROOT ?? pluginRoot,
   "docs",
 );
 const jsInputSchema = z
@@ -372,11 +372,11 @@ if (!isMainThread && isWorkerCallData(workerData)) {
 export function captureComputerUseRuntimeFromEnvironment(
   env: NodeJS.ProcessEnv = process.env,
 ): ComputerUseRuntime | undefined {
-  const socketPath = env.ZCODE_CUA_PERMISSION_BROKER_SOCKET?.trim();
+  const socketPath = env.SOCIAL_HARNESS_CUA_PERMISSION_BROKER_SOCKET?.trim();
   if (!socketPath) return undefined;
   return createComputerUseRuntime({
     brokerSocketPath: socketPath,
-    refreshMarkerPath: env.ZCODE_CUA_PERMISSION_BROKER_REFRESH_MARKER?.trim(),
+    refreshMarkerPath: env.SOCIAL_HARNESS_CUA_PERMISSION_BROKER_REFRESH_MARKER?.trim(),
   });
 }
 

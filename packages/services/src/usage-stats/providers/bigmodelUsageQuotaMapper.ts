@@ -1,5 +1,5 @@
 import { isActivePersonalCodingPlan } from "#src/bigmodel/codingPlanEntitlement.js";
-import type { UsageQuotaLimit, UsageQuotaUsageDetail } from "@zcode/shared";
+import type { UsageQuotaLimit, UsageQuotaUsageDetail } from "@social-harness/shared";
 
 interface BigModelSubscriptionListItem {
   productId?: string;

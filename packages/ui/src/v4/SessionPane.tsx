@@ -1,6 +1,6 @@
 import { resolveSelectionSideInheritedModel } from "@/lib/selectionSideInheritedModel.js";
 import { useStartPlanRecommendation } from "@/hooks/useStartPlanRecommendation.js";
-import type { SessionCreateSource } from "@zcode/shared";
+import type { SessionCreateSource } from "@social-harness/shared";
 import { reportSessionCreate } from "@/lib/sessionCreateTelemetry.js";
 import { getLocalTtftObserver } from "@/v4/telemetry/localTtftObserver.js";
 /* oxlint-disable eslint(max-lines) -- SessionPane 是单 pane 竖切的命令编排收口（订阅/发送/停止/fork/edit/retry/queue/slash 全集），与旧 ChatView 同粒度；HEAD 已超限（693 行计数），拆散命令组会打散 dispatchCommand/snapshotRef 的闭包纪律。 */
@@ -22,15 +22,9 @@ import {
   TID_CHAT_EMPTY,
   TID_V4_SESSION_PANE,
   testId,
-  ZCODE_AGENT_PROVIDER,
-} from "@zcode/shared";
-import type {
-  ConversationShareAccessMode,
-  GitChangeSourceId,
-  GitRepositorySummary,
-  ZCodeProvider,
-  ZCodeTaskChangeSummary,
-} from "@zcode/shared";
+  SOCIAL_HARNESS_AGENT_PROVIDER,
+} from "@social-harness/shared";
+import type { ConversationShareAccessMode, ZCodeProvider } from "@social-harness/shared";
 import type {
   AttachmentRef,
   CommandAck,
@@ -41,7 +35,7 @@ import type {
   SessionErrorInfo,
   SessionModelTransition,
   V4ConversationFileChangesResult,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import { logger } from "@/logger.js";
 import {
   getConversationShareErrorDetails,
@@ -49,12 +43,15 @@ import {
   resolveConversationSharePublishErrorMessageId,
   sanitizeConversationShareWarnings,
 } from "@/lib/conversationShareError.js";
-import { localizeConversationShareUrl } from "@zcode/shared";
+import {
+  localizeConversationShareUrl,
+  parseSocialAccountWorkspaceIdentity,
+} from "@social-harness/shared";
 import type {
   ConversationShareAllowedArtifact,
   ConversationShareTurnPreflightResult,
   ImportedConversationShare,
-} from "@zcode/services";
+} from "@social-harness/services";
 import { toast } from "@/components/ui/toast.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { DEFAULT_CODE_PREVIEW_SETTINGS } from "@/lib/codePreviewSettings.js";
@@ -76,6 +73,7 @@ import { useWorkflowRunJournalSummaries } from "@/hooks/useWorkflowRunJournalSum
 import { usePlanIdentitySnapshot } from "@/hooks/usePlanIdentitySnapshot.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { useWorkspaceHomePath } from "@/hooks/useWorkspaceHomePath.js";
+import { isConversationSharingAvailable } from "@/lib/conversationSharingAvailability.js";
 import { prepareWorkspaceWithZCodeSessionService } from "@/hooks/useWorkspacePrepare.js";
 import {
   createCodingPlanFunnelContext,
@@ -302,6 +300,7 @@ export interface SessionPaneProps {
   /** Prompt 模板埋点当前仅覆盖 Desktop；Web / 手机远控保留 UI 行为但不触发该事件。 */
   isDesktop?: boolean;
   provider?: ZCodeProvider;
+  onOpenModelSettings?: () => void;
   onSessionCreated?: (sessionId: string) => void;
   /** deleteSession：删除当前会话后回到 draft（shell 起新草稿）。 */
   onSessionDeleted?: () => void;
@@ -326,22 +325,15 @@ export interface SessionPaneProps {
   /** 跨 workspace pane 的归属徽标（pane workspace ≠ shell 当前 workspace 时下发）。 */
   workspaceBadge?: PaneWorkspaceBadge;
   /**
-   * 草稿态 composer 上方的 contextHeader（m5：workspace 切换菜单 + Git 分支）。
+   * 草稿态 composer 上方的 contextHeader（workspace 切换菜单）。
    * 由 app-shell 构造下发（依赖 workspaceTabs / 远程连接回调等壳层能力）；
    * 非 primary pane 不下发（workspace 切换是壳级动作）。
    */
   draftComposerHeader?: ReactNode;
   /** 主草稿把 drop controller 提给 app shell 的标题栏；其他 pane 只在自身 surface 消费。 */
   onDropTargetControllerChange?: (controller: ConversationDropTargetController | null) => void;
-  gitSummary?: GitRepositorySummary | null;
-  gitDirtyFileCount?: number;
-  gitWorktreeReviewSourceId?: GitChangeSourceId | null;
-  gitWorktreeChangeSummary?: { added: number; removed: number } | null;
-  activeTaskChangeSummary?: ZCodeTaskChangeSummary | null;
   summaryPanelVariantOverride?: ChatViewSummaryPanelVariant | null;
   onSummaryPanelVariantOverrideChange?: (variant: ChatViewSummaryPanelVariant | null) => void;
-  onRefreshGit?: () => void;
-  onOpenGitReview?: (sourceId?: GitChangeSourceId) => void;
   onOpenBrowserUrl?: (url: string) => void;
   onOpenAutomationsMain?: OpenAutomationsMain;
   onOpenCodeViewer?: (source: CodeViewerSource) => void;
@@ -499,6 +491,7 @@ export function SessionPane({
   remoteSessionId,
   isDesktop = false,
   provider,
+  onOpenModelSettings,
   onSessionCreated,
   onSelectionSideChatUnavailable,
   focused = true,
@@ -509,15 +502,8 @@ export function SessionPane({
   workspaceBadge,
   draftComposerHeader,
   onDropTargetControllerChange,
-  gitSummary,
-  gitDirtyFileCount,
-  gitWorktreeReviewSourceId,
-  gitWorktreeChangeSummary,
-  activeTaskChangeSummary,
   summaryPanelVariantOverride,
   onSummaryPanelVariantOverrideChange,
-  onRefreshGit,
-  onOpenGitReview,
   onOpenBrowserUrl,
   onOpenAutomationsMain,
   onOpenCodeViewer,
@@ -553,6 +539,7 @@ export function SessionPane({
     fileRewindPreview,
   } = useV4Conversation();
   const platform = useOptionalPlatform();
+  const conversationSharingAvailable = isConversationSharingAvailable(workspaceIdentity);
   const { conversationShareService, modelSelectionService, zcodeSessionService, zcodeTaskService } =
     useServices();
   const { intl, locale } = useZCodeIntl();
@@ -595,7 +582,7 @@ export function SessionPane({
   const snapshot = state.snapshot;
   const newlyCreatedSessionIdRef = useRef<string | null>(null);
   const shareDraft = useConversationShareSelectionStore((storeState) =>
-    sessionId ? storeState.drafts[sessionId] : undefined,
+    conversationSharingAvailable && sessionId ? storeState.drafts[sessionId] : undefined,
   );
   const shareDockState = useConversationShareSelectionStore((storeState) =>
     sessionId ? storeState.dockStates[sessionId] : undefined,
@@ -610,7 +597,7 @@ export function SessionPane({
   const publishedShareUrl = shareDock.publishedShareUrl;
   const shareError = shareDock.error;
   const shareWarnings = shareDock.warnings;
-  const shareActive = shareDraft?.scope === "partial";
+  const shareActive = conversationSharingAvailable && shareDraft?.scope === "partial";
   const shareInSelectionStage = shareActive && (shareDraft?.stage ?? "selection") === "selection";
   // 遮罩、选择面板和背景滚动锁定必须共用同一裁决，否则面板收起后遮罩会残留。
   const shareSelectionPanelVisible = resolveConversationShareSelectionPanelVisible({
@@ -1411,10 +1398,13 @@ export function SessionPane({
         submission && (sessionId === null || targetSessionId === sessionId)
           ? captureAcceptedModelSelection(submission.modelSelection)
           : undefined;
+      // Bug 原因：draft createSession 只发送逻辑 workspace key；social-account:<id> 会在
+      // CLI 被旧解析器误当成本地路径。Host 需要保留 identity 隔离，同时用服务解析出的物理路径作 cwd。
+      const commandPayload = type === "createSession" ? { ...payload, workspacePath } : payload;
       const envelope = createCommandEnvelope({
         type,
         sessionId: targetSessionId,
-        payload: payload as never,
+        payload: commandPayload as never,
         ...(baseRevision !== undefined ? { baseRevision } : {}),
         ...(baseLogEpoch ? { baseLogEpoch } : {}),
       });
@@ -1450,7 +1440,11 @@ export function SessionPane({
       }
       let ack: CommandAck;
       try {
-        if (telemetrySeed?.localTtft && !workspaceIdentity?.trim()) {
+        if (
+          telemetrySeed?.localTtft &&
+          (!workspaceIdentity?.trim() ||
+            parseSocialAccountWorkspaceIdentity(workspaceIdentity) !== null)
+        ) {
           envelope.ttft = getLocalTtftObserver()?.dispatch(
             telemetrySeed.localTtft,
             workspacePath,
@@ -2989,7 +2983,9 @@ export function SessionPane({
         // 这里把 admission 前失败收口为 pane-local 错误横幅，不改变 desktop continuous 或
         // Web remote replayable 的发送/恢复语义，草稿仍由 Composer 原路径保留。
         setSendSubmissionError({
-          code: runtimeModelUnavailable ? "ZCODE_RUNTIME_MODEL_UNAVAILABLE" : "SEND_FAILED",
+          code: runtimeModelUnavailable
+            ? "SOCIAL_HARNESS_RUNTIME_MODEL_UNAVAILABLE"
+            : "SEND_FAILED",
           message: runtimeModelUnavailable
             ? detail
             : intl.formatMessage({ id: "chat.error.sendFailed" }),
@@ -3438,7 +3434,7 @@ export function SessionPane({
       if (!decoded?.providerId) {
         return;
       }
-      const displayProvider = provider ?? ZCODE_AGENT_PROVIDER;
+      const displayProvider = provider ?? SOCIAL_HARNESS_AGENT_PROVIDER;
       let modelValue = value;
       if (!decoded.modelName) {
         const fallbackModel =
@@ -3701,7 +3697,9 @@ export function SessionPane({
       ? snapshot
       : null;
   const shareHandoverContext =
-    snapshot?.sharedContextImport && "contextId" in snapshot.sharedContextImport
+    conversationSharingAvailable &&
+    snapshot?.sharedContextImport &&
+    "contextId" in snapshot.sharedContextImport
       ? snapshot.sharedContextImport
       : null;
   // 导入的分享对话：读取落盘的公开 rows 用于会话顶部的只读块。
@@ -3711,6 +3709,9 @@ export function SessionPane({
     shareHandoverContext && shareHandoverContext.status !== "discarded"
       ? shareHandoverContext.contextId
       : null;
+  // SessionPane can survive a workspace switch for one render before effects clear old state.
+  // Do not expose a previous workspace's imported share while that cleanup is pending.
+  const visibleImportedShare = conversationSharingAvailable ? importedShare : null;
   useEffect(() => {
     if (!importedShareContextId) {
       setImportedShare(null);
@@ -3741,22 +3742,22 @@ export function SessionPane({
   const importedShareArtifactNames = useMemo(
     () =>
       new Map(
-        (importedShare?.artifacts ?? []).map((artifact) => [
+        (visibleImportedShare?.artifacts ?? []).map((artifact) => [
           artifact.artifactId,
           artifact.displayName,
         ]),
       ),
-    [importedShare],
+    [visibleImportedShare],
   );
   const importedShareArtifactWorkspaceRelativePaths = useMemo(() => {
     const entries: Array<[string, string]> = [];
-    for (const artifact of importedShare?.artifacts ?? []) {
+    for (const artifact of visibleImportedShare?.artifacts ?? []) {
       if (artifact.workspaceRelativePath) {
         entries.push([artifact.artifactId, artifact.workspaceRelativePath]);
       }
     }
     return new Map(entries);
-  }, [importedShare]);
+  }, [visibleImportedShare]);
   useLayoutEffect(() => {
     if (
       !timelineBottomRequest ||
@@ -3831,11 +3832,7 @@ export function SessionPane({
   const statusPanelModel = useMemo(
     () =>
       buildConversationStatusPanelModel({
-        isOfficeMode,
         workspacePath,
-        gitSummary,
-        gitDirtyFileCount,
-        gitWorktreeChangeSummary,
         goal: selectionSideChat ? null : (snapshot?.goal ?? null),
         sessionPlans: state.sessionPlans,
         plan: snapshot?.plan ?? null,
@@ -3844,10 +3841,6 @@ export function SessionPane({
         workflowRuns: snapshot?.workflowRuns?.runs ?? [],
       }),
     [
-      isOfficeMode,
-      gitDirtyFileCount,
-      gitSummary,
-      gitWorktreeChangeSummary,
       snapshot?.backgroundWorks,
       snapshot?.goal,
       snapshot?.plan,
@@ -3983,9 +3976,13 @@ export function SessionPane({
     sendSubmissionError,
   ]);
   const handleOpenModelSettings = useCallback(() => {
+    if (onOpenModelSettings) {
+      onOpenModelSettings();
+      return;
+    }
     setPendingSettingsSectionIntent("modelProvider");
     openSettingsTab();
-  }, [openSettingsTab]);
+  }, [onOpenModelSettings, openSettingsTab]);
   const handleOpenModelUpgrade = useCallback(() => {
     if (!codingPlanUpgradeDialog) return;
     const providerId =
@@ -4143,7 +4140,10 @@ export function SessionPane({
         phase: activePhase,
         accessMode: shareDraft.accessMode,
         selectedProductTurnCount: productTurnIds.length,
-        remoteWorkspace: Boolean(workspaceIdentity || remoteSessionId),
+        remoteWorkspace: Boolean(
+          remoteSessionId ||
+          (workspaceIdentity && parseSocialAccountWorkspaceIdentity(workspaceIdentity) === null),
+        ),
         errorName: details.name,
         kind: details.kind,
         ...(details.reasonCode === undefined ? {} : { reasonCode: details.reasonCode }),
@@ -4427,7 +4427,7 @@ export function SessionPane({
       error={composerError}
       onDismissError={handleDismissComposerError}
       onOpenModelSettings={handleOpenModelSettings}
-      onOpenModelUpgrade={handleOpenModelUpgrade}
+      onOpenModelUpgrade={codingPlanUpgradeDialog ? handleOpenModelUpgrade : undefined}
       onOpenCodeViewer={onOpenCodeViewer}
       suppressGoalCommands={selectionSideChat}
       appSlashCommands={appSlashCommands}
@@ -4552,8 +4552,10 @@ export function SessionPane({
         />
       ) : null}
       {composerNode}
-      {/* 办公模式显示主动任务推荐；编程模式保留原有小型场景入口。 */}
-      {isDraft && (!isOfficeMode || sharedSettings?.proactiveSuggestionsEnabled === true) ? (
+      {/* 社交账号草稿不挂载旧场景推荐容器，避免访问已退役的 ZCode client/scenes API。 */}
+      {isDraft &&
+      parseSocialAccountWorkspaceIdentity(workspaceIdentity) === null &&
+      (!isOfficeMode || sharedSettings?.proactiveSuggestionsEnabled === true) ? (
         <ConversationDraftSuggestedPromptsContainer
           className={isOfficeMode ? "mt-4" : "mt-6"}
           proactive={isOfficeMode}
@@ -4641,12 +4643,6 @@ export function SessionPane({
         {!isDraft ? (
           <ConversationStatusPanel
             workspacePath={workspacePath}
-            workspaceIdentity={workspaceIdentity}
-            gitSummary={gitSummary}
-            gitDirtyFileCount={gitDirtyFileCount}
-            gitWorktreeReviewSourceId={gitWorktreeReviewSourceId}
-            gitWorktreeChangeSummary={gitWorktreeChangeSummary}
-            activeTaskChangeSummary={activeTaskChangeSummary}
             goal={selectionSideChat ? null : (snapshot?.goal ?? null)}
             sessionPlans={state.sessionPlans}
             plan={snapshot?.plan ?? null}
@@ -4665,8 +4661,6 @@ export function SessionPane({
             onAgentSectionOpenChange={setAgentSectionOpen}
             workflowSectionOpen={workflowSectionOpen}
             onWorkflowSectionOpenChange={setWorkflowSectionOpen}
-            onRefreshGit={onRefreshGit}
-            onOpenGitReview={onOpenGitReview}
             onPauseGoal={
               !readOnly && !selectionSideChat && snapshot?.availability.pauseGoal.allowed
                 ? handlePauseGoal
@@ -4764,11 +4758,12 @@ export function SessionPane({
               headerSlot={
                 // unsupportedRowCount 也要开这个门：整份副本的行都被本 build 跳过时
                 // rows 为空，但只读块必须留下来显示「需要更新 ZCode」，不能整块消失。
-                importedShare &&
-                (importedShare.rows.length > 0 || importedShare.unsupportedRowCount > 0) ? (
+                visibleImportedShare &&
+                (visibleImportedShare.rows.length > 0 ||
+                  visibleImportedShare.unsupportedRowCount > 0) ? (
                   <ConversationShareImportNotice
-                    rows={importedShare.rows}
-                    unsupportedRowCount={importedShare.unsupportedRowCount}
+                    rows={visibleImportedShare.rows}
+                    unsupportedRowCount={visibleImportedShare.unsupportedRowCount}
                     artifactNames={importedShareArtifactNames}
                     artifactWorkspaceRelativePaths={importedShareArtifactWorkspaceRelativePaths}
                     workspacePath={workspacePath}

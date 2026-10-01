@@ -31,6 +31,63 @@ modules:
     layers: { domain: domain, app: app, adapters: adapters }
     layerOrder: [domain, app, adapters]
     owner: desktop-settings
+  - id: social-account
+    roots: [packages/services/src/social-account]
+    requires: [shared, rpc, services]
+    managed: true
+    publicEntrypoints: [packages/services/src/social-account/contract.ts]
+    layers: { domain: domain, app: app, adapters: adapters }
+    layerOrder: [domain, app, adapters]
+    owner: social-account-service
+  - id: social-media
+    roots: [packages/services/src/social-media]
+    requires: [shared, rpc, services, social-account]
+    managed: true
+    publicEntrypoints: [packages/services/src/social-media/contract.ts]
+    layers: { domain: domain, app: app, adapters: adapters }
+    layerOrder: [domain, app, adapters]
+    owner: social-media-service
+  - id: social-project
+    roots: [packages/services/src/social-project]
+    requires: [shared, rpc, services, social-account, social-media, opencut-core]
+    managed: true
+    publicEntrypoints: [packages/services/src/social-project/contract.ts]
+    layers: { domain: domain, app: app, adapters: adapters }
+    layerOrder: [domain, app, adapters]
+    owner: social-project-service
+  - id: social-agent
+    roots: [packages/services/src/social-agent]
+    requires: [shared, social-account, social-media, social-project, social-publishing]
+    managed: true
+    publicEntrypoints: [packages/services/src/social-agent/contract.ts]
+    layers: { domain: domain, app: app }
+    layerOrder: [domain, app]
+    owner: social-agent-context-service
+  - id: opencut-core
+    roots: [packages/opencut-core/src]
+    requires: [shared]
+    managed: true
+    publicEntrypoints: [packages/opencut-core/src/contract.ts]
+    layers: { domain: domain }
+    layerOrder: [domain]
+    owner: social-editor-core
+  - id: social-publishing
+    roots: [packages/services/src/social-publishing]
+    requires: [shared, rpc, services, social-account, social-project]
+    managed: true
+    publicEntrypoints: [packages/services/src/social-publishing/contract.ts]
+    layers: { domain: domain, app: app, adapters: adapters }
+    layerOrder: [domain, app, adapters]
+    owner: social-publishing-service
+  - id: social-auth-bridge
+    roots: [packages/social-auth-bridge/src]
+    requires: []
+    managed: true
+    publicEntrypoints:
+      [packages/social-auth-bridge/src/app.ts, packages/social-auth-bridge/src/contract.ts]
+    layers: { domain: domain, app: app, adapters: adapters }
+    layerOrder: [domain, app, adapters]
+    owner: instagram-oauth-bridge
   - id: client
     roots: [packages/client/src]
     managed: false

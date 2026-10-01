@@ -15,6 +15,7 @@ import {
 
 const GITHUB_HOSTS = new Set(["github.com", "www.github.com"]);
 const GITHUB_REPOSITORY_SEGMENT = /^[A-Za-z0-9_.-]+$/u;
+export const GITHUB_ARCHIVE_USER_AGENT = "Social-Harness-Plugin-Installer";
 
 interface PublicGitHubRepository {
   owner: string;
@@ -91,7 +92,8 @@ export async function resolveGitHubArchiveSource(
   const resolved = await resolveHttpZipSource({
     headers: {
       Accept: "application/vnd.github+json",
-      "User-Agent": "ZCode-Plugin-Installer",
+      // GitHub 请求由 Social Harness Agent 发起，不能再标记为已退役的 ZCode CLI。
+      "User-Agent": GITHUB_ARCHIVE_USER_AGENT,
     },
     requireSingleRoot: true,
     signal: input.signal,

@@ -1,5 +1,8 @@
-import type { IServiceAccessor } from "@zcode/services";
-import type { EnterpriseCodingPlanPricingProduct, ProviderFamilyDomain } from "@zcode/shared";
+import type { IServiceAccessor } from "@social-harness/services";
+import type {
+  EnterpriseCodingPlanPricingProduct,
+  ProviderFamilyDomain,
+} from "@social-harness/shared";
 import { logger } from "@/logger.js";
 
 type EnterprisePricingProductsResult =

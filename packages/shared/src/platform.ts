@@ -103,12 +103,20 @@ export interface BrowserViewCloseTabRequest {
   sessionId: string;
 }
 
-export const LOCAL_MEDIA_PREVIEW_SCHEME = "zcode-media";
+export const LOCAL_MEDIA_PREVIEW_SCHEME = "social-harness-media";
 
 export function buildLocalMediaPreviewUrl(path: string): string {
   const url = new URL(`${LOCAL_MEDIA_PREVIEW_SCHEME}://local/preview`);
   url.searchParams.set("path", path);
   return url.toString();
+}
+
+/** Build an opaque, unguessable preview URL from a Main-issued capability token. */
+export function buildLocalMediaPreviewCapabilityUrl(token: string): string {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(token)) {
+    throw new Error("Invalid local media preview capability token");
+  }
+  return `${LOCAL_MEDIA_PREVIEW_SCHEME}://local/preview/${token}`;
 }
 
 /**
@@ -464,8 +472,6 @@ export interface BindRemoteWorkspaceSessionContextRequest {
 }
 
 export const DesktopCommandIds = {
-  NewTask: "newTask",
-  OpenWorkspace: "openWorkspace",
   CloseActiveContext: "closeActiveContext",
   CloseWindow: "closeWindow",
   MinimizeWindow: "minimizeWindow",
@@ -476,7 +482,6 @@ export const DesktopCommandIds = {
   ZoomIn: "zoomIn",
   ZoomOut: "zoomOut",
   ShowAbout: "showAbout",
-  OpenChangelog: "openChangelog",
   CheckForUpdates: "checkForUpdates",
   RelaunchApp: "relaunchApp",
   OpenFeedback: "openFeedback",
@@ -485,12 +490,7 @@ export const DesktopCommandIds = {
   ToggleDevTools: "toggleDevTools",
   OpenResourceManager: "openResourceManager",
   ToggleZCodeStdioTapDevProxy: "toggleZCodeStdioTapDevProxy",
-  SetZCodeEndpointProduction: "setZCodeEndpointProduction",
-  SetZCodeEndpointTest: "setZCodeEndpointTest",
-  SetZCodeEndpointCustom: "setZCodeEndpointCustom",
-  ResetZCodeEndpoint: "resetZCodeEndpoint",
   ClearAllData: "clearAllData",
-  ClearCodingPlanWebviewStorage: "clearCodingPlanWebviewStorage",
   GetCuaOsSupport: "getCuaOsSupport",
 } as const;
 
@@ -551,7 +551,7 @@ export interface IPlatformService {
   createLocalMediaPreviewUrl?(path: string): string;
 
   /**
-   * 在宿主 ~/.zcode 临时目录创建文本附件文件。
+   * 在宿主 Social Harness 临时目录创建文本附件文件。
    * 手机远控必须通过 shared-host/platform proxy 写到桌面宿主，避免大文本进入 prompt payload。
    */
   createTempTextAttachment?(
@@ -669,15 +669,6 @@ export interface IPlatformService {
    */
   onOAuthCallback(callback: (url: string) => void): () => void;
 
-  /**
-   * 注册支付 deep link 回调监听
-   * @returns disposer 函数，调用后只移除当前回调
-   */
-  onPaymentCallback(callback: (url: string) => void): () => void;
-
-  /** 注册 `zcode://share/import?code=...` 导入意图。 */
-  onShareImport?(callback: (payload: { shareCode: string }) => void): () => void;
-
   /** 通知 main process renderer 已就绪，触发缓存的冷启动 deep link 转发 */
   notifyRendererReady(): void;
 
@@ -789,15 +780,6 @@ export interface IPlatformService {
     handler: (payload: BrowserViewResidencyTransitionPayload) => void,
   ): () => void;
 
-  /** 注册 main 进程触发新建任务的回调，返回 disposer */
-  onNewTask(handler: () => void): () => void;
-
-  /** 注册 main 进程触发打开工作区的回调，返回 disposer */
-  onOpenWorkspace(handler: () => void): () => void;
-
-  /** 注册 main 进程通过 deep link 直接打开本地工作区目录的回调，返回 disposer */
-  onOpenWorkspacePath?(handler: (path: string) => void): () => void;
-
   /** 注册窗口全屏状态变化回调，返回 disposer */
   onWindowFullscreenChanged(handler: (isFullscreen: boolean) => void): () => void;
 
@@ -826,7 +808,7 @@ export interface IPlatformService {
   /** 注册用户点击系统通知后跳转到对应任务的回调，返回 disposer */
   onTaskNotificationClick(handler: (taskId: string) => void): () => void;
 
-  /** 导出日志：打包 ~/.zcode/v2 及外部 agent 日志为 zip 并在系统文件浏览器中显示 */
+  /** 导出日志：打包 Social Harness 及外部 Agent 日志为 zip 并在系统文件浏览器中显示 */
   exportLogs(): Promise<{ success: boolean; path?: string; error?: string }>;
 
   /** 截取当前窗口，用于错误反馈携带现场画面；Web fallback 可返回 null */

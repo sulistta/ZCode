@@ -1,8 +1,8 @@
 import { registerHostToolExecResourceTelemetry } from "./hostToolExecResourceTelemetry.js";
 import { registerHostMcpResourceTelemetry } from "./hostMcpResourceTelemetry.js";
-import type { IDisposable } from "@zcode/rpc";
-import { IZCodeAgentService, type ServiceCollection } from "@zcode/services";
-import type { ProcessResourceRuntimeSurface } from "@zcode/shared";
+import type { IDisposable } from "@social-harness/rpc";
+import { IZCodeAgentService, type ServiceCollection } from "@social-harness/services";
+import type { ProcessResourceRuntimeSurface } from "@social-harness/shared";
 import { registerHostAgentResourceTelemetry } from "./hostAgentResourceTelemetry.js";
 import { registerHostMcpTelemetry } from "./hostMcpTelemetry.js";
 
