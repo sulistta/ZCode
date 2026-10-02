@@ -114,3 +114,17 @@ test("the local diagnostic viewer stays outside the application production depen
   assert.ok(!inventory.reviewRequired.some(({ id }) => id === "semaphore@1.1.0"));
   assert.ok(inventory.developmentReviewRequired.some(({ id }) => id === "semaphore@1.1.0"));
 });
+
+test("payment processor SDKs stay out of the Social Harness production dependency graph", async () => {
+  const [uiManifestContents, inventoryContents] = await Promise.all([
+    readFile(new URL("../packages/ui/package.json", import.meta.url), "utf8"),
+    readFile(new URL("../third-party/inventory.json", import.meta.url), "utf8"),
+  ]);
+  const uiManifest = JSON.parse(uiManifestContents);
+  const inventory = JSON.parse(inventoryContents);
+
+  assert.ok(
+    !Object.keys(uiManifest.dependencies ?? {}).some((name) => name.startsWith("@stripe/")),
+  );
+  assert.ok(!inventory.packages.some(({ name }) => name.startsWith("@stripe/")));
+});

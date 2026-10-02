@@ -464,10 +464,6 @@ Original copyright, license and NOTICE text is retained below. Identical text is
 
 - @streamdown/mermaid@1.0.2 — Apache-2.0
 
-- @stripe/react-stripe-js@6.4.0 — MIT
-
-- @stripe/stripe-js@9.6.0 — MIT
-
 - @szmarczak/http-timer@4.0.6 — MIT
 
 - @tanstack/react-virtual@3.13.23 — MIT
@@ -1312,8 +1308,6 @@ Original copyright, license and NOTICE text is retained below. Identical text is
 
 - nth-check@2.1.1 — BSD-2-Clause
 
-- object-assign@4.1.1 — MIT
-
 - object-keys@1.1.1 — MIT
 
 - omggif@1.0.10 — MIT
@@ -1394,8 +1388,6 @@ Original copyright, license and NOTICE text is retained below. Identical text is
 
 - progress@2.0.3 — MIT
 
-- prop-types@15.8.1 — MIT
-
 - property-information@7.1.0 — MIT
 
 - protobufjs@7.5.5 — BSD-3-Clause
@@ -1419,8 +1411,6 @@ Original copyright, license and NOTICE text is retained below. Identical text is
 - react-dom@19.2.7 — MIT
 
 - react-error-boundary@6.1.1 — MIT
-
-- react-is@16.13.1 — MIT
 
 - react-is@18.3.1 — MIT
 
@@ -10239,39 +10229,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ````
 
-### Notice f5ecc63f26b1bf790f68fd8e4a84376385b19b9246100dc93a5b6ba9bf17f964
-
-- @stripe/react-stripe-js@6.4.0: LICENSE
-
-- @stripe/stripe-js@9.6.0: LICENSE
-
-
-
-````text
-MIT License
-
-Copyright (c) 2017 Stripe
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-````
-
 ### Notice 0194571d45a06ea2a22ceb51f981e3be92525966d28847dbc0d9982603bf90de
 
 - @szmarczak/http-timer@4.0.6: LICENSE
@@ -12352,8 +12309,6 @@ SOFTWARE.
 - lowercase-keys@2.0.0: readme.md (license section)
 
 - mimic-response@1.0.1: readme.md (license section)
-
-- object-assign@4.1.1: readme.md (license section)
 
 - p-locate@4.1.0: readme.md (license section)
 
@@ -14742,8 +14697,6 @@ Day.js is licensed under a [MIT License](./LICENSE).
 ### Notice 6fb9754611c20f6649f68805e8c990e83261f29316e29de9e6cedae607b8634c
 
 - decamelize@1.2.0: license
-
-- object-assign@4.1.1: license
 
 
 
@@ -29476,52 +29429,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ````
 
-### Notice f657f99d3fb9647db92628e96007aabb46e5f04f33e49999075aab8e250ca7ce
-
-- prop-types@15.8.1: LICENSE
-
-- warning@4.0.3: LICENSE.md
-
-
-
-````text
-MIT License
-
-Copyright (c) 2013-present, Facebook, Inc.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-````
-
-### Notice ca980af9aad75880631440fc14082e1a217b1ea3e615cf715469468bee6a8ef4
-
-- prop-types@15.8.1: README.md (license section)
-
-
-
-````text
-### License
-
-prop-types is [MIT licensed](./LICENSE).
-
-````
-
 ### Notice c4cb93eae39264b5b3cf06e4e497e5c42349c8dd2d59e99b50f2307f15fdaed6
 
 - property-information@7.1.0: readme.md (license section)
@@ -29834,8 +29741,6 @@ SOFTWARE.
 ````
 
 ### Notice 52412d7bc7ce4157ea628bbaacb8829e0a9cb3c58f57f99176126bc8cf2bfc85
-
-- react-is@16.13.1: LICENSE
 
 - react-is@18.3.1: LICENSE
 
@@ -34623,6 +34528,37 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+````
+
+### Notice f657f99d3fb9647db92628e96007aabb46e5f04f33e49999075aab8e250ca7ce
+
+- warning@4.0.3: LICENSE.md
+
+
+
+````text
+MIT License
+
+Copyright (c) 2013-present, Facebook, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 ````
 
 ### Notice 42ada6a691750b26bb5e3dfd0bd232dee08142f00fc029fde7fa165d357242ec
