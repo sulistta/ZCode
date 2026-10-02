@@ -140,6 +140,10 @@ console.log("[dev] Starting Electron...");
 const electronBinary = resolveLocalElectronBinary();
 let electronCommand = existsSync(electronBinary) ? electronBinary : "electron";
 const electronArguments = ["."];
+if (process.platform === "linux" && process.env.SOCIAL_HARNESS_E2E_NO_SANDBOX === "1") {
+  // CI 的 rootless Xvfb runner 无法修复 Electron sandbox helper 的 root 所有者；仅 E2E 显式 opt-in 时关闭它。
+  electronArguments.push("--no-sandbox");
+}
 const requestedCdpPort = electronEnvironment.SOCIAL_HARNESS_E2E_CDP_PORT?.trim();
 if (requestedCdpPort && requestedCdpPort !== "auto") {
   // Electron 默认 app 的入口位于 process.argv[1]；remote-debugging 参数需跟在入口后，避免破坏 deep-link 注册。

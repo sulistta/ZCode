@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FileAudio, FileImage, FileVideo, RefreshCw, Upload } from "lucide-react";
 import type { SocialAccount } from "@social-harness/shared";
 import type {
@@ -49,6 +49,11 @@ export function SocialLibraryHome({
   const platform = usePlatform();
   const { intl, locale } = useZCodeIntl();
   const [assets, setAssets] = useState<SocialMediaAsset[]>([]);
+  // 快照变化只更新 ref；若让 loadJobs 捕获 assets，刷新会改变回调身份并反复重启 Library 加载 effect。
+  const assetsRef = useRef(assets);
+  useEffect(() => {
+    assetsRef.current = assets;
+  }, [assets]);
   const [jobs, setJobs] = useState<SocialMediaJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isWorking, setIsWorking] = useState(false);
@@ -79,7 +84,7 @@ export function SocialLibraryHome({
           (job) =>
             job.state === "completed" &&
             job.mediaId &&
-            !assets.some((asset) => asset.mediaId === job.mediaId),
+            !assetsRef.current.some((asset) => asset.mediaId === job.mediaId),
         )
       ) {
         void loadAssets();
@@ -87,7 +92,7 @@ export function SocialLibraryHome({
     } catch {
       // onJobChanged and the next snapshot poll will reconcile after transient Host errors.
     }
-  }, [account.accountId, assets, loadAssets, service]);
+  }, [account.accountId, loadAssets, service]);
 
   useEffect(() => {
     const assetSubscription = service.onChanged((change) => {

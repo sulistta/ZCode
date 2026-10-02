@@ -89,6 +89,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     env:
       SOCIAL_HARNESS_SKIP_REMOTE_ASSETS: "1"
+      SOCIAL_HARNESS_E2E_NO_SANDBOX: "1"
     steps:
       - uses: actions/checkout@v4
 
@@ -113,7 +114,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: packages/desktop/bundled-tools/${{ steps.target.outputs.key }}
-          key: social-harness-runtime-${{ steps.target.outputs.key }}-${{ hashFiles('pnpm-lock.yaml', 'scripts/social-media-tools-config.mjs', 'scripts/native-search-tools-config.mjs', 'packages/desktop/scripts/prepare-ffmpeg-runtime.mjs', 'packages/desktop/scripts/prepare-social-media-tools.mjs', 'packages/desktop/scripts/prepare-whisper-runtime.mjs') }}
+          key: social-harness-runtime-${{ steps.target.outputs.key }}-${{ hashFiles('pnpm-lock.yaml', 'apps/zcode-cli/pnpm-lock.yaml', 'scripts/social-media-tools-config.mjs', 'scripts/native-search-tools-config.mjs', 'packages/desktop/scripts/prepare-ffmpeg-runtime.mjs', 'packages/desktop/scripts/prepare-social-media-tools.mjs', 'packages/desktop/scripts/prepare-whisper-runtime.mjs') }}
 
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
@@ -217,7 +218,9 @@ jobs:
 
       - name: Validate Compose configuration
         working-directory: packages/social-auth-bridge
-        run: docker compose --env-file .env.example config --no-env-resolution --quiet
+        run: |
+          cp .env.example .env
+          docker compose --env-file .env.example config --no-env-resolution --quiet
 
       - name: Build and smoke-test the bridge image
         shell: bash
