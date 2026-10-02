@@ -919,9 +919,7 @@ export default {
     // 安装盘图标统一使用安装专用素材，避免复用应用图标导致安装识别度不足。
     icon: "build/icon_installer.icns",
     contents: [
-      // 实验性调整：为隐藏资源文件显式指定图标坐标，尽量把它们移到角落区域。
-      { x: 640, y: 56, type: "file", path: ".background.tiff" },
-      { x: 640, y: 56, type: "file", path: ".VolumeIcon.icns" },
+      // dmg-builder 负责创建背景图和卷图标；将这些生成文件再声明为输入文件会令 ditto 查找不存在的路径。
       { x: 130, y: 220 },
       { x: 410, y: 220, type: "link", path: "/Applications" },
     ],
