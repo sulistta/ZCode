@@ -14,6 +14,11 @@ node scripts/licenses.mjs check
 node scripts/licenses.mjs check --strict
 ```
 
+The Desktop validation workflow also runs
+`node --test scripts/third-party-review-scope.test.mjs` to pin the rules that
+keep application dependencies in the release gate and development-only tools
+outside it.
+
 `notices` regenerates `THIRD-PARTY-NOTICES.md` and refreshes the inventory's
 input and notice hashes. Review both generated files before accepting the
 change. The regular `check` validates installed package license identifiers
@@ -38,11 +43,14 @@ their applicable notices. Copied components default to the application release
 scope. A `distributionScope: "development-only"` record is allowed only for
 files that remain in `.agents/skills/` and are outside the Desktop package's
 file list; its unresolved material appears in `developmentReviewRequired`, not
-the application release gate. Keep the source and review record in the
-inventory. The generator determines npm scope from the workspace dependency
-graph; do not manually relabel or delete an unresolved record to make strict
-mode pass. If a package later enters the production graph, its record moves
-back into `reviewRequired` automatically.
+the application release gate. Internal diagnostic packages that are not
+dependencies of a shipped app or Agent artifact must also declare their
+runtime packages as development dependencies; ordinary developer installs
+still provide them when the diagnostic tool is run. Keep these source and
+review records in the inventory. The generator determines npm scope from the
+workspace dependency graph; do not manually relabel or delete an unresolved
+record to make strict mode pass. If a package later enters the production
+graph, its record moves back into `reviewRequired` automatically.
 
 ## Release gate
 

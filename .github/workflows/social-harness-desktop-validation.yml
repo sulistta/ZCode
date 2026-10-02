@@ -58,6 +58,9 @@ jobs:
       - name: Install internal headless Agent workspace dependencies
         run: pnpm --dir apps/zcode-cli install --frozen-lockfile
 
+      - name: Test third-party review scope
+        run: node --test scripts/third-party-review-scope.test.mjs
+
       - name: Typecheck
         run: pnpm typecheck
 

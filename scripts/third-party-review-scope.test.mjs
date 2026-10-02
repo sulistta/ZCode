@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   partitionCopiedComponentReviews,
@@ -97,4 +98,19 @@ test("development-only agent skill reviews stay outside the application release 
       ]),
     /must stay under \.agents\/skills\//u,
   );
+});
+
+test("the local diagnostic viewer stays outside the application production dependency graph", async () => {
+  const [debugManifestContents, inventoryContents] = await Promise.all([
+    readFile(new URL("../apps/zcode-cli/packages/debug/package.json", import.meta.url), "utf8"),
+    readFile(new URL("../third-party/inventory.json", import.meta.url), "utf8"),
+  ]);
+  const debugManifest = JSON.parse(debugManifestContents);
+  const inventory = JSON.parse(inventoryContents);
+
+  assert.equal(debugManifest.private, true);
+  assert.deepEqual(debugManifest.dependencies ?? {}, {});
+  assert.ok(debugManifest.devDependencies["http-mitm-proxy"]);
+  assert.ok(!inventory.reviewRequired.some(({ id }) => id === "semaphore@1.1.0"));
+  assert.ok(inventory.developmentReviewRequired.some(({ id }) => id === "semaphore@1.1.0"));
 });

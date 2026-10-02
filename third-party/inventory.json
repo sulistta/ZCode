@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "inputHashEncoding": "UTF-8 with CRLF normalized to LF; notice and source snapshot hashes remain byte-exact",
   "scope": "Production dependency union across current workspace projects, copied source/assets and native tools; not a per-installer SBOM or a certification of all licensing obligations.",
-  "noticesSha256": "13309d2110cbf7ccf21cca1ecd1adb935cc1999397534f98ace12c915e86ed26",
+  "noticesSha256": "20c9a5535fa3800e8793f50747632e3014efc9de94b955c02094ba4dbf4affb9",
   "inputs": {
     ".agents/skills/agent-browser/references/authentication.md": "e2c3b0f4a1dc1368dee821f03c000d818a48421d09f3872525dddffe73f2112b",
     ".agents/skills/agent-browser/references/commands.md": "17522fc56d742663f47231ff06c4811abc87e12c7f78e11f94d253ddd540a909",
@@ -227,7 +227,7 @@
     "apps/zcode-cli/packages/contracts/package.json": "e80b4ce01b4dcf9979a2904026fa455f9bb15a56d361ab61ec2bfe5bee6ee857",
     "apps/zcode-cli/packages/core/package.json": "e7d2d6aaa16ca4ffcda2f64260fc9d356a43a408a07873d7c6db4c94b64a3cf4",
     "apps/zcode-cli/packages/core/src/tool/handlers/generated/bash-command-registry.ts": "60fa5acd9f5c357f4e51b1d1e944ee39da92680e4bc5e98dd708f1457fcf612b",
-    "apps/zcode-cli/packages/debug/package.json": "ee37679cf077073d2dd150865c5463714af1f60c65d9488253156e9683db4742",
+    "apps/zcode-cli/packages/debug/package.json": "f4adac4179a7c2336205a2ca408e167c75cfa2ea26999842cd4db53724a0b9c0",
     "apps/zcode-cli/packages/dynamic-workflow-runtime/package.json": "f86b891fa8fd2014f5ebcad2cf1d0e58adfbb7a823587fc0eadb9e5f7b1c969a",
     "apps/zcode-cli/packages/dynamic-workflow/package.json": "047f76d271d6eca811cd6818e1d4ebd3263e1eb9dc6554e9bbe4f802b6fbb2f4",
     "apps/zcode-cli/packages/i18n/package.json": "71f360cad7c60af131cc6443e716dac003fd7d57e2df0ccb3c9ce54fe22b2017",
@@ -2687,7 +2687,7 @@
     "patches/@ai-sdk__anthropic@3.0.81.patch": "d3a7c381eba7f5157f765a0528003af17cf84544911dfb7412c7800168e01c18",
     "patches/@ai-sdk__openai-compatible@2.0.60.patch": "9632fe9d821b3dc20939ae509cc35b968d90d018bbd1d812390718898182a38b",
     "patches/@arms__rum-electron@0.0.3.patch": "36855354851ea495bc47a03340b0484ff62836b739cad56904b8a69f18e2ae97",
-    "pnpm-lock.yaml": "03af7ba086ccc694ed464eec28d113dabee58577830c3b71680f52bbc6b2893a",
+    "pnpm-lock.yaml": "391226d525b42c198ce7fb2f0485170f71fb71c16ef87971dbca6b92686867a0",
     "pnpm-workspace.yaml": "c75878eee9578dc4ab069c9172a166c8f088077ddcbfe43e46b5b5de26b74010",
     "scripts/license-texts/Apache-2.0.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
     "scripts/native-search-tools-config.mjs": "281d368464f61363fa2d8ab74f416962fe730dd0a0572db5564475f876bb65aa",
@@ -3357,22 +3357,6 @@
         {
           "member": "https://raw.githubusercontent.com/guseggert/duke-sheets/6a749bbfbd82f4f662dc7106781dfacf7e32f2a8/LICENSE",
           "sha256": "ebb2e920800c6353474e3e23d84f714ee8aaecd8f5a71851aa03594a4129d855"
-        }
-      ]
-    },
-    {
-      "name": "@egjs/hammerjs",
-      "version": "2.0.17",
-      "license": "MIT",
-      "repository": "git://github.com/naver/hammer.js.git",
-      "notices": [
-        {
-          "member": "LICENSE.md",
-          "sha256": "68e3fbc87924b2ca7f6a10d52be2ee83e86f7d2f28e74f343795e8f9e58f3ec1"
-        },
-        {
-          "member": "README.md (license section)",
-          "sha256": "24601581852c22ee64603c980589723298f3a10fe52e1279bec400f7fd9a4d22"
         }
       ]
     },
@@ -6408,18 +6392,6 @@
       ]
     },
     {
-      "name": "@types/hammerjs",
-      "version": "2.0.46",
-      "license": "MIT",
-      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
-      "notices": [
-        {
-          "member": "LICENSE",
-          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
-        }
-      ]
-    },
-    {
       "name": "@types/hast",
       "version": "3.0.4",
       "license": "MIT",
@@ -6908,18 +6880,6 @@
       ]
     },
     {
-      "name": "async",
-      "version": "3.2.6",
-      "license": "MIT",
-      "repository": "https://github.com/caolan/async.git",
-      "notices": [
-        {
-          "member": "LICENSE",
-          "sha256": "d9fed24f132985934fca621c4dc1dfb53e03377a24d0568d424383d7eaa9c0ac"
-        }
-      ]
-    },
-    {
       "name": "asynckit",
       "version": "0.4.0",
       "license": "MIT",
@@ -7380,18 +7340,6 @@
       ]
     },
     {
-      "name": "cliui",
-      "version": "8.0.1",
-      "license": "ISC",
-      "repository": "yargs/cliui",
-      "notices": [
-        {
-          "member": "LICENSE.txt",
-          "sha256": "2dc0465729366c3a7890dfa9e972a1ba7048a26c02116fb8b419a6a1ac110149"
-        }
-      ]
-    },
-    {
       "name": "clone-response",
       "version": "1.0.3",
       "license": "MIT",
@@ -7536,22 +7484,6 @@
       ]
     },
     {
-      "name": "component-emitter",
-      "version": "1.3.1",
-      "license": "MIT",
-      "repository": "https://github.com/sindresorhus/component-emitter.git",
-      "notices": [
-        {
-          "member": "LICENSE",
-          "sha256": "0f0b408b8b871d983e767528c6dc51e0ad7efaa022890c449fe2b2e1ee24dbb7"
-        },
-        {
-          "member": "Readme.md (license section)",
-          "sha256": "daf005969aac8cb4283b3777361f0244f4cce898b9a983a60b7f0d9e96f559bf"
-        }
-      ]
-    },
-    {
       "name": "confbox",
       "version": "0.1.8",
       "license": "MIT",
@@ -7676,22 +7608,6 @@
         {
           "member": "LICENSE",
           "sha256": "cb992345949ccd6e8394b2cd6c465f7b897c864f845937dbf64e8997f389e164"
-        }
-      ]
-    },
-    {
-      "name": "cssfilter",
-      "version": "0.0.10",
-      "license": "MIT",
-      "repository": "https://github.com/leizongmin/js-css-filter.git",
-      "notices": [
-        {
-          "member": "LICENSE",
-          "sha256": "6b16a2f12f0ebe66e6940b7cc7fc0100bde0e5738b1f2007d6147950019dbe56"
-        },
-        {
-          "member": "README.md (license section)",
-          "sha256": "bd1e69233912e0a8706fd2ecfb9670c6bb74d7833da3bbbcff9f0feac4fd53dd"
         }
       ]
     },
@@ -8804,22 +8720,6 @@
       ]
     },
     {
-      "name": "escalade",
-      "version": "3.2.0",
-      "license": "MIT",
-      "repository": "lukeed/escalade",
-      "notices": [
-        {
-          "member": "license",
-          "sha256": "9a9edad7baae52622bddf3c15b2ef8a33d2c89f2d25408ad13e8a7481c6b0c97"
-        },
-        {
-          "member": "readme.md (license section)",
-          "sha256": "64bfb35736af66c969cdc077ecf8f949e9532c584225f0d906c4847ce0cfe8c1"
-        }
-      ]
-    },
-    {
       "name": "escape-string-regexp",
       "version": "4.0.0",
       "license": "MIT",
@@ -9704,22 +9604,6 @@
       ]
     },
     {
-      "name": "http-mitm-proxy",
-      "version": "1.1.0",
-      "license": "MIT",
-      "repository": "https://github.com/joeferner/node-http-mitm-proxy",
-      "notices": [
-        {
-          "member": "README.md (license section)",
-          "sha256": "6ae13df543a24b3fb18c25182cf4f084132f799ea9225410f7037888401b7469"
-        },
-        {
-          "member": "node_modules/http-mitm-proxy/README.md",
-          "sha256": "6ae13df543a24b3fb18c25182cf4f084132f799ea9225410f7037888401b7469"
-        }
-      ]
-    },
-    {
       "name": "http-proxy-agent",
       "version": "9.0.0",
       "license": "MIT",
@@ -10264,26 +10148,6 @@
         {
           "member": "README.md (license section)",
           "sha256": "2bac2a40e8df7bcf69fa8fe096eb2a345f00f351440be38659ba25062b821fb8"
-        }
-      ]
-    },
-    {
-      "name": "keycharm",
-      "version": "0.4.0",
-      "license": "(Apache-2.0 OR MIT)",
-      "repository": "https://github.com/AlexDM0/keycharm",
-      "notices": [
-        {
-          "member": "LICENSE-APACHE-2.0",
-          "sha256": "7a1da246f5e03ea6f987021848a3ff9d9e9a86a54adf96a216f2ee57a9a762d6"
-        },
-        {
-          "member": "LICENSE-MIT",
-          "sha256": "7909cb1efaa8bd800a6d33d73cb9538bfe56a7da61c1fd8b4afb9ddd557ec044"
-        },
-        {
-          "member": "README.md (license section)",
-          "sha256": "1a7471ca96e17d08d390ff3b0c23ccbbff29390483add7577ae75c799d494b59"
         }
       ]
     },
@@ -11596,22 +11460,6 @@
       ]
     },
     {
-      "name": "mkdirp",
-      "version": "1.0.4",
-      "license": "MIT",
-      "repository": "https://github.com/isaacs/node-mkdirp.git",
-      "notices": [
-        {
-          "member": "LICENSE",
-          "sha256": "144c935613e823350f7798d19da78b5e8315a79af5c2a3744fd85cd61baf07ee"
-        },
-        {
-          "member": "readme.markdown (license section)",
-          "sha256": "4d8a73c1024e09c8b323a225d3a7880156ba5a4b9a8d56c9f4fd4202384b110f"
-        }
-      ]
-    },
-    {
       "name": "mlly",
       "version": "1.8.2",
       "license": "MIT",
@@ -11640,22 +11488,6 @@
         {
           "member": "README.md (license section)",
           "sha256": "daf005969aac8cb4283b3777361f0244f4cce898b9a983a60b7f0d9e96f559bf"
-        }
-      ]
-    },
-    {
-      "name": "moment",
-      "version": "2.30.1",
-      "license": "MIT",
-      "repository": "https://github.com/moment/moment.git",
-      "notices": [
-        {
-          "member": "LICENSE",
-          "sha256": "8f38f320bbf5eb84c08e08676f7ee1d2204ebe5797f6a090d077329cf212fca3"
-        },
-        {
-          "member": "README.md (license section)",
-          "sha256": "99a0638a7421918cd7265336281089bca327701b2911140879b199f4349c0435"
         }
       ]
     },
@@ -12412,22 +12244,6 @@
         {
           "member": "README.md (license section)",
           "sha256": "ca980af9aad75880631440fc14082e1a217b1ea3e615cf715469468bee6a8ef4"
-        }
-      ]
-    },
-    {
-      "name": "propagating-hammerjs",
-      "version": "3.0.0",
-      "license": "MIT",
-      "repository": "https://github.com/josdejong/propagating-hammerjs.git",
-      "notices": [
-        {
-          "member": "LICENSE",
-          "sha256": "ac9579e0acfe1f27d342adb5c61fe3dafe7bff388e0200d6d3f951a3e37f42dd"
-        },
-        {
-          "member": "README.md (license section)",
-          "sha256": "daf005969aac8cb4283b3777361f0244f4cce898b9a983a60b7f0d9e96f559bf"
         }
       ]
     },
@@ -13264,22 +13080,6 @@
         {
           "member": "LICENSE",
           "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
-        }
-      ]
-    },
-    {
-      "name": "semaphore",
-      "version": "1.1.0",
-      "license": "MIT",
-      "repository": "git@github.com:abrkn/semaphore.js.git",
-      "notices": [
-        {
-          "member": "README.md (license section)",
-          "sha256": "660db1542fe470a1dc4d87af8a02275c42be452f75930a4dc8d76edfea01e117"
-        },
-        {
-          "member": "https://registry.npmjs.org/semaphore/1.1.0",
-          "sha256": "1b8910ad1a22011c632f7ff544708be6cf08818ef80e8d4b45b6808ee8b05c17"
         }
       ]
     },
@@ -14372,18 +14172,6 @@
       ]
     },
     {
-      "name": "uuid",
-      "version": "9.0.1",
-      "license": "MIT",
-      "repository": "https://github.com/uuidjs/uuid.git",
-      "notices": [
-        {
-          "member": "LICENSE.md",
-          "sha256": "beaa6b04fb82e41dd2ad679e19e27953afb5999b1abbb455b6564e78ebfeb332"
-        }
-      ]
-    },
-    {
       "name": "vfile-location",
       "version": "5.0.3",
       "license": "MIT",
@@ -14496,66 +14284,6 @@
         {
           "member": "https://raw.githubusercontent.com/FormidableLabs/victory/v37.3.6/LICENSE.txt",
           "sha256": "34dee5fd5e5cc756efb5ad4d64652bce719bdf5e900ca5d7538253e737930bc4"
-        }
-      ]
-    },
-    {
-      "name": "vis-data",
-      "version": "8.0.4",
-      "license": "(Apache-2.0 OR MIT)",
-      "repository": "git+https://github.com/visjs/vis-data.git",
-      "notices": [
-        {
-          "member": "LICENSE-APACHE-2.0",
-          "sha256": "1509904280a272780fd69c04b858f512cf216f8e3464a0dd98d8f34416feced9"
-        },
-        {
-          "member": "LICENSE-MIT",
-          "sha256": "1f65085e54c036645082257618db2c7b787e68c3b02485e214ecd09e0834ee8f"
-        },
-        {
-          "member": "README.md (license section)",
-          "sha256": "b65d7e3f0eeeb733aa844271af3c9383f55e78979bbbcb5a3df13fbd34868b8c"
-        }
-      ]
-    },
-    {
-      "name": "vis-timeline",
-      "version": "8.5.1",
-      "license": "(Apache-2.0 OR MIT)",
-      "repository": "git+https://github.com/visjs/vis-timeline.git",
-      "notices": [
-        {
-          "member": "LICENSE.Apache-2.0.txt",
-          "sha256": "1509904280a272780fd69c04b858f512cf216f8e3464a0dd98d8f34416feced9"
-        },
-        {
-          "member": "LICENSE.md",
-          "sha256": "535036cac87eaf62b4460a592c2d12e349d6b1135f0203e77eab1b23ad08bc55"
-        },
-        {
-          "member": "LICENSE.MIT.txt",
-          "sha256": "507e7e91e0a385c9de0464889068fada0620e327d23f1d64605a7d046490ec97"
-        },
-        {
-          "member": "README.md (license section)",
-          "sha256": "322be9edf6bc7e286f5e8a3e9cc166cf36d1d1e3a76da2e88aae624bc715bd82"
-        }
-      ]
-    },
-    {
-      "name": "vis-util",
-      "version": "6.0.0",
-      "license": "(Apache-2.0 OR MIT)",
-      "repository": "https://github.com/visjs/vis-util.git",
-      "notices": [
-        {
-          "member": "LICENSE-APACHE-2.0",
-          "sha256": "1509904280a272780fd69c04b858f512cf216f8e3464a0dd98d8f34416feced9"
-        },
-        {
-          "member": "LICENSE-MIT",
-          "sha256": "b88d2c1898485a909bfd92d1a2a676c266db5384d7153f3bdb80caebb7038351"
         }
       ]
     },
@@ -14772,18 +14500,6 @@
       ]
     },
     {
-      "name": "wrap-ansi",
-      "version": "7.0.0",
-      "license": "MIT",
-      "repository": "chalk/wrap-ansi",
-      "notices": [
-        {
-          "member": "license",
-          "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
-        }
-      ]
-    },
-    {
       "name": "wrappy",
       "version": "1.0.2",
       "license": "ISC",
@@ -14852,22 +14568,6 @@
       ]
     },
     {
-      "name": "xss",
-      "version": "1.0.15",
-      "license": "MIT",
-      "repository": "git://github.com/leizongmin/js-xss.git",
-      "notices": [
-        {
-          "member": "LICENSE",
-          "sha256": "93dbf94b858812876168fbd4de2da2251ad21d9856a09347ecdbb0aaa56a6e89"
-        },
-        {
-          "member": "README.md (license section)",
-          "sha256": "1cf3dcaa49fda51f1faba28900a4bfc53df411226e87c84c4a099620ed4b9ff5"
-        }
-      ]
-    },
-    {
       "name": "y18n",
       "version": "4.0.3",
       "license": "ISC",
@@ -14880,22 +14580,6 @@
         {
           "member": "README.md (license section)",
           "sha256": "eaa7022082baf3afdf9abf7ed29dd20a76454e46d21b3ba1677355937ec0257f"
-        }
-      ]
-    },
-    {
-      "name": "y18n",
-      "version": "5.0.8",
-      "license": "ISC",
-      "repository": "yargs/y18n",
-      "notices": [
-        {
-          "member": "LICENSE",
-          "sha256": "2034cce3b6fafcddd642c4175e01d3ddfc332a53b9f20fdc46b1466dc89ac469"
-        },
-        {
-          "member": "README.md (license section)",
-          "sha256": "39d9e6d515ee09fccd4749ddf12073041512300ad2c4b11e020c75d1ab56d7e0"
         }
       ]
     },
@@ -14928,36 +14612,8 @@
       ]
     },
     {
-      "name": "yargs-parser",
-      "version": "21.1.1",
-      "license": "ISC",
-      "repository": "https://github.com/yargs/yargs-parser.git",
-      "notices": [
-        {
-          "member": "LICENSE.txt",
-          "sha256": "365496ca1f56da40b23c9815fc40fa9005847b2f8f8fd1c1a4929ef25ec8cd1d"
-        },
-        {
-          "member": "README.md (license section)",
-          "sha256": "a0926e00c3e77e7a82b68b454bd35fb63ab965fd23ab646263cf27fd63c81200"
-        }
-      ]
-    },
-    {
       "name": "yargs",
       "version": "15.4.1",
-      "license": "MIT",
-      "repository": "https://github.com/yargs/yargs.git",
-      "notices": [
-        {
-          "member": "LICENSE",
-          "sha256": "2f1a503bfab84b3ba7393627308b3274501e459e3b5185bbb56bbf16cb1602d4"
-        }
-      ]
-    },
-    {
-      "name": "yargs",
-      "version": "17.7.2",
       "license": "MIT",
       "repository": "https://github.com/yargs/yargs.git",
       "notices": [
@@ -27058,12 +26714,6 @@
       "source": "https://registry.npmjs.org/lazy-val/1.0.5"
     },
     {
-      "id": "semaphore@1.1.0",
-      "reason": "Original version-specific publisher copyright/license material remains incomplete.",
-      "evidenceKind": "publisher-license-identifier-and-standard-terms",
-      "source": "https://registry.npmjs.org/semaphore/1.1.0"
-    },
-    {
       "id": "boolbase@1.0.0",
       "reason": "Original version-specific publisher copyright/license material remains incomplete.",
       "evidenceKind": "publisher-license-identifier-and-standard-terms",
@@ -27102,6 +26752,12 @@
       "reason": "Original version-specific publisher copyright/license material remains incomplete.",
       "evidenceKind": "publisher-license-identifier-and-standard-terms",
       "source": "https://registry.npmjs.org/strict-event-emitter/0.5.1"
+    },
+    {
+      "id": "semaphore@1.1.0",
+      "reason": "Original version-specific publisher copyright/license material remains incomplete.",
+      "evidenceKind": "publisher-license-identifier-and-standard-terms",
+      "source": "https://registry.npmjs.org/semaphore/1.1.0"
     },
     {
       "id": "@open-draft/deferred-promise@2.2.0",
