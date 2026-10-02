@@ -42,6 +42,33 @@ test("the active resource manager uses the Social Harness identity in every loca
   }
 });
 
+test("active Social Harness and account-chat copy does not expose the retired ZCode identity", async () => {
+  const activeConversationBrandKeys = [
+    "chat.changeSummary.rewindDialog.description",
+    "chat.quota.mcp.quotaExhausted",
+    "chat.quota.mcp.codingPlanRequired",
+  ];
+
+  for (const locale of ["en-US", "zh-CN"]) {
+    const { default: messages } = await import(`../packages/ui/src/i18n/locales/${locale}.ts`);
+    assert.equal(messages["socialAccounts.brand"], "Social Harness", `${locale} root brand`);
+
+    for (const [key, message] of Object.entries(messages)) {
+      if (key.startsWith("social") || key.startsWith("resourceManager.")) {
+        assert.doesNotMatch(
+          message,
+          /ZCode/i,
+          `${locale} ${key} uses the current product identity`,
+        );
+      }
+    }
+    for (const key of activeConversationBrandKeys) {
+      assert.ok(messages[key], `${locale} defines active chat copy ${key}`);
+      assert.doesNotMatch(messages[key], /ZCode/i, `${locale} ${key} avoids the retired identity`);
+    }
+  }
+});
+
 test("resource manager and renderer process names use the Social Harness prefix", () => {
   assert.equal(formatZCodeMainProcessName(), "social-harness-main");
   assert.equal(formatZCodeRendererProcessName(), "social-harness-renderer-main");

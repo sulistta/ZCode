@@ -5650,9 +5650,9 @@ const zhCN: Record<string, string> = {
     "当前系统繁忙，当前自动重试已达到最大次数，请稍后再试或升级账户。",
   "chat.quota.startPlan.concurrentLimit.switchModel":
     "当前模型请求已达到并发上限，请切换模型继续当前任务",
-  "chat.quota.mcp.quotaExhausted": "ZCode MCP「{server}」今日额度已用完，明天自动恢复。",
+  "chat.quota.mcp.quotaExhausted": "MCP「{server}」今日额度已用完，明天自动恢复。",
   "chat.quota.mcp.codingPlanRequired":
-    "当前无 ZCode MCP「{server}」额度，请登录或开通 Coding Plan 使用。",
+    "MCP「{server}」暂无可用额度，请检查该服务器的账号或额度设置。",
   "chat.quota.providerLimited": "当前账户额度或套餐已达到使用限制。请升级或调整套餐后继续。",
   "chat.quota.action.upgrade": "升级",
   "chat.quota.action.renew": "续期",
