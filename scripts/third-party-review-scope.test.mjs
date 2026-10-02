@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { partitionNpmOverrideReviews } from "./generate-third-party-notices.mjs";
+import {
+  partitionCopiedComponentReviews,
+  partitionNpmOverrideReviews,
+} from "./generate-third-party-notices.mjs";
 
 test("keeps unresolved npm notice evidence in the production release review", () => {
   const result = partitionNpmOverrideReviews(
@@ -54,5 +57,44 @@ test("a package in both graphs remains production-scoped and stale overrides fai
   assert.throws(
     () => partitionNpmOverrideReviews([{ package: "stale-gap@1.0.0" }], new Set(), new Set()),
     /Stale npm notice override: stale-gap@1\.0\.0/u,
+  );
+});
+
+test("an unresolved copied application component remains in the production review", () => {
+  const result = partitionCopiedComponentReviews([
+    { id: "application-copy", roots: ["packages/ui/src/copied"], reviewRequired: "missing notice" },
+  ]);
+
+  assert.deepEqual(result, {
+    reviewRequired: [{ id: "application-copy", reason: "missing notice" }],
+    developmentReviewRequired: [],
+  });
+});
+
+test("development-only agent skill reviews stay outside the application release gate", () => {
+  const result = partitionCopiedComponentReviews([
+    {
+      id: "agent-skill",
+      roots: [".agents/skills/example"],
+      distributionScope: "development-only",
+      reviewRequired: "missing notice",
+    },
+  ]);
+
+  assert.deepEqual(result, {
+    reviewRequired: [],
+    developmentReviewRequired: [{ id: "agent-skill", reason: "missing notice" }],
+  });
+  assert.throws(
+    () =>
+      partitionCopiedComponentReviews([
+        {
+          id: "misclassified-runtime-copy",
+          roots: ["packages/ui/src/copied"],
+          distributionScope: "development-only",
+          reviewRequired: "missing notice",
+        },
+      ]),
+    /must stay under \.agents\/skills\//u,
   );
 });

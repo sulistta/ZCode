@@ -34,10 +34,15 @@ graph remains recorded in `developmentReviewRequired` with its unresolved
 notice evidence, but does not block the production release check or appear as
 an npm package in the production notice list. Build-time assets copied into the
 application remain listed separately under `copied`, with source hashes and
-their applicable notices. The generator determines npm scope from the
-workspace dependency graph; do not manually relabel or delete an unresolved
-record to make strict mode pass. If a package later enters the production
-graph, its record moves back into `reviewRequired` automatically.
+their applicable notices. Copied components default to the application release
+scope. A `distributionScope: "development-only"` record is allowed only for
+files that remain in `.agents/skills/` and are outside the Desktop package's
+file list; its unresolved material appears in `developmentReviewRequired`, not
+the application release gate. Keep the source and review record in the
+inventory. The generator determines npm scope from the workspace dependency
+graph; do not manually relabel or delete an unresolved record to make strict
+mode pass. If a package later enters the production graph, its record moves
+back into `reviewRequired` automatically.
 
 ## Release gate
 
