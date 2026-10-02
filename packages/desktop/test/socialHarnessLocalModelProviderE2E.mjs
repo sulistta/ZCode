@@ -8,6 +8,12 @@ import {
   ProviderConfig,
 } from "@social-harness/provider";
 import { NodePersonalProviderConfigRepository } from "@social-harness/provider-node";
+import {
+  createSocialProjectCandidateHandoffScenarios,
+  planClipCandidateHandoffResponse,
+} from "./socialHarnessCandidateHandoffMockE2E.mjs";
+
+export { createSocialProjectCandidateHandoffScenarios };
 
 function parseToolContent(content) {
   if (typeof content === "string") {
@@ -182,8 +188,11 @@ export function createSocialProjectEditScenario(runId, projectName) {
 
 export async function startLocalOpenAiMock(options = {}) {
   const projectEdits = options.projectEdits ?? (options.projectEdit ? [options.projectEdit] : []);
+  const candidateHandoffs = options.candidateHandoffs ?? [];
   const requests = [];
   const projectEditToolCalls = [];
+  const candidateHandoffToolCalls = [];
+  const candidateHandoffResults = [];
   let requestId = 0;
   const server = createServer((request, response) => {
     if (
@@ -216,7 +225,9 @@ export async function startLocalOpenAiMock(options = {}) {
           .find(
             (message) =>
               message.role === "user" &&
-              projectEdits.some((candidate) => JSON.stringify(message).includes(candidate.marker)),
+              [...projectEdits, ...candidateHandoffs].some((candidate) =>
+                JSON.stringify(message).includes(candidate.marker),
+              ),
           );
         const serializedMarkedMessage = markedUserMessage ? JSON.stringify(markedUserMessage) : "";
         const projectEdit = projectEdits.find((candidate) =>
@@ -224,6 +235,18 @@ export async function startLocalOpenAiMock(options = {}) {
         );
         if (projectEdit) {
           answer = planProjectEditResponse(body, projectEdit, projectEditToolCalls);
+        } else {
+          const candidateHandoff = candidateHandoffs.find((candidate) =>
+            serializedMarkedMessage.includes(candidate.marker),
+          );
+          if (candidateHandoff) {
+            answer = planClipCandidateHandoffResponse(
+              body,
+              candidateHandoff,
+              candidateHandoffToolCalls,
+              candidateHandoffResults,
+            );
+          }
         }
       } catch (error) {
         response.writeHead(500, { "content-type": "application/json; charset=utf-8" });
@@ -309,6 +332,9 @@ export async function startLocalOpenAiMock(options = {}) {
     baseUrl: `http://127.0.0.1:${address.port}/v1`,
     requests,
     projectEditToolCalls,
+    candidateHandoffs,
+    candidateHandoffToolCalls,
+    candidateHandoffResults,
     close: () =>
       new Promise((resolveClose, rejectClose) => {
         server.close((error) => (error ? rejectClose(error) : resolveClose()));

@@ -13,10 +13,7 @@ import {
   resolveE2EMediaTools,
   reserveVitePort,
 } from "./socialHarnessAccountE2EUtils.mjs";
-import {
-  exerciseSocialHarnessMediaIntake,
-  prepareSocialHarnessMediaIntakeFixtures,
-} from "./socialHarnessMediaIntakeE2E.mjs";
+import { prepareSocialHarnessMediaIntakeFixtures } from "./socialHarnessMediaIntakeE2E.mjs";
 import {
   createAndEditAccount,
   createSecondAccountAndVerifyIsolation,
@@ -36,9 +33,9 @@ import {
 } from "./socialHarnessAccountAutomationsE2E.mjs";
 import {
   createProjectMotionInElectron,
-  seedSocialProjectVideoAsset,
   verifyProjectMotionAfterRelaunch,
 } from "./socialProjectEffectsE2E.mjs";
+import * as candidateHandoffE2E from "./socialProjectCandidateHandoffE2E.mjs";
 import { verifySocialAgentProjectEditInElectron } from "./socialProjectAgentEditingE2E.mjs";
 
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -283,13 +280,14 @@ try {
   const editedAutomationTitle = `Weekly account research ${runId}`;
   const automationWeekday = (new Date().getDay() + 2) % 7;
   await createAndEditAccount(page, runtime, accountName, editedName);
-  const mediaIntakeResult = await exerciseSocialHarnessMediaIntake(
+  const candidateFixtures = await candidateHandoffE2E.prepareAccountFixtures({
     page,
     dataBaseDir,
-    editedName,
+    accountName: editedName,
+    ffmpegExecutable,
     mediaIntakeFixtures,
-  );
-  const mediaFixture = await seedSocialProjectVideoAsset(dataBaseDir, editedName, ffmpegExecutable);
+    runId,
+  });
   await createAndExerciseAccountAutomation(
     page,
     automationTitle,
@@ -306,6 +304,7 @@ try {
     );
     mockProvider = await startLocalOpenAiMock({
       projectEdits: projectAgentScenario.projectEdits,
+      candidateHandoffs: candidateFixtures.candidateHandoffs,
     });
     await configureLocalMockProvider(settingsDir, mockProvider.baseUrl);
     const positiveAutomationTitle = `Near-future scheduled success ${runId}`;
@@ -334,16 +333,16 @@ try {
   cdpPort = await waitForDevTools(runtime);
   ({ browser, page } = await connectToPage(cdpPort));
   await page.getByRole("heading", { level: 1, name: editedName, exact: true }).waitFor();
-  const clipIds = await createProjectMotionInElectron(page, runId, mediaFixture);
+  const clipIds = await createProjectMotionInElectron(page, runId, candidateFixtures.mediaFixture);
   await createSecondAccountAndVerifyIsolation(
     page,
     editedName,
     projectName,
     [
-      mediaIntakeResult.localOriginalName,
-      mediaIntakeResult.youtubeOriginalName,
-      mediaIntakeResult.remoteOriginalName,
-      mediaFixture.originalName,
+      candidateFixtures.mediaIntakeResult.localOriginalName,
+      candidateFixtures.mediaIntakeResult.youtubeOriginalName,
+      candidateFixtures.mediaIntakeResult.remoteOriginalName,
+      candidateFixtures.mediaFixture.originalName,
     ],
     runId,
   );
@@ -359,7 +358,7 @@ try {
   });
   assertNoRetiredZCodeProductApiRequests(runtime);
   console.log(
-    "[social-e2e] account policy, second-account library/project isolation, manual automation management, scheduled Scheduler/Main/Host rejection and successful local-model settlement, Social Agent project-tool editing, and same-timestamp preview/export parity verified",
+    "[social-e2e] account policy, second-account library/project isolation, manual automation management, scheduled Scheduler/Main/Host rejection and successful local-model settlement, Social Agent project-tool editing, podcast/music candidate timestamp handoff, and same-timestamp preview/export parity verified",
   );
   await browser.close();
   browser = undefined;
@@ -386,6 +385,7 @@ try {
   await verifyAccountAfterRelaunch(page, editedName);
   await verifyAccountAutomationAfterRelaunch(page, editedAutomationTitle, automationWeekday);
   await verifyProjectMotionAfterRelaunch(page, runId, clipIds, projectAgentScenario.captionText);
+  await candidateHandoffE2E.verifyCandidateProjectsAfterRelaunch(page, mockProvider);
   assertNoRetiredZCodeProductApiRequests(runtime);
 
   await browser.close();
@@ -407,7 +407,7 @@ try {
   );
   succeeded = true;
   console.log(
-    "Social Harness Electron E2E passed: account/profile/policy and second-account library/project isolation, account automation management and scheduled Host rejection/success, local model-provider endpoint, Social Agent project-tool editing, text and media timeline trims with cancel, ruler viewport virtualization, project motion effects, and matching-time Player/export rendering verified; durable state survived a full app relaunch and the isolated legacy sentinel stayed unchanged.",
+    "Social Harness Electron E2E passed: account/profile/policy and second-account library/project isolation, account automation management and scheduled Host rejection/success, local model-provider endpoint, Social Agent project-tool editing, podcast/music candidate timestamp handoff, text and media timeline trims with cancel, ruler viewport virtualization, project motion effects, and matching-time Player/export rendering verified; candidate clips and their measured source ranges survived a full app relaunch, and the isolated legacy sentinel stayed unchanged.",
   );
 } finally {
   await browser?.close().catch(() => undefined);

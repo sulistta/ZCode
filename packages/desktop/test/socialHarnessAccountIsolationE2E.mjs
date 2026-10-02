@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { createSocialProjectCandidateHandoffScenarios } from "./socialHarnessCandidateHandoffMockE2E.mjs";
+import { createCandidateProjectsInElectron } from "./socialProjectAgentEditingE2E.mjs";
 import { waitForRuntimeOutput } from "./socialHarnessAccountE2EUtils.mjs";
 
 export async function verifyAccountConversationShell(page) {
@@ -196,6 +198,13 @@ export async function createSecondAccountAndVerifyIsolation(
 ) {
   const secondAccountName = `Music pilot ${runId}`;
   const accountsNavigation = page.locator('[aria-label="Accounts"]');
+  const candidateHandoffs = createSocialProjectCandidateHandoffScenarios(runId);
+  await createCandidateProjectsInElectron(page, candidateHandoffs);
+  const projectNames = [projectName, ...candidateHandoffs.map((handoff) => handoff.projectName)];
+  const isolatedMediaNames = [
+    ...mediaNames,
+    ...candidateHandoffs.map((handoff) => handoff.mediaName),
+  ];
 
   await page.getByRole("button", { name: "Create account", exact: true }).click();
   await page.getByLabel("Account name").fill(secondAccountName);
@@ -208,15 +217,17 @@ export async function createSecondAccountAndVerifyIsolation(
 
   await page.getByRole("button", { name: "Player", exact: true }).click();
   await page.getByText("No projects yet.", { exact: true }).waitFor();
-  assert.equal(
-    await page.getByRole("button", { name: projectName }).count(),
-    0,
-    "A second account must not list the first account's project",
-  );
+  for (const isolatedProjectName of projectNames) {
+    assert.equal(
+      await page.getByRole("button", { name: isolatedProjectName }).count(),
+      0,
+      "A second account must not list the first account's project",
+    );
+  }
 
   await page.getByRole("button", { name: "Library", exact: true }).click();
   await page.getByRole("heading", { name: "Bring in your first source", exact: true }).waitFor();
-  for (const mediaName of mediaNames) {
+  for (const mediaName of isolatedMediaNames) {
     assert.equal(
       await page.getByRole("heading", { name: mediaName, exact: true }).count(),
       0,
@@ -225,11 +236,13 @@ export async function createSecondAccountAndVerifyIsolation(
   }
 
   await accountsNavigation.getByRole("button", { name: firstAccountName }).click();
-  for (const mediaName of mediaNames) {
+  for (const mediaName of isolatedMediaNames) {
     await page.getByRole("heading", { name: mediaName, exact: true }).waitFor();
   }
   await page.getByRole("button", { name: "Player", exact: true }).click();
-  await page.getByRole("button", { name: projectName }).waitFor();
+  for (const isolatedProjectName of projectNames) {
+    await page.getByRole("button", { name: isolatedProjectName }).waitFor();
+  }
 
   await page.getByRole("button", { name: "Accounts", exact: true }).click();
   assert.equal(await page.getByLabel("Account name").inputValue(), firstAccountName);

@@ -1,11 +1,16 @@
 import assert from "node:assert/strict";
 import { verifyPreviewExportParityInElectron } from "./socialProjectPreviewExportE2E.mjs";
 
-async function sendSocialAgentPrompt(page, { marker, projectName, captionText, responseText }) {
+async function sendSocialAgentPrompt(
+  page,
+  { marker, projectName, captionText, promptText, responseText },
+) {
   await page.getByRole("button", { name: "Conversations", exact: true }).click();
   const conversationInput = page.locator('[data-testid="v4-composer-input"]');
   await conversationInput.waitFor({ state: "visible" });
-  const prompt = `${marker}: edit the existing text clip in ${projectName} to read "${captionText}".`;
+  const prompt =
+    promptText ??
+    `${marker}: edit the existing text clip in ${projectName} to read "${captionText}".`;
   // Lexical 挂载期间直接 fill contenteditable 只改 DOM，可能被下一次 editor update 清空；
   // 等待测试桥接就绪并更新真实 Editor state，才能断言用户实际可提交的草稿。
   await page.waitForFunction(() => {
@@ -39,6 +44,112 @@ async function sendSocialAgentPrompt(page, { marker, projectName, captionText, r
   }
   await permissionList.waitFor({ state: "hidden", timeout: 15_000 });
   await page.getByText(responseText, { exact: true }).waitFor({ timeout: 90_000 });
+}
+
+export async function createCandidateProjectsInElectron(page, handoffs) {
+  await page.getByRole("button", { name: "Player", exact: true }).click();
+  await page.getByRole("heading", { level: 1, name: "Player", exact: true }).waitFor();
+  for (const handoff of handoffs) {
+    await page.getByPlaceholder("New Reel", { exact: true }).fill(handoff.projectName);
+    await page.getByRole("button", { name: "Create project", exact: true }).click();
+    await page.getByRole("button", { name: handoff.projectName }).waitFor();
+    const editor = page.getByTestId("social-project-editor");
+    await editor.waitFor({ state: "visible" });
+    assert.equal(
+      await editor.getAttribute("data-project-revision"),
+      "0",
+      "A new candidate project starts at revision zero",
+    );
+  }
+}
+
+export async function verifySocialAgentCandidateHandoffsInElectron(page, handoffs, mockProvider) {
+  for (const handoff of handoffs) {
+    await sendSocialAgentPrompt(page, {
+      marker: handoff.marker,
+      projectName: handoff.projectName,
+      promptText:
+        `${handoff.marker}: analyze ${handoff.mediaName} in ${handoff.mode} mode, ` +
+        `then place a measured candidate into ${handoff.projectName}.`,
+      responseText: handoff.finalResponseText,
+    });
+
+    const calls = mockProvider.candidateHandoffToolCalls.filter(
+      (toolCall) => toolCall.marker === handoff.marker,
+    );
+    assert.deepEqual(
+      calls.map((toolCall) => toolCall.name),
+      [
+        "SocialAgentGetContext",
+        "SocialMediaList",
+        "SocialClipCandidates",
+        "SocialProjectList",
+        "SocialProjectRead",
+        "SocialProjectCommand",
+      ],
+      "Candidate placement must read account context, media, measured candidates, and project state before writing",
+    );
+
+    const accepted = mockProvider.candidateHandoffResults.find(
+      (result) => result.marker === handoff.marker,
+    );
+    assert.ok(accepted, `Expected the Host to accept ${handoff.mode} candidate placement`);
+    const candidateCall = calls.find((toolCall) => toolCall.name === "SocialClipCandidates");
+    assert.equal(candidateCall?.arguments.mode, handoff.mode);
+    assert.equal(candidateCall?.arguments.mediaId, accepted.mediaId);
+    const readCall = calls.find((toolCall) => toolCall.name === "SocialProjectRead");
+    assert.equal(readCall?.arguments.projectId, accepted.projectId);
+    const command = calls.at(-1).arguments;
+    assert.equal(command.projectId, accepted.projectId);
+    assert.equal(command.expectedRevision, 0);
+    assert.equal(command.operation.type, "put-clip");
+    assert.equal(command.operation.clip.mediaId, accepted.mediaId);
+    assert.equal(command.operation.clip.sourceStartMs, accepted.sourceStartMs);
+    assert.equal(command.operation.clip.sourceEndMs, accepted.sourceEndMs);
+    assert.equal(accepted.sourceStartMs, Math.round(accepted.candidate.startSeconds * 1_000));
+    assert.equal(accepted.sourceEndMs, Math.round(accepted.candidate.endSeconds * 1_000));
+    assert.equal(accepted.revision, 1);
+  }
+}
+
+export async function verifySocialAgentCandidateProjectsAfterRelaunch(page, mockProvider) {
+  await page.getByRole("button", { name: "Player", exact: true }).click();
+  await page.getByRole("heading", { level: 1, name: "Player", exact: true }).waitFor();
+  for (const handoff of mockProvider.candidateHandoffs ?? []) {
+    const accepted = mockProvider.candidateHandoffResults.find(
+      (result) => result.marker === handoff.marker,
+    );
+    assert.ok(accepted, `Expected saved ${handoff.mode} candidate project metadata`);
+    await page.getByRole("button", { name: handoff.projectName }).click();
+    const editor = page.getByTestId("social-project-editor");
+    await editor.waitFor();
+    assert.equal(await editor.getAttribute("data-project-revision"), String(accepted.revision));
+    const timelineClips = page.locator("[data-social-timeline-clip]");
+    await timelineClips.first().waitFor();
+    assert.equal(
+      await timelineClips.count(),
+      1,
+      "The accepted candidate clip must persist after relaunch",
+    );
+    const clip = timelineClips.first();
+    const clipId = await clip.getAttribute("data-social-timeline-clip");
+    assert.ok(clipId);
+    await clip.locator("button").first().click();
+    const actions = page.getByTestId(`social-project-clip-actions-${clipId}`);
+    await actions.waitFor();
+    const sourceStart = Number(
+      await actions
+        .getByRole("spinbutton", { name: "Source in (seconds)", exact: true })
+        .inputValue(),
+    );
+    const sourceEnd = Number(
+      await actions
+        .getByRole("spinbutton", { name: "Source out (seconds)", exact: true })
+        .inputValue(),
+    );
+    assert.ok(Math.abs(sourceStart - accepted.sourceStartMs / 1_000) < 0.001);
+    assert.ok(Math.abs(sourceEnd - accepted.sourceEndMs / 1_000) < 0.001);
+  }
 }
 
 function projectToolCallsFor(mockProvider, marker) {
@@ -217,4 +328,11 @@ export async function verifySocialAgentProjectEditInElectron(page, options) {
     ffmpegExecutable,
     ffprobeExecutable,
   });
+  if (mockProvider.candidateHandoffs?.length) {
+    await verifySocialAgentCandidateHandoffsInElectron(
+      page,
+      mockProvider.candidateHandoffs,
+      mockProvider,
+    );
+  }
 }
