@@ -52,7 +52,9 @@ function quoteExpression(value: string): string {
 
 function quoteFilterPath(value: string): string {
   const normalized = value.replaceAll("\\", "/");
-  return quoteExpression(normalized.replaceAll(":", "\\:").replaceAll("%", "\\%"));
+  // Windows 盘符冒号只需在 FFmpeg 选项层转义一次；再调用 quoteExpression 会翻倍反斜杠，导致盘符后的冒号被当作新选项。
+  const escaped = normalized.replaceAll(":", "\\:").replaceAll("%", "\\%").replaceAll("'", "\\'");
+  return `'${escaped}'`;
 }
 
 function propertyExpression(

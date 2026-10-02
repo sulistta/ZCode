@@ -309,6 +309,40 @@ function createVideoProject(clipOverrides: Record<string, unknown> = {}) {
   });
 }
 
+function createTextProject() {
+  const project = createVideoProject();
+  return socialProjectSchema.parse({
+    ...project,
+    projectId: "project-text-path",
+    displayName: "Windows text path graph fixture",
+    tracks: [
+      {
+        trackId: "track-text-path",
+        name: "Captions",
+        type: "text",
+        muted: false,
+        hidden: false,
+        clips: [
+          {
+            clipId: "clip-text-path",
+            kind: "text",
+            timelineStartMs: 0,
+            durationMs: 1000,
+            text: "Social Harness",
+            style: {
+              fontFamily: "DejaVu Sans",
+              fontSize: 12,
+              color: "#ffffff",
+              alignment: "center",
+            },
+            keyframes: [],
+          },
+        ],
+      },
+    ],
+  });
+}
+
 function buildVideoGraph(clipOverrides: Record<string, unknown> = {}) {
   return buildSocialProjectExportGraph({
     project: createVideoProject(clipOverrides),
@@ -317,6 +351,20 @@ function buildVideoGraph(clipOverrides: Record<string, unknown> = {}) {
     clipsWithAudio: new Set(),
   });
 }
+
+test("FFmpeg text paths escape a Windows drive colon only once", () => {
+  const graph = buildSocialProjectExportGraph({
+    project: createTextProject(),
+    inputIndexByClipId: new Map([["clip-text-path", 1]]),
+    textFileByClipId: new Map([["clip-text-path", "D:\\social-harness\\caption%1.txt"]]),
+    clipsWithAudio: new Set(),
+  });
+
+  assert.ok(
+    graph.filterComplex.includes("textfile='D\\:/social-harness/caption\\%1.txt'"),
+    graph.filterComplex,
+  );
+});
 
 test("FFmpeg graph skips per-pixel sampling for identity media appearance only", () => {
   const neutralGraph = buildVideoGraph({
