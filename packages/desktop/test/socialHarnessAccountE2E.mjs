@@ -10,6 +10,7 @@ import { chromium } from "playwright-core";
 import { AutomationRepo } from "@social-harness/services/node";
 import {
   assertNoRetiredZCodeProductApiRequests,
+  resolveE2EMediaTools,
   reserveVitePort,
 } from "./socialHarnessAccountE2EUtils.mjs";
 import {
@@ -43,6 +44,7 @@ import { verifySocialAgentProjectEditInElectron } from "./socialProjectAgentEdit
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = resolve(desktopRoot, "../..");
 const devEntrypoint = resolve(repoRoot, "scripts/dev-desktop-env.mjs");
+const { ffmpegExecutable, ffprobeExecutable } = resolveE2EMediaTools();
 const buildReadinessTimeoutMs = 300_000;
 const electronReadinessTimeoutMs = 30_000;
 const rendererLoadTimeoutMs = 60_000;
@@ -287,11 +289,7 @@ try {
     editedName,
     mediaIntakeFixtures,
   );
-  const mediaFixture = await seedSocialProjectVideoAsset(
-    dataBaseDir,
-    editedName,
-    process.env.SOCIAL_HARNESS_FFMPEG_PATH?.trim() || "ffmpeg",
-  );
+  const mediaFixture = await seedSocialProjectVideoAsset(dataBaseDir, editedName, ffmpegExecutable);
   await createAndExerciseAccountAutomation(
     page,
     automationTitle,
@@ -356,8 +354,8 @@ try {
     clipIds,
     ...projectAgentScenario,
     dataBaseDir,
-    ffmpegExecutable: process.env.SOCIAL_HARNESS_FFMPEG_PATH?.trim() || "ffmpeg",
-    ffprobeExecutable: process.env.SOCIAL_HARNESS_FFPROBE_PATH?.trim() || "ffprobe",
+    ffmpegExecutable,
+    ffprobeExecutable,
   });
   assertNoRetiredZCodeProductApiRequests(runtime);
   console.log(

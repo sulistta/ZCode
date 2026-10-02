@@ -1,4 +1,23 @@
 import { createServer } from "node:net";
+import { fileURLToPath } from "node:url";
+import { resolvePlatformKeyForPackagedApp } from "../scripts/target-platform.mjs";
+
+export function resolveE2EMediaTools() {
+  const extension = process.platform === "win32" ? ".exe" : "";
+  const bundledBinUrl = new URL(
+    `../bundled-tools/${resolvePlatformKeyForPackagedApp()}/ffmpeg/bin/`,
+    import.meta.url,
+  );
+  // CI 会将校验过的媒体工具暂存到桌面包目录；Main 只把路径下发给 Host，不会改写此测试进程的环境。
+  return {
+    ffmpegExecutable:
+      process.env.SOCIAL_HARNESS_FFMPEG_PATH?.trim() ||
+      fileURLToPath(new URL(`ffmpeg${extension}`, bundledBinUrl)),
+    ffprobeExecutable:
+      process.env.SOCIAL_HARNESS_FFPROBE_PATH?.trim() ||
+      fileURLToPath(new URL(`ffprobe${extension}`, bundledBinUrl)),
+  };
+}
 
 export async function reserveVitePort() {
   const server = createServer();

@@ -67,7 +67,19 @@ export async function seedSocialProjectVideoAsset(dataBaseDir, accountName, ffmp
     ],
     { timeout: 30_000, maxBuffer: 16 * 1024 * 1024 },
   );
-  assert.equal(created.status, 0, created.stderr.toString());
+  // spawnSync 启动失败时只提供 error、不会提供 stderr；这里保留原始错误，避免诊断信息被二次异常遮蔽。
+  const creationDetails = [
+    created.error?.message,
+    created.signal ? `signal ${created.signal}` : undefined,
+    created.stderr?.toString("utf8").trim(),
+  ]
+    .filter(Boolean)
+    .join("\n");
+  assert.equal(
+    created.status,
+    0,
+    `FFmpeg fixture creation failed: ${creationDetails || `exit code ${String(created.status)}`}`,
+  );
 
   const mediaId = randomUUID();
   const originalName = "Trim test footage.mp4";
