@@ -209,6 +209,7 @@ export async function collectNpmNotices(root, overrides) {
   return {
     packages,
     notInstalled,
+    installedPackageKeys: [...installed.keys()].sort((a, b) => a.localeCompare(b, "en")),
     workspaceManifests: projects.map((project) =>
       relative(root, join(project.path, "package.json")).replaceAll("\\", "/"),
     ),

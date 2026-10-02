@@ -7,6 +7,30 @@ import {
   repositoryRoot,
 } from "./third-party-notices.mjs";
 
+export function partitionNpmOverrideReviews(
+  overrides,
+  productionPackageKeys,
+  installedPackageKeys,
+) {
+  const reviewRequired = [];
+  const developmentReviewRequired = [];
+  for (const item of overrides) {
+    const inProduction = productionPackageKeys.has(item.package);
+    if (!inProduction && !installedPackageKeys.has(item.package)) {
+      throw new Error(`Stale npm notice override: ${item.package}`);
+    }
+    if (!item.acceptedMissingNotice && !item.evidenceKind) continue;
+    const review = {
+      id: item.package,
+      reason: "Original version-specific publisher copyright/license material remains incomplete.",
+      ...(item.evidenceKind ? { evidenceKind: item.evidenceKind } : {}),
+      ...(item.source ? { source: item.source } : {}),
+    };
+    (inProduction ? reviewRequired : developmentReviewRequired).push(review);
+  }
+  return { reviewRequired, developmentReviewRequired };
+}
+
 export async function generateThirdPartyNotices(root = repositoryRoot) {
   const inputs = {};
   const readInput = async (file) => {
@@ -31,17 +55,16 @@ export async function generateThirdPartyNotices(root = repositoryRoot) {
   await readInput("pnpm-lock.yaml");
   await readInput("pnpm-workspace.yaml");
   await readInput("third-party/native-search/sources.json");
-  const { packages, notInstalled, workspaceManifests } = await collectNpmNotices(root, overrides);
+  const { packages, notInstalled, workspaceManifests, installedPackageKeys } =
+    await collectNpmNotices(root, overrides);
   // 修复：递归扫描会把 bundled-agents/mock-cdn 的可删除缓存当作源码输入，重建立即失效。
   // workspace 边界由 pnpm 解析，同一份项目集合用于依赖图和 manifest 新鲜度检查。
   for (const file of workspaceManifests) await readInput(file);
-  const currentPackages = new Set(
+  const productionPackageKeys = new Set(
     [...packages, ...notInstalled].map((item) => `${item.name}@${item.version}`),
   );
-  for (const item of overrides) {
-    if (!currentPackages.has(item.package))
-      throw new Error(`Stale npm notice override: ${item.package}`);
-  }
+  const { reviewRequired: npmReviewRequired, developmentReviewRequired } =
+    partitionNpmOverrideReviews(overrides, productionPackageKeys, new Set(installedPackageKeys));
   const textRecords = new Map();
   function addText(bytes, owner, origin) {
     const sha256 = hashBytes(bytes);
@@ -188,7 +211,7 @@ export async function generateThirdPartyNotices(root = repositoryRoot) {
     "## Source evidence limitations",
     "Some publishers provide only a license identifier or a short README license section instead of a complete LICENSE file. For the following packages the supplied material explicitly identifies publisher metadata and standard terms; it is not represented as an original upstream LICENSE file. Any available README copyright notice is retained:",
     ...overrides
-      .filter((item) => item.evidenceKind)
+      .filter((item) => productionPackageKeys.has(item.package) && item.evidenceKind)
       .map((item) => `- ${item.package}: ${item.source}`),
     "The original import revisions of copied components are not recorded in the current checkout. Pinned license references below do not establish the original copy revision. They cover upstream-derived portions only; local adaptations do not change the upstream terms.",
     "## Copied source and assets",
@@ -255,13 +278,7 @@ export async function generateThirdPartyNotices(root = repositoryRoot) {
       ...copied
         .filter((item) => item.reviewRequired)
         .map((item) => ({ id: item.id, reason: item.reviewRequired })),
-      ...overrides
-        .filter((item) => item.acceptedMissingNotice || item.evidenceKind)
-        .map((item) => ({
-          id: item.package,
-          reason:
-            "Original version-specific publisher copyright/license material remains incomplete.",
-        })),
+      ...npmReviewRequired,
       ...embedded
         .filter((item) => item.reviewRequired)
         .map((item) => ({ id: item.id, reason: item.reviewRequired })),
@@ -272,6 +289,7 @@ export async function generateThirdPartyNotices(root = repositoryRoot) {
           reason: "No original notice snapshot for this recorded native component.",
         })),
     ],
+    developmentReviewRequired,
   };
   await writeFile(join(root, noticesFileName), bytes);
   await writeFile(

@@ -29,6 +29,16 @@ provenance, original notices for several pinned packages and skills, and
 complete provenance for the Rust standard library component. Consult the
 `reviewRequired` array for the exact item list and rationale.
 
+An npm override that is present only in the workspace development dependency
+graph remains recorded in `developmentReviewRequired` with its unresolved
+notice evidence, but does not block the production release check or appear as
+an npm package in the production notice list. Build-time assets copied into the
+application remain listed separately under `copied`, with source hashes and
+their applicable notices. The generator determines npm scope from the
+workspace dependency graph; do not manually relabel or delete an unresolved
+record to make strict mode pass. If a package later enters the production
+graph, its record moves back into `reviewRequired` automatically.
+
 ## Release gate
 
 Before publishing an installer, verify the exact native components included
