@@ -4,9 +4,21 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import {
+  getSocialMediaRuntimeToolLayout,
   resolveSocialMediaRuntimeToolPath,
   resolveYtDlpBinaryPath,
 } from "./socialMediaRuntimeToolPaths.js";
+
+test("staged FFmpeg executables use the prepared archive's bin directory", () => {
+  assert.deepEqual(getSocialMediaRuntimeToolLayout("ffmpeg"), {
+    directory: "ffmpeg",
+    binaryName: "bin/ffmpeg",
+  });
+  assert.deepEqual(getSocialMediaRuntimeToolLayout("ffprobe"), {
+    directory: "ffmpeg",
+    binaryName: "bin/ffprobe",
+  });
+});
 
 test("packaged yt-dlp resolution prefers the bundled executable over a development override", () => {
   assert.equal(

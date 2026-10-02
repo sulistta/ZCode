@@ -40,7 +40,10 @@ import {
   type ResolveRemoteCdnOptions,
 } from "./remoteCdn.js";
 import { getElectronAppPath, isElectronAppPackaged } from "./desktopElectronApp.js";
-import { resolveSocialMediaRuntimeToolPath } from "./socialMediaRuntimeToolPaths.js";
+import {
+  getSocialMediaRuntimeToolLayout,
+  resolveSocialMediaRuntimeToolPath,
+} from "./socialMediaRuntimeToolPaths.js";
 
 const isLocalDevelopmentRuntime = !isElectronAppPackaged();
 export const desktopRuntimeEnv: ZCodeRuntimeEnv = isLocalDevelopmentRuntime
@@ -415,36 +418,30 @@ function resolveSocialMediaRuntimePath(
   hostProcessLocalEnv: Record<string, string>,
   packagedDesktop: boolean,
 ): string | undefined {
-  const layout = {
+  const envVar = {
     "yt-dlp": {
-      directory: "yt-dlp",
-      binaryName: "yt-dlp",
       envVar: "SOCIAL_HARNESS_YT_DLP_PATH",
     },
     ffmpeg: {
-      directory: "ffmpeg",
-      binaryName: "ffmpeg",
       envVar: "SOCIAL_HARNESS_FFMPEG_PATH",
     },
     ffprobe: {
-      directory: "ffmpeg",
-      binaryName: "ffprobe",
       envVar: "SOCIAL_HARNESS_FFPROBE_PATH",
     },
     "whisper.cpp": {
-      directory: "whisper.cpp",
-      binaryName: "whisper-cli",
       envVar: "SOCIAL_HARNESS_WHISPER_CPP_PATH",
     },
   }[tool];
+  // 可执行文件目录统一来自社会媒体工具布局表，避免 Main 与打包清单的相对路径漂移。
+  const { directory, binaryName } = getSocialMediaRuntimeToolLayout(tool);
   const configuredPath =
-    readRuntimeEnvOverride(layout.envVar) ?? hostProcessLocalEnv[layout.envVar]?.trim();
+    readRuntimeEnvOverride(envVar.envVar) ?? hostProcessLocalEnv[envVar.envVar]?.trim();
   return resolveSocialMediaRuntimeToolPath({
     tool,
     packaged: packagedDesktop,
     platform: process.platform,
     resourcesPath: packagedDesktop ? process.resourcesPath : undefined,
-    bundledPath: resolveBundledRuntimeToolBinaryPath(layout.directory, layout.binaryName),
+    bundledPath: resolveBundledRuntimeToolBinaryPath(directory, binaryName),
     explicitPath: configuredPath,
   });
 }

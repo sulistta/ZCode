@@ -3,12 +3,17 @@ import { join } from "node:path";
 
 export type SocialMediaRuntimeTool = "yt-dlp" | "ffmpeg" | "ffprobe" | "whisper.cpp";
 
+// FFmpeg 归档的执行文件位于 bin/；Main 和 Host 必须共用此布局，避免静默退回系统 PATH。
 const TOOL_LAYOUT: Record<SocialMediaRuntimeTool, { directory: string; binaryName: string }> = {
   "yt-dlp": { directory: "yt-dlp", binaryName: "yt-dlp" },
   ffmpeg: { directory: "ffmpeg", binaryName: "bin/ffmpeg" },
   ffprobe: { directory: "ffmpeg", binaryName: "bin/ffprobe" },
   "whisper.cpp": { directory: "whisper.cpp", binaryName: "whisper-cli" },
 };
+
+export function getSocialMediaRuntimeToolLayout(tool: SocialMediaRuntimeTool) {
+  return TOOL_LAYOUT[tool];
+}
 
 export function resolveSocialMediaRuntimeToolPath(options: {
   tool: SocialMediaRuntimeTool;
