@@ -32,7 +32,7 @@ import {
  */
 
 const preloadPath = join(import.meta.dirname, "../preload/resourceManager.cjs");
-const RESOURCE_MANAGER_WINDOW_TITLE = "Resource Manager";
+const RESOURCE_MANAGER_WINDOW_TITLE = "Social Harness Resource Manager";
 const BROWSER_USE_PLUGIN_NAME = "browser-use";
 
 /** 系统整机 CPU：两次 os.cpus() 之间 busy / total 的差分 */

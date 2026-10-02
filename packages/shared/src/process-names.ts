@@ -1,4 +1,4 @@
-const SOCIAL_HARNESS_PROCESS_PREFIX = "zcode";
+const SOCIAL_HARNESS_PROCESS_PREFIX = "social-harness";
 const MAX_PROCESS_NAME_SEGMENT_LENGTH = 24;
 
 function sanitizeProcessNameSegment(value: string | null | undefined): string | null {
@@ -49,16 +49,21 @@ export function formatZCodeHostProcessName(label?: string): string {
 
 export function formatZCodeRendererProcessName(windowTitle?: string): string {
   const normalizedTitle = windowTitle?.trim();
-  if (!normalizedTitle || normalizedTitle === "ZCode") {
+  if (!normalizedTitle || normalizedTitle === "ZCode" || normalizedTitle === "Social Harness") {
     return joinZCodeProcessName("renderer", "main");
   }
 
-  if (normalizedTitle === "Resource Manager") {
+  if (
+    normalizedTitle === "Resource Manager" ||
+    normalizedTitle === "Social Harness Resource Manager"
+  ) {
     return joinZCodeProcessName("renderer", "resource-manager");
   }
 
-  const remoteWindowPrefix = "ZCode - ";
-  if (normalizedTitle.startsWith(remoteWindowPrefix)) {
+  const remoteWindowPrefix = ["Social Harness - ", "ZCode - "].find((prefix) =>
+    normalizedTitle.startsWith(prefix),
+  );
+  if (remoteWindowPrefix) {
     return joinZCodeProcessName(
       "renderer",
       "remote",

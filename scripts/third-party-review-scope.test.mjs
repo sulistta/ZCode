@@ -128,3 +128,46 @@ test("payment processor SDKs stay out of the Social Harness production dependenc
   );
   assert.ok(!inventory.packages.some(({ name }) => name.startsWith("@stripe/")));
 });
+
+test("unused generic UI libraries stay out of the Social Harness production manifest", async () => {
+  const [uiManifestContents, inventoryContents] = await Promise.all([
+    readFile(new URL("../packages/ui/package.json", import.meta.url), "utf8"),
+    readFile(new URL("../third-party/inventory.json", import.meta.url), "utf8"),
+  ]);
+  const uiManifest = JSON.parse(uiManifestContents);
+  const inventory = JSON.parse(inventoryContents);
+  const unusedProductionDependencies = [
+    "@dnd-kit/dom",
+    "@dnd-kit/helpers",
+    "@dnd-kit/react",
+    "@radix-ui/react-radio-group",
+    "@rive-app/react-webgl2",
+    "@xyflow/react",
+    "embla-carousel-react",
+    "highlight.js",
+    "marked",
+    "media-chrome",
+    "qrcode",
+    "react-jsx-parser",
+    "use-stick-to-bottom",
+  ];
+
+  for (const name of unusedProductionDependencies) {
+    assert.ok(!(name in (uiManifest.dependencies ?? {})), `${name} is not used by the active UI`);
+  }
+  const packagesRemovedFromProductionGraph = unusedProductionDependencies.filter(
+    (name) => !["@radix-ui/react-radio-group", "marked"].includes(name),
+  );
+  for (const name of packagesRemovedFromProductionGraph) {
+    assert.ok(
+      !inventory.packages.some((item) => item.name === name),
+      `${name} is not in the active production dependency graph`,
+    );
+  }
+  for (const name of ["@rive-app/react-webgl2", "@xyflow/react", "use-stick-to-bottom"]) {
+    assert.ok(
+      name in (uiManifest.devDependencies ?? {}),
+      `${name} remains available for typechecking`,
+    );
+  }
+});

@@ -8,7 +8,7 @@ import type {
   StorageUsageSnapshot,
 } from "@social-harness/shared";
 
-process.title = formatZCodeRendererProcessName("Resource Manager");
+process.title = formatZCodeRendererProcessName("Social Harness Resource Manager");
 
 const storage: StorageManagementBridge = {
   startScan: (): Promise<{ jobId: string }> =>
