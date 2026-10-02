@@ -70,7 +70,10 @@ export class SocialProjectExportUnavailableError extends Error {
 }
 
 export class SocialProjectExportRenderError extends Error {
-  constructor(readonly code: SocialProjectExportJob["errorCode"]) {
+  constructor(
+    readonly code: SocialProjectExportJob["errorCode"],
+    readonly diagnostic?: string,
+  ) {
     super(code ?? "render-failed");
     this.name = "SocialProjectExportRenderError";
   }

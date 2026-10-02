@@ -189,11 +189,17 @@ export function createSocialProjectExportOperations(options: SocialProjectExport
       const errorCode =
         error instanceof SocialProjectExportRenderError ? error.code : ("render-failed" as const);
       if (!cancelled) {
+        const diagnostic =
+          process.env.SOCIAL_HARNESS_ENV === "test" &&
+          error instanceof SocialProjectExportRenderError
+            ? error.diagnostic
+            : undefined;
         logger.warn(undefined, "project export failed", {
           accountId: job.accountId,
           exportId: job.exportId,
           projectId: job.projectId,
           errorCode,
+          ...(diagnostic ? { diagnostic } : {}),
         });
       }
       await updateJob(job.accountId, job.exportId, (current) => ({

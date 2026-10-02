@@ -12,13 +12,53 @@ import { socialProjectSchema } from "@social-harness/shared";
 import type { SocialMediaAsset } from "../src/social-media/contract.js";
 import { buildSocialProjectExportGraph } from "../src/social-project/adapters/socialProjectExportPlan.js";
 import { createSocialProjectExportFfmpegRenderer } from "../src/social-project/adapters/socialProjectExportFfmpeg.js";
-import { probeSocialProjectExportMedia } from "../src/social-project/adapters/socialProjectExportProcesses.js";
+import { SocialProjectExportRenderError } from "../src/social-project/app/errors.js";
+import {
+  probeSocialProjectExportMedia,
+  runSocialProjectExportProcess,
+} from "../src/social-project/adapters/socialProjectExportProcesses.js";
 
 const ffmpegExecutable = process.env.SOCIAL_HARNESS_FFMPEG_PATH?.trim() || "ffmpeg";
 const ffprobeExecutable = process.env.SOCIAL_HARNESS_FFPROBE_PATH?.trim() || "ffprobe";
 const ffmpegAvailable = spawnSync(ffmpegExecutable, ["-version"], { stdio: "ignore" }).status === 0;
 const ffprobeAvailable =
   spawnSync(ffprobeExecutable, ["-version"], { stdio: "ignore" }).status === 0;
+
+test("captures bounded render diagnostics when explicitly enabled for tests", async () => {
+  const result = runSocialProjectExportProcess({
+    executable: process.execPath,
+    args: ["-e", "process.stderr.write('x'.repeat(20000)); process.exitCode = 2"],
+    timeoutMs: 5_000,
+    maximumOutputBytes: 1_024,
+    diagnosticsEnabled: true,
+  });
+
+  await assert.rejects(result, (error: unknown) => {
+    assert.ok(error instanceof SocialProjectExportRenderError);
+    assert.equal(error.code, "render-failed");
+    assert.equal(error.message, "render-failed");
+    assert.equal(error.diagnostic?.length, 8 * 1024);
+    assert.equal(error.diagnostic, "x".repeat(8 * 1024));
+    return true;
+  });
+});
+
+test("does not retain renderer stderr when diagnostics are disabled", async () => {
+  const result = runSocialProjectExportProcess({
+    executable: process.execPath,
+    args: ["-e", "process.stderr.write('private-path'); process.exitCode = 2"],
+    timeoutMs: 5_000,
+    maximumOutputBytes: 1_024,
+    diagnosticsEnabled: false,
+  });
+
+  await assert.rejects(result, (error: unknown) => {
+    assert.ok(error instanceof SocialProjectExportRenderError);
+    assert.equal(error.code, "render-failed");
+    assert.equal(error.diagnostic, undefined);
+    return true;
+  });
+});
 
 function createMediaAsset(
   mediaId: string,

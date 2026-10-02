@@ -8,6 +8,7 @@ import { SocialProjectExportRenderError } from "../app/errors.js";
 const FFPROBE_TIMEOUT_MS = 20_000;
 const PROCESS_FORCE_KILL_MS = 1_000;
 const MAX_PROBE_OUTPUT_BYTES = 128 * 1024;
+const MAX_TEST_DIAGNOSTIC_BYTES = 8 * 1024;
 
 interface ProcessResult {
   stdout: string;
@@ -42,8 +43,11 @@ export function runSocialProjectExportProcess(input: {
   timeoutMs: number;
   maximumOutputBytes: number;
   onProgress?: (stdoutLine: string) => void;
+  diagnosticsEnabled?: boolean;
 }): Promise<ProcessResult> {
   return new Promise((resolve, reject) => {
+    const captureDiagnostics =
+      input.diagnosticsEnabled ?? process.env.SOCIAL_HARNESS_ENV === "test";
     if (input.signal?.aborted) {
       reject(new SocialProjectExportRenderError("render-failed"));
       return;
@@ -52,7 +56,7 @@ export function runSocialProjectExportProcess(input: {
     try {
       child = spawn(input.executable, input.args, {
         ...childProcessOptions(),
-        stdio: ["ignore", "pipe", "ignore"],
+        stdio: ["ignore", "pipe", captureDiagnostics ? "pipe" : "ignore"],
       });
     } catch {
       reject(new SocialProjectExportRenderError("renderer-unavailable"));
@@ -64,8 +68,15 @@ export function runSocialProjectExportProcess(input: {
     let overflowed = false;
     let stdoutBytes = 0;
     let stdout = "";
+    let diagnosticBytes = 0;
+    const diagnosticChunks: Buffer[] = [];
     let lineBuffer = "";
     let termination = Promise.resolve();
+    const getDiagnostic = () => {
+      if (!captureDiagnostics || diagnosticChunks.length === 0) return undefined;
+      const diagnostic = Buffer.concat(diagnosticChunks).toString("utf8").trim();
+      return diagnostic || undefined;
+    };
     const timeout = setTimeout(() => {
       timedOut = true;
       termination = terminateChild(child, startedAt);
@@ -89,8 +100,19 @@ export function runSocialProjectExportProcess(input: {
       finish(
         new SocialProjectExportRenderError(
           error.code === "ENOENT" ? "renderer-unavailable" : "render-failed",
+          captureDiagnostics
+            ? `${error.code ?? "spawn-error"}: ${error.message}`.slice(0, MAX_TEST_DIAGNOSTIC_BYTES)
+            : undefined,
         ),
       );
+    });
+    // Windows E2E 只看到稳定的 render-failed，原先 stderr 被直接丢弃，无法定位跨平台滤镜失败；
+    // 仅测试环境保留最多 8 KiB，正式运行不采集，避免媒体路径或内容进入日志。
+    child.stderr?.on("data", (chunk: Buffer) => {
+      if (!captureDiagnostics || diagnosticBytes >= MAX_TEST_DIAGNOSTIC_BYTES) return;
+      const retained = chunk.subarray(0, MAX_TEST_DIAGNOSTIC_BYTES - diagnosticBytes);
+      diagnosticChunks.push(Buffer.from(retained));
+      diagnosticBytes += retained.byteLength;
     });
     child.stdout?.on("data", (chunk: Buffer) => {
       if (settled || overflowed) return;
@@ -109,15 +131,14 @@ export function runSocialProjectExportProcess(input: {
     });
     child.stdout?.once("error", () => {
       termination = terminateChild(child, startedAt);
-      finish(new SocialProjectExportRenderError("render-failed"));
+      finish(new SocialProjectExportRenderError("render-failed", getDiagnostic()));
     });
-    child.stderr?.resume();
     child.once("close", async (code) => {
       await termination;
       if (input.signal?.aborted) {
-        finish(new SocialProjectExportRenderError("render-failed"));
+        finish(new SocialProjectExportRenderError("render-failed", getDiagnostic()));
       } else if (timedOut || overflowed || code !== 0) {
-        finish(new SocialProjectExportRenderError("render-failed"));
+        finish(new SocialProjectExportRenderError("render-failed", getDiagnostic()));
       } else {
         finish();
       }
