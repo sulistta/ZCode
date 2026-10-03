@@ -1,0 +1,292 @@
+{
+  "checkedOn": "2026-10-03",
+  "package": "quickjs-wasi@2.2.0",
+  "result": "Unresolved. The new publisher notice and maintainer confirmation cover 3.6.0; comparison shows changed runtime/native source and a different QuickJS-NG submodule. This does not attribute the notice to the shipped 2.2.0 wrapper.",
+  "shippedRevision": "cc1fea4a6a4ac1d960e0db68d35e1459064a1a23",
+  "candidateLicensedRevision": "066475d399936cd40a38cabde6935d5f7b080dec",
+  "candidateLicenseUrl": "https://raw.githubusercontent.com/vercel-labs/quickjs-wasi/066475d399936cd40a38cabde6935d5f7b080dec/LICENSE",
+  "candidateLicenseSha256": "f7735da3b2531ddf451937117343cfadb853fd8054b499e7a70695dc57ffd184",
+  "publisherConfirmation": {
+    "url": "https://github.com/vercel-labs/quickjs-wasi/pull/51#issuecomment-5710526252",
+    "author": "TooTallNate",
+    "association": "COLLABORATOR",
+    "confirmedVersion": "3.6.0",
+    "confirmedRevision": "54c4d2dd4be2445409aeab603ecfc3bb209c7310",
+    "bodySha256": "940506f952c1a844815bb07f0f34d900af4de3354e0aba6f6909432daacb9313"
+  },
+  "comparison": {
+    "url": "https://api.github.com/repos/vercel-labs/quickjs-wasi/compare/cc1fea4a6a4ac1d960e0db68d35e1459064a1a23...066475d399936cd40a38cabde6935d5f7b080dec",
+    "status": "ahead",
+    "totalCommits": 37,
+    "files": [
+      {
+        "path": ".changeset/tidy-moons-notice.md",
+        "status": "added"
+      },
+      {
+        "path": ".github/workflows/release.yml",
+        "status": "modified"
+      },
+      {
+        "path": "CHANGELOG.md",
+        "status": "modified"
+      },
+      {
+        "path": "EXTENSIONS.md",
+        "status": "modified"
+      },
+      {
+        "path": "LICENSE",
+        "status": "added"
+      },
+      {
+        "path": "Makefile",
+        "status": "modified"
+      },
+      {
+        "path": "README.md",
+        "status": "modified"
+      },
+      {
+        "path": "bench/base64-benchmark.ts",
+        "status": "removed"
+      },
+      {
+        "path": "bench/base64-polyfill-bundle.js",
+        "status": "removed"
+      },
+      {
+        "path": "bench/base64-polyfill-entry.js",
+        "status": "removed"
+      },
+      {
+        "path": "bench/encoding-benchmark.ts",
+        "status": "modified"
+      },
+      {
+        "path": "bench/opt-level-benchmark.ts",
+        "status": "added"
+      },
+      {
+        "path": "c/interface.c",
+        "status": "modified"
+      },
+      {
+        "path": "examples/browser/main.tsx",
+        "status": "modified"
+      },
+      {
+        "path": "examples/browser/package.json",
+        "status": "modified"
+      },
+      {
+        "path": "examples/browser/src/index.css",
+        "status": "modified"
+      },
+      {
+        "path": "examples/browser/vendor/react-inspector-8.1.0.tgz",
+        "status": "added"
+      },
+      {
+        "path": "examples/browser/vite.config.ts",
+        "status": "modified"
+      },
+      {
+        "path": "extensions/base64/README.md",
+        "status": "removed"
+      },
+      {
+        "path": "extensions/base64/base64.c",
+        "status": "removed"
+      },
+      {
+        "path": "extensions/crypto/README.md",
+        "status": "modified"
+      },
+      {
+        "path": "extensions/crypto/crypto.c",
+        "status": "modified"
+      },
+      {
+        "path": "extensions/crypto/mbedtls_config_wasm.h",
+        "status": "modified"
+      },
+      {
+        "path": "extensions/encoding/README.md",
+        "status": "modified"
+      },
+      {
+        "path": "extensions/encoding/encoding.c",
+        "status": "modified"
+      },
+      {
+        "path": "extensions/headers/README.md",
+        "status": "modified"
+      },
+      {
+        "path": "extensions/headers/headers.c",
+        "status": "modified"
+      },
+      {
+        "path": "extensions/structured-clone/README.md",
+        "status": "modified"
+      },
+      {
+        "path": "extensions/structured-clone/structured-clone.c",
+        "status": "modified"
+      },
+      {
+        "path": "extensions/url/README.md",
+        "status": "modified"
+      },
+      {
+        "path": "package.json",
+        "status": "modified"
+      },
+      {
+        "path": "pnpm-lock.yaml",
+        "status": "modified"
+      },
+      {
+        "path": "pnpm-workspace.yaml",
+        "status": "modified"
+      },
+      {
+        "path": "quickjs-ng",
+        "status": "modified"
+      },
+      {
+        "path": "src/base64.ts",
+        "status": "removed"
+      },
+      {
+        "path": "src/crypto.ts",
+        "status": "removed"
+      },
+      {
+        "path": "src/encoding.ts",
+        "status": "removed"
+      },
+      {
+        "path": "src/headers.ts",
+        "status": "removed"
+      },
+      {
+        "path": "src/index.ts",
+        "status": "modified"
+      },
+      {
+        "path": "src/structured-clone.ts",
+        "status": "removed"
+      },
+      {
+        "path": "src/url.ts",
+        "status": "removed"
+      },
+      {
+        "path": "src/version.ts",
+        "status": "modified"
+      },
+      {
+        "path": "src/wasi-shim.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/base64.test.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/bytecode.test.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/compile.test.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/crypto.test.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/devalue-operations.ts",
+        "status": "added"
+      },
+      {
+        "path": "test/devalue-round-trip.test.ts",
+        "status": "added"
+      },
+      {
+        "path": "test/encoding.test.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/eval.test.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/functions.test.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/gc-threshold.test.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/handle-lifetime.test.ts",
+        "status": "added"
+      },
+      {
+        "path": "test/intrinsics.test.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/introspection.test.ts",
+        "status": "added"
+      },
+      {
+        "path": "test/limits.test.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/lossless-strings.test.ts",
+        "status": "added"
+      },
+      {
+        "path": "test/memory-growth.test.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/module-loader.test.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/nft.test.ts",
+        "status": "removed"
+      },
+      {
+        "path": "test/portable-handles.test.ts",
+        "status": "added"
+      },
+      {
+        "path": "test/promise-rejection.test.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/promises.test.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/symbols.test.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/values.test.ts",
+        "status": "modified"
+      },
+      {
+        "path": "test/versions.test.ts",
+        "status": "modified"
+      }
+    ]
+  }
+}

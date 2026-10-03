@@ -184,3 +184,28 @@ source comparison are recorded in
 the notice review for the proven unchanged shipped software; it does not
 claim that the missing 2.3.8 release commit was recovered or that unrelated
 release obligations are complete.
+
+The 2026-10-03 publisher follow-up also found Hono's original repository MIT
+notice, added by merge `a8e2af4d857aa7fabf290cdf6f67307678e50409` on
+2026-09-29. Maintainer Yusuke Wada supplied that notice in response to issue
+2157, which identifies `@hono/node-ws@1.3.0` and its exact published `gitHead`.
+Fresh 1.3.0 and 1.3.1 npm archives match their registry SRIs. All seven compiled
+implementation, declaration and source-map files are byte-identical. Both
+implementation sources embedded in the published 1.3.0 JavaScript source map
+also match the original `gitHead` and the licensed publisher revision exactly.
+Their README, changelog and manifest differ; the manifest differences concern
+version, development scripts/dependencies and peer ranges, and are retained
+explicitly. No package upgrade was performed. The complete original notice,
+immutable URLs and archive/source comparisons are retained in
+`upstream/hono-node-ws-1.3.0-source-notice-evidence.json`. This closes that
+notice review through the unchanged implementation and publisher's resolution
+of the exact-version request, superseding the earlier negative tree scan.
+
+QuickJS-WASI added its wrapper's original MIT notice in publisher merge
+`066475d399936cd40a38cabde6935d5f7b080dec`. The maintainer confirmation on
+PR 51 covers version 3.6.0 at `54c4d2dd4be2445409aeab603ecfc3bb209c7310`.
+It does not identify the shipped 2.2.0 wrapper, whose implementation, native
+sources and QuickJS-NG revision differ. The candidate notice and this boundary
+are retained in `upstream/quickjs-wasi-2.2.0-candidate-notice-evidence.json`.
+The 2.2.0 review remains open; a notice supplied for a changed version is not
+silently treated as version-specific evidence for the installed package.
