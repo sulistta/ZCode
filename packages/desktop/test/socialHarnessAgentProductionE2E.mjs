@@ -175,7 +175,8 @@ export async function verifySocialAgentProductionInElectron(
   assert.equal(catalog.assets.filter((asset) => asset.accountId === account.accountId).length, 1);
   assert.equal(catalog.jobs.filter((job) => job.accountId === account.accountId).length, 1);
   await page.getByRole("button", { name: "Player", exact: true }).click();
-  await page.getByRole("button", { name: scenario.projectName, exact: true }).click();
+  // 项目按钮同时包含名称、版本和轨道数，按名称部分匹配，与现有编辑场景一致。
+  await page.getByRole("button", { name: scenario.projectName }).click();
   await page
     .getByText("Automation proposal. Review the caption and export, then approve publishing.", {
       exact: true,
