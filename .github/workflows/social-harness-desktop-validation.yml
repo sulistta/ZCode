@@ -67,7 +67,7 @@ jobs:
       - name: Test user-owned Instagram bridge and provisioning
         run: |
           pnpm --filter @social-harness/social-auth-bridge test
-          node --import tsx --test packages/services/test/instagramConvex*.test.ts packages/services/test/socialPublishingService.test.ts packages/services/test/socialInstagramPublicationWorkflow.test.ts
+          node --import tsx --test packages/services/test/instagramConvex*.test.ts packages/services/test/socialPublishingService.test.ts packages/services/test/socialPublishingConnectionRestart.test.ts packages/services/test/socialInstagramPublicationWorkflow.test.ts packages/desktop/test/desktopInstagramCredentialVault.test.ts
 
       - name: Typecheck internal headless Agent
         run: pnpm --dir apps/zcode-cli typecheck
