@@ -12,6 +12,7 @@ import type { InstagramTokenRefresher } from "../src/social-publishing/app/ports
 import type { InstagramConnectionProfile } from "@social-harness/shared";
 import type { InstagramPublicationStore } from "../src/social-publishing/app/ports/instagramPublicationStore.js";
 import type { InstagramPublication } from "@social-harness/shared";
+import { createInstagramMediaReader } from "../src/social-publishing/adapters/instagramMediaReader.js";
 
 const profile: InstagramConnectionProfile = {
   instagramUserId: "ig-user-42",
@@ -412,6 +413,28 @@ test("Instagram media queries use the connected account token and never return c
   });
   assert.equal(media[0]?.mediaId, "media-1");
   assert.equal(JSON.stringify(media).includes("private-access-token"), false);
+});
+
+test("Host media lookup projects normalized provider dates and preserves the existing sanitized retry error", async () => {
+  let timestamp = "2026-10-03T12:00:00+0000";
+  const harness = makeHarness({
+    mediaReader: createInstagramMediaReader({
+      fetcher: async () =>
+        Response.json({ data: [{ id: "fixture-post", media_type: "VIDEO", timestamp }] }),
+    }),
+  });
+  harness.credentials.set("account-one", { accessToken: "private-access-token" });
+  harness.profiles.set("account-one", { profile, connectedAt: 500 });
+  const media = await harness.service.listInstagramMedia({ accountId: "account-one" });
+  assert.equal(media[0]?.timestamp, "2026-10-03T12:00:00+00:00");
+  timestamp = "invalid-private-provider-value";
+  await assert.rejects(
+    harness.service.listInstagramMedia({ accountId: "account-one" }),
+    (error: unknown) =>
+      error instanceof SocialPublishingError &&
+      error.code === "instagram-media-unavailable" &&
+      !error.message.includes(timestamp),
+  );
 });
 
 test("Instagram media queries are rejected for disconnected accounts", async () => {

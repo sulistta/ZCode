@@ -47,6 +47,9 @@ const preloadBuild = await build({
           ipcRenderer.on(PlatformChannels.OAuthCallback, handler);
           return () => ipcRenderer.removeListener(PlatformChannels.OAuthCallback, handler);
         },
+      });
+      contextBridge.exposeInMainWorld("mediaFixtureService", {
+        listInstagramMedia: request => ipcRenderer.invoke("fixture-list-instagram-media", request),
       });`,
     resolveDir: join(root, "packages/desktop"),
     loader: "ts",
@@ -63,7 +66,22 @@ const mainBuild = await build({
     contents: `import { app, BrowserWindow, ipcMain } from "electron";
       import { PlatformChannels } from "@social-harness/shared";
       import { registerOAuthState, deliverPendingDeepLink, handleDeepLink } from ${JSON.stringify(join(root, "packages/desktop/src/main/desktopOAuthDeepLink.ts"))};
+      import { createInstagramMediaReader } from ${JSON.stringify(join(root, "packages/services/src/social-publishing/adapters/instagramMediaReader.ts"))};
       const logger = { info() {}, warn() {} };
+      globalThis.mediaFixtureMode = "posts";
+      globalThis.mediaFixtureCalls = 0;
+      const mediaReader = createInstagramMediaReader({ fetcher: async () => Response.json({
+        data: globalThis.mediaFixtureMode === "empty" ? [] : [{
+          id: "fixture-post", media_type: "VIDEO", caption: "Timestamp fixture post",
+          permalink: "https://www.instagram.com/reel/fixture/",
+          timestamp: globalThis.mediaFixtureMode === "invalid" ? "private-invalid-date" : "2026-10-03T12:00:00+0000",
+        }],
+      }) });
+      ipcMain.handle("fixture-list-instagram-media", async (_event, request) => {
+        if (request.accountId !== "fixture-account") throw new Error("Unexpected fixture account");
+        globalThis.mediaFixtureCalls++;
+        return mediaReader.list({ instagramUserId: "fixture-user", accessToken: "fixture-host-only-token", limit: 12 });
+      });
       globalThis.oauthFixtureRoute = url => handleDeepLink(url, logger);
       ipcMain.on(PlatformChannels.OAuthRegisterState, (event, payload) => registerOAuthState(event.sender.id, payload));
       ipcMain.on(PlatformChannels.RendererReady, event => deliverPendingDeepLink(event.sender));
@@ -192,6 +210,32 @@ try {
     false,
   );
   assert.equal(await page.evaluate(() => window.setupFixture.completions), 1);
+  const posts = page.getByRole("region", { name: "Recent Instagram posts" });
+  await posts.getByText("Timestamp fixture post").waitFor();
+  assert.equal(await posts.locator("time").getAttribute("datetime"), "2026-10-03T12:00:00+00:00");
+  assert.equal(await app.evaluate(() => globalThis.mediaFixtureCalls), 1);
+  await app.evaluate(() => {
+    globalThis.mediaFixtureMode = "invalid";
+  });
+  await posts.getByRole("button", { name: "Refresh posts" }).click();
+  await posts.getByRole("alert").waitFor();
+  assert.equal(
+    await posts.getByText("No published posts were returned for this account.").count(),
+    0,
+  );
+  assert.doesNotMatch(await posts.innerText(), /private-invalid-date|fixture-host-only-token/);
+  await app.evaluate(() => {
+    globalThis.mediaFixtureMode = "posts";
+  });
+  await posts.getByRole("button", { name: "Retry" }).click();
+  await posts.getByText("Timestamp fixture post").waitFor();
+  await app.evaluate(() => {
+    globalThis.mediaFixtureMode = "empty";
+  });
+  await posts.getByRole("button", { name: "Refresh posts" }).click();
+  await posts.getByText("No published posts were returned for this account.").waitFor();
+  assert.equal(await posts.getByRole("alert").count(), 0);
+  assert.equal(await app.evaluate(() => globalThis.mediaFixtureCalls), 4);
   const persistence = await page.evaluate(() =>
     JSON.stringify({
       local: { ...localStorage },
@@ -201,7 +245,7 @@ try {
   assert.doesNotMatch(persistence, /fixture-secret|fixture-key|fixture-token/);
   assert.deepEqual(errors, []);
   console.log(
-    "Instagram setup Electron E2E passed: invalid-key retry, creation quota/retry, callback copy, Meta instructions, cleared secret fields, readiness ordering and actual Main/preload/hook OAuth handoff with unknown-state and replay rejection (fixture services).",
+    "Instagram setup Electron E2E passed: invalid-key retry, creation quota/retry, callback copy, Meta instructions, cleared secret fields, readiness ordering and actual Main/preload/hook OAuth handoff with unknown-state and replay rejection; actual Host-side media adapter with basic-offset posts, refresh failure/retry and true empty-page presentation (fixture services).",
   );
 } finally {
   await app?.close();

@@ -2,6 +2,91 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createInstagramMediaReader } from "../src/social-publishing/adapters/instagramMediaReader.js";
 
+test("Instagram media reader normalizes basic numeric offsets without dropping posts or changing instants", async () => {
+  const timestamps = [
+    ["2026-10-03T12:00:00+0000", "2026-10-03T12:00:00+00:00"],
+    ["2026-10-03T12:00:00+0530", "2026-10-03T12:00:00+05:30"],
+    ["2026-10-03T12:00:00-0300", "2026-10-03T12:00:00-03:00"],
+    ["2026-10-03T12:00:00.123+0000", "2026-10-03T12:00:00.123+00:00"],
+    ["2026-10-03T12:00:00Z", "2026-10-03T12:00:00Z"],
+    ["2026-10-03T12:00:00+00:00", "2026-10-03T12:00:00+00:00"],
+  ];
+  const reader = createInstagramMediaReader({
+    fetcher: async () =>
+      Response.json({
+        data: timestamps.map(([timestamp], index) => ({
+          id: `media-${index}`,
+          media_type: "VIDEO",
+          timestamp,
+        })),
+      }),
+  });
+
+  const media = await reader.list({
+    instagramUserId: "fixture-user",
+    accessToken: "fixture-token",
+    limit: 12,
+  });
+
+  assert.equal(media.length, timestamps.length);
+  for (const [index, [input, expected]] of timestamps.entries()) {
+    assert.equal(media[index]?.timestamp, expected);
+    assert.equal(Date.parse(media[index]!.timestamp!), Date.parse(input!));
+  }
+});
+
+test("Instagram media reader retains valid and undated posts in a mixed page", async () => {
+  const reader = createInstagramMediaReader({
+    fetcher: async () =>
+      Response.json({
+        data: [
+          { id: "invalid-date", media_type: "VIDEO", timestamp: "2026-02-30T12:00:00+0000" },
+          { id: "valid-date", media_type: "IMAGE", timestamp: "2026-10-03T12:00:00+0000" },
+          { id: "missing-date", media_type: "CAROUSEL_ALBUM" },
+        ],
+      }),
+  });
+  const media = await reader.list({
+    instagramUserId: "fixture-user",
+    accessToken: "fixture-token",
+    limit: 12,
+  });
+  assert.deepEqual(
+    media.map(({ mediaId, timestamp }) => ({ mediaId, timestamp })),
+    [
+      { mediaId: "valid-date", timestamp: "2026-10-03T12:00:00+00:00" },
+      { mediaId: "missing-date", timestamp: null },
+    ],
+  );
+});
+
+test("Instagram media reader reserves an empty list for a genuinely empty provider page", async () => {
+  const reader = createInstagramMediaReader({ fetcher: async () => Response.json({ data: [] }) });
+  assert.deepEqual(
+    await reader.list({ instagramUserId: "fixture-user", accessToken: "fixture-token", limit: 12 }),
+    [],
+  );
+});
+
+test("Instagram media reader rejects an all-invalid page with a sanitized error", async () => {
+  for (const timestamp of ["2026-10-03T12:00:00", "2026-10-03T12:00:00+ab00", "not-a-date"]) {
+    const reader = createInstagramMediaReader({
+      fetcher: async () =>
+        Response.json({
+          data: [
+            { id: "private-media", media_type: "VIDEO", caption: "private-caption", timestamp },
+          ],
+        }),
+    });
+    await assert.rejects(
+      reader.list({ instagramUserId: "fixture-user", accessToken: "fixture-token", limit: 12 }),
+      {
+        message: "Instagram media response was invalid",
+      },
+    );
+  }
+});
+
 test("Instagram media reader requests a bounded own-media page with a bearer token", async () => {
   let requestedUrl: URL | undefined;
   let requestedHeaders: Headers | undefined;

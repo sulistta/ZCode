@@ -12,9 +12,12 @@ import type {
 import { ZCodeIntlProvider } from "../../../ui/src/i18n/IntlProvider.js";
 import { SocialInstagramSetup } from "../../../ui/src/social-accounts/SocialInstagramSetup.js";
 import { useSocialInstagramConnections } from "../../../ui/src/social-accounts/useSocialInstagramConnections.js";
+import { useSocialInstagramMedia } from "../../../ui/src/social-accounts/useSocialInstagramMedia.js";
+import { SocialInstagramMediaPanel } from "../../../ui/src/social-accounts/SocialInstagramMediaPanel.js";
 
 declare global {
   interface Window {
+    mediaFixtureService: Pick<SocialPublishingService, "listInstagramMedia">;
     oauthFixturePlatform: Pick<
       IPlatformService,
       "onOAuthCallback" | "notifyRendererReady" | "registerOAuthState"
@@ -98,6 +101,7 @@ let connection: InstagramConnection = {
 const connectionListeners = new Set<(event: { accountId: string }) => void>();
 const fixtureAccounts: SocialAccount[] = [];
 const publishing = {
+  listInstagramMedia: window.mediaFixtureService.listInstagramMedia,
   isInstagramAuthorizationAvailable: async () => true,
   listConnections: async () => [connection],
   getConnection: async () => connection,
@@ -130,14 +134,20 @@ function Fixture() {
     platform,
     isDesktop: true,
   });
+  const connectionStatus =
+    connections.connectionByAccount["fixture-account"]?.status ?? "disconnected";
+  const media = useSocialInstagramMedia({
+    accountId: "fixture-account",
+    connectionStatus,
+    enabled: true,
+    service: publishing,
+  });
   return (
     <ZCodeIntlProvider initialLocale="en-US">
       <SocialInstagramSetup
         service={service}
         platform={platform}
-        connectionStatus={
-          connections.connectionByAccount["fixture-account"]?.status ?? "disconnected"
-        }
+        connectionStatus={connectionStatus}
         onReady={async () => {
           await new Promise<void>((resolve) => {
             fixture.releaseReady = resolve;
@@ -146,6 +156,15 @@ function Fixture() {
         }}
         onConnect={() => void connections.connect("fixture-account")}
       />
+      {connectionStatus === "connected" ? (
+        <SocialInstagramMediaPanel
+          media={media.media}
+          isLoading={media.isLoading}
+          errorMessageId={media.errorMessageId}
+          platform={platform}
+          onReload={media.reload}
+        />
+      ) : null}
     </ZCodeIntlProvider>
   );
 }

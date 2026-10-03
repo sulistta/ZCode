@@ -10,7 +10,12 @@ const mediaItemSchema = z.object({
   media_type: z.string().trim().min(1).max(32),
   caption: z.string().max(2_200).optional(),
   permalink: z.string().url().optional(),
-  timestamp: z.string().datetime({ offset: true }).optional(),
+  // Meta 的基本时区偏移（+0000）会被严格 ISO 校验拒绝；先补冒号，避免有效帖子被整条丢弃。
+  timestamp: z
+    .string()
+    .transform((value) => value.replace(/([+-]\d{2})(\d{2})$/, "$1:$2"))
+    .pipe(z.string().datetime({ offset: true }))
+    .optional(),
 });
 
 function safePermalink(value: string | undefined): string | null {
@@ -74,6 +79,10 @@ export function createInstagramMediaReader(options?: {
             timestamp: item.timestamp ?? null,
           });
           if (projection.success) items.push(projection.data);
+        }
+        // 非空响应全部校验失败不是“没有帖子”；沿用现有错误路径，让用户可以重试。
+        if (result.data.length > 0 && items.length === 0) {
+          throw new Error("Instagram media response was invalid");
         }
         return items;
       } catch {
