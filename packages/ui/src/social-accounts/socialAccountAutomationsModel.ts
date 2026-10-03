@@ -44,8 +44,9 @@ export const AUTOMATION_TEMPLATES = [
     titleId: "socialAccounts.automations.template.clips.title",
     descriptionId: "socialAccounts.automations.template.clips.description",
     mode: "build",
+    // Host 已支持建项目和导出；旧模板仍要求用户手工建项目，导致准备流程停在候选建议。
     prompt:
-      "Read the current account context with SocialAgentGetContext and review SocialMediaList. Use SocialClipCandidates for relevant audio or video assets, then prepare the strongest candidates in the selected account project with SocialProjectRead and SocialProjectCommand. Preserve the accepted project revision and measured source timestamps; if there is no suitable project, ask the user to create one in Player. Never invent signals or publish.",
+      "Prepare a reviewable Reel from media already in this account's library. Read the current editorial profile, memory and automation policy, then analyze relevant media in podcast or music mode using available evidence. Choose the strongest measured candidate and preserve its actual source timestamps. Missing transcripts or heatmaps are unknown; never invent evidence. If there is no usable media or candidate, explain the impediment and stop. Use a suitable existing project, or create a Reel project when none fits; ask for clarification if the existing project choice is ambiguous. Read the accepted project revision before editing, respect user edit control and stop on a stale revision or rejected command. Export the accepted revision and inspect the actual export job until it completes, fails or is cancelled. Only claim the file is ready when export completion is confirmed. Report the project, chosen source range and export result for review. Do not discover or import new sources, request or approve publication, or change account autonomy.",
   },
   {
     id: "publication",

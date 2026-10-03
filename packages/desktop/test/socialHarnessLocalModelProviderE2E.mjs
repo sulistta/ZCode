@@ -192,6 +192,8 @@ export async function startLocalOpenAiMock(options = {}) {
   const candidateHandoffs = options.candidateHandoffs ?? [];
   const production = options.production;
   const productionToolCalls = [];
+  const clipPreparation = options.clipPreparation;
+  const clipPreparationToolCalls = [];
   const requests = [];
   const projectEditToolCalls = [];
   const candidateHandoffToolCalls = [];
@@ -228,15 +230,19 @@ export async function startLocalOpenAiMock(options = {}) {
           .find(
             (message) =>
               message.role === "user" &&
-              [...projectEdits, ...candidateHandoffs, ...(production ? [production] : [])].some(
-                (candidate) => JSON.stringify(message).includes(candidate.marker),
-              ),
+              [
+                ...projectEdits,
+                ...candidateHandoffs,
+                ...[production, clipPreparation].filter(Boolean),
+              ].some((candidate) => JSON.stringify(message).includes(candidate.marker)),
           );
         const serializedMarkedMessage = markedUserMessage ? JSON.stringify(markedUserMessage) : "";
         const projectEdit = projectEdits.find((candidate) =>
           serializedMarkedMessage.includes(candidate.marker),
         );
-        if (production && serializedMarkedMessage.includes(production.marker)) {
+        if (clipPreparation && serializedMarkedMessage.includes(clipPreparation.marker)) {
+          answer = planSocialProductionResponse(body, clipPreparation, clipPreparationToolCalls);
+        } else if (production && serializedMarkedMessage.includes(production.marker)) {
           answer = planSocialProductionResponse(body, production, productionToolCalls);
         } else if (projectEdit) {
           answer = planProjectEditResponse(body, projectEdit, projectEditToolCalls);
@@ -337,6 +343,7 @@ export async function startLocalOpenAiMock(options = {}) {
     baseUrl: `http://127.0.0.1:${address.port}/v1`,
     requests,
     productionToolCalls,
+    clipPreparationToolCalls,
     projectEditToolCalls,
     candidateHandoffs,
     candidateHandoffToolCalls,

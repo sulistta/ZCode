@@ -38,7 +38,10 @@ import {
 } from "./socialProjectEffectsE2E.mjs";
 import * as candidateHandoffE2E from "./socialProjectCandidateHandoffE2E.mjs";
 import { verifySocialAgentProjectEditInElectron } from "./socialProjectAgentEditingE2E.mjs";
-import { verifySocialAgentProductionInElectron } from "./socialHarnessAgentProductionE2E.mjs";
+import {
+  createClipPreparationScenario,
+  verifySocialProductionWorkflowsInElectron,
+} from "./socialHarnessClipPreparationE2E.mjs";
 
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = resolve(desktopRoot, "../..");
@@ -262,6 +265,7 @@ try {
     projectName: `Conversation Reel ${runId}`,
     finalResponseText: "E2E conversation Reel exported and awaiting approval.",
   };
+  const clipPreparationScenario = createClipPreparationScenario(runId);
   const automationTitle = `Weekly source research ${runId}`;
   const editedAutomationTitle = `Weekly account research ${runId}`;
   const automationWeekday = (new Date().getDay() + 2) % 7;
@@ -292,6 +296,7 @@ try {
       projectEdits: projectAgentScenario.projectEdits,
       candidateHandoffs: candidateFixtures.candidateHandoffs,
       production: productionScenario,
+      clipPreparation: clipPreparationScenario,
     });
     await configureLocalMockProvider(settingsDir, mockProvider.baseUrl);
     const positiveAutomationTitle = `Near-future scheduled success ${runId}`;
@@ -344,8 +349,9 @@ try {
     ffprobeExecutable,
   });
   assertNoRetiredZCodeProductApiRequests(runtime);
-  await verifySocialAgentProductionInElectron(page, {
+  await verifySocialProductionWorkflowsInElectron(page, {
     scenario: productionScenario,
+    clipPreparationScenario,
     mockProvider,
     dataBaseDir,
     firstAccountName: editedName,

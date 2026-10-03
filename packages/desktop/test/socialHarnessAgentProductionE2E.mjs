@@ -8,6 +8,13 @@ export function planSocialProductionResponse(body, scenario, calls) {
   const start = messages.findLastIndex(
     (message) => message.role === "user" && JSON.stringify(message).includes(scenario.marker),
   );
+  const preparation = scenario.kind === "clips";
+  if (preparation) {
+    const instructions = JSON.stringify(messages[start]);
+    // 夹具必须服从实际保存的模板，不能用硬编码工具链掩盖旧模板要求手工建项目的缺陷。
+    if (!/\bexport\b/iu.test(instructions) || /ask the user to create/iu.test(instructions))
+      return { content: "The saved automation requires manual project preparation." };
+  }
   const toolNames = new Map(
     messages.flatMap((message) =>
       (message.tool_calls ?? []).map((call) => [call.id, call.function.name]),
@@ -39,7 +46,7 @@ export function planSocialProductionResponse(body, scenario, calls) {
     return {
       toolCalls: [
         {
-          id: `call_production_${calls.length}`,
+          id: `call_${preparation ? "preparation" : "production"}_${calls.length}`,
           type: "function",
           function: { name, arguments: JSON.stringify(args) },
         },
@@ -48,37 +55,44 @@ export function planSocialProductionResponse(body, scenario, calls) {
   };
   if (!result("SocialAgentGetContext")) return call("SocialAgentGetContext", {});
   if (!result("SocialMediaList")) return call("SocialMediaList", {});
-  if (!result("SocialMediaImportUrl")) {
-    assert.equal(
-      result("SocialMediaList").assets.length,
-      0,
-      "Production starts with an empty library",
-    );
-    assert.equal(
-      result("SocialAgentGetContext").context.projects.length,
-      0,
-      "Production starts without projects",
-    );
-    return call("SocialMediaImportUrl", { url: "https://www.youtube.com/watch?v=SHE2E000002" });
-  }
-  const admitted = result("SocialMediaImportUrl").job;
-  const latestJobResult = results.findLast(
-    (item) => item.name === "SocialMediaJobs" || item.name === "SocialMediaJobCommand",
-  );
-  const job = latestJobResult?.content?.jobs?.[0] ?? latestJobResult?.content?.job;
-  if (!job) return call("SocialMediaJobs", { jobId: admitted.jobId });
-  if (!job.mediaId) {
-    if (job.state === "failed") {
-      assert.ok(
-        !result("SocialMediaJobCommand"),
-        "The isolated download may require only one retry",
+  let media;
+  if (preparation) {
+    assert.equal(result("SocialAgentGetContext").context.projects.length, 0);
+    media = result("SocialMediaList").assets[0];
+    assert.ok(media, "Preparation starts from managed account media");
+  } else {
+    if (!result("SocialMediaImportUrl")) {
+      assert.equal(
+        result("SocialMediaList").assets.length,
+        0,
+        "Production starts with an empty library",
       );
-      return call("SocialMediaJobCommand", { jobId: job.jobId, action: "retry" });
+      assert.equal(
+        result("SocialAgentGetContext").context.projects.length,
+        0,
+        "Production starts without projects",
+      );
+      return call("SocialMediaImportUrl", { url: "https://www.youtube.com/watch?v=SHE2E000002" });
     }
-    return call("SocialMediaJobs", { jobId: job.jobId });
+    const admitted = result("SocialMediaImportUrl").job;
+    const latestJobResult = results.findLast(
+      (item) => item.name === "SocialMediaJobs" || item.name === "SocialMediaJobCommand",
+    );
+    const job = latestJobResult?.content?.jobs?.[0] ?? latestJobResult?.content?.job;
+    if (!job) return call("SocialMediaJobs", { jobId: admitted.jobId });
+    if (!job.mediaId) {
+      if (job.state === "failed") {
+        assert.ok(
+          !result("SocialMediaJobCommand"),
+          "The isolated download may require only one retry",
+        );
+        return call("SocialMediaJobCommand", { jobId: job.jobId, action: "retry" });
+      }
+      return call("SocialMediaJobs", { jobId: job.jobId });
+    }
+    media = result("SocialMediaList").assets.find((asset) => asset.mediaId === job.mediaId);
+    if (!media) return call("SocialMediaList", {});
   }
-  const media = result("SocialMediaList").assets.find((asset) => asset.mediaId === job.mediaId);
-  if (!media) return call("SocialMediaList", {});
   if (!result("SocialClipCandidates"))
     return call("SocialClipCandidates", { mediaId: media.mediaId, mode: "music" });
   const candidate = result("SocialClipCandidates").result.candidates[0];
@@ -120,6 +134,7 @@ export function planSocialProductionResponse(body, scenario, calls) {
   if (!exported || exported.status === "queued" || exported.status === "rendering")
     return call("SocialProjectExports", { exportId: exportJob.exportId });
   assert.equal(exported.status, "completed", "Publication requires a completed real export");
+  if (preparation) return { content: scenario.finalResponseText };
   if (!result("SocialPublicationRequest"))
     return call("SocialPublicationRequest", {
       exportId: exported.exportId,

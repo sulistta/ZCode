@@ -27,6 +27,19 @@ async function answerPermission(page, permissionList, approveToolNames) {
   );
 }
 
+export async function waitForSocialAgentResponse(page, { responseText, approveToolNames }) {
+  const permissionList = page.getByRole("listbox", { name: "Permission required", exact: true });
+  const response = page.getByText(responseText, { exact: true });
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
+    if (await response.isVisible()) return;
+    if (await permissionList.isVisible())
+      await answerPermission(page, permissionList, approveToolNames);
+    await delay(50);
+  }
+  assert.fail(`The account conversation did not return ${responseText}`);
+}
+
 export async function sendSocialAgentPrompt(
   page,
   { marker, projectName, captionText, promptText, responseText, approveToolNames },
@@ -67,16 +80,7 @@ export async function sendSocialAgentPrompt(
     await page.getByText(responseText, { exact: true }).waitFor({ timeout: 90_000 });
     return;
   }
-  const response = page.getByText(responseText, { exact: true });
-  const deadline = Date.now() + 90_000;
-  while (Date.now() < deadline) {
-    if (await response.isVisible()) return;
-    if (await permissionList.isVisible()) {
-      await answerPermission(page, permissionList, approveToolNames);
-    }
-    await delay(50);
-  }
-  assert.fail(`The production conversation did not return ${responseText}`);
+  await waitForSocialAgentResponse(page, { responseText, approveToolNames });
 }
 
 export async function createCandidateProjectsInElectron(page, handoffs) {

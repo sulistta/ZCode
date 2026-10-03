@@ -118,9 +118,9 @@ const enUS: Record<string, string> = {
   "socialAccounts.automations.template.discovery.title": "Discover sources",
   "socialAccounts.automations.template.discovery.description":
     "Find relevant YouTube sources without downloading them.",
-  "socialAccounts.automations.template.clips.title": "Review clip candidates",
+  "socialAccounts.automations.template.clips.title": "Prepare clips for review",
   "socialAccounts.automations.template.clips.description":
-    "Prepare evidence-backed moments in an account project without publishing.",
+    "Create or update a Reel project and export measured cuts for review. Publishing is a separate step.",
   "socialAccounts.automations.template.publication.title": "Review and publish an export",
   "socialAccounts.automations.template.publication.description":
     "Request publication for a current export; saved account policy decides whether approval is required.",

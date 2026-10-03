@@ -110,9 +110,9 @@ const zhCN: Record<string, string> = {
   "socialAccounts.automations.template.discovery.title": "发现来源",
   "socialAccounts.automations.template.discovery.description":
     "查找相关 YouTube 来源，不会下载视频。",
-  "socialAccounts.automations.template.clips.title": "查看片段候选",
+  "socialAccounts.automations.template.clips.title": "准备片段供审核",
   "socialAccounts.automations.template.clips.description":
-    "将有证据支持的片段准备到此账号项目中，不会发布。",
+    "创建或更新 Reel 项目并导出有实测依据的片段供审核。发布需另行执行。",
   "socialAccounts.automations.template.publication.title": "审核并发布导出文件",
   "socialAccounts.automations.template.publication.description":
     "为当前导出文件提交发布请求；是否需要确认由账号策略决定。",
