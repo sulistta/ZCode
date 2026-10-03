@@ -59,7 +59,7 @@ function startPackagedApp(port, deepLink) {
     SOCIAL_HARNESS_ENV: "production",
     SOCIAL_HARNESS_PREVIEW_IDENTITY: "1",
     SOCIAL_HARNESS_E2E_PACKAGED_PREVIEW: "1",
-    SOCIAL_HARNESS_E2E_CDP_PORT: String(port),
+    SOCIAL_HARNESS_E2E_CDP_PORT: port ? String(port) : "",
     SOCIAL_HARNESS_DESKTOP_HOME_DIR: homeDir,
     SOCIAL_HARNESS_DESKTOP_USER_DATA_DIR: join(testRoot, "electron-user-data"),
     SOCIAL_HARNESS_DESKTOP_SESSION_DATA_DIR: join(testRoot, "electron-session-data"),
