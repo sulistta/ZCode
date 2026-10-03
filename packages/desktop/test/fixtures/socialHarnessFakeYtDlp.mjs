@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { spawn } from "node:child_process";
 import { appendFile, readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -59,29 +60,69 @@ if (searchArgument) {
     process.stderr.write("Local fixture asks for one explicit retry.\n");
     process.exitCode = 1;
   } else {
-    const templateFor = (kind) => args.find((argument) => argument.startsWith(kind + ":"));
+    const outputTemplates = args.flatMap((argument, index) =>
+      argument === "--output" ? [args[index + 1]] : [],
+    );
+    const templateFor = (kind) =>
+      kind === "video"
+        ? outputTemplates.find((template) => !/^(infojson|subtitle):/.test(template))
+        : outputTemplates.find((template) => template.startsWith(kind + ":"));
     const resolveOutput = (kind, extension, language) => {
       const template = templateFor(kind);
       if (!template) throw new Error("Missing output template for " + kind);
       return template
-        .slice(kind.length + 1)
+        .slice(kind === "video" ? 0 : kind.length + 1)
         .replaceAll("%(id)s", sourceKey)
         .replaceAll("%(language)s", language || "")
         .replaceAll("%(ext)s", extension);
     };
     const mediaPath = resolveOutput("video", "mp4");
-    const infoPath = resolveOutput("infojson", "json");
+    const infoPath = resolveOutput("infojson", "info.json");
     const subtitlePath = resolveOutput("subtitle", "vtt", "en");
     await mkdir(fixtureDirectory, { recursive: true });
     await mkdir(dirname(mediaPath), { recursive: true });
-    await writeFile(mediaPath, Buffer.from("Local fake yt-dlp MP4 fixture.\n"));
+    if (videoId === "SHE2E000002") {
+      const ffmpeg = args[args.indexOf("--ffmpeg-location") + 1];
+      if (!ffmpeg) throw new Error("The production fixture requires the resolved bundled FFmpeg");
+      const child = spawn(
+        ffmpeg,
+        [
+          "-v",
+          "error",
+          "-y",
+          "-f",
+          "lavfi",
+          "-i",
+          "color=c=blue:s=64x64:r=30",
+          "-f",
+          "lavfi",
+          "-i",
+          "sine=frequency=440:sample_rate=48000",
+          "-t",
+          "20",
+          "-c:v",
+          "libx264",
+          "-pix_fmt",
+          "yuv420p",
+          "-c:a",
+          "aac",
+          mediaPath,
+        ],
+        { stdio: "ignore", windowsHide: true },
+      );
+      const code = await new Promise((resolve, reject) => {
+        child.once("error", reject);
+        child.once("close", resolve);
+      });
+      if (code !== 0) throw new Error("Could not generate the isolated production source");
+    } else await writeFile(mediaPath, Buffer.from("Local fake yt-dlp MP4 fixture.\n"));
     await writeFile(
       infoPath,
       JSON.stringify({
         ...(videoId ? { id: videoId } : {}),
         title: videoId ? "Local fake YouTube video" : "Local fake HTTPS source",
         channel: "Local fixture channel",
-        duration: 12,
+        duration: videoId === "SHE2E000002" ? 20 : 12,
         view_count: 42,
         upload_date: "20260929",
         automatic_captions: { en: [{ ext: "vtt" }] },

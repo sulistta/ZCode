@@ -1,6 +1,33 @@
 import { createServer } from "node:net";
 import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { resolvePlatformKeyForPackagedApp } from "../scripts/target-platform.mjs";
+
+export function createIsolatedAccountE2EEnvironment({
+  homeDir,
+  testRoot,
+  dataBaseDir,
+  runId,
+  vitePort,
+  fixtures,
+}) {
+  return {
+    ...process.env,
+    HOME: homeDir,
+    USERPROFILE: homeDir,
+    SOCIAL_HARNESS_DESKTOP_HOME_DIR: homeDir,
+    SOCIAL_HARNESS_DESKTOP_USER_DATA_DIR: join(testRoot, "electron-user-data"),
+    SOCIAL_HARNESS_DESKTOP_SESSION_DATA_DIR: join(testRoot, "electron-session-data"),
+    SOCIAL_HARNESS_E2E_RUN_ID: runId,
+    SOCIAL_HARNESS_E2E_VITE_PORT: String(vitePort),
+    SOCIAL_HARNESS_DATA_BASE_DIR: dataBaseDir,
+    SOCIAL_HARNESS_E2E_FORCE_X11: "1",
+    SOCIAL_HARNESS_E2E_CDP_PORT: "auto",
+    SOCIAL_HARNESS_E2E_FILE_PICKER_RESPONSES: fixtures.pickerResponses,
+    SOCIAL_HARNESS_E2E_SAVE_DIALOG_RESPONSE: "cancel",
+    SOCIAL_HARNESS_YT_DLP_PATH: fixtures.ytDlpPath,
+  };
+}
 
 export function resolveE2EMediaTools() {
   const extension = process.platform === "win32" ? ".exe" : "";
@@ -33,6 +60,19 @@ export async function reserveVitePort() {
     server.close((error) => (error ? rejectClose(error) : resolveClose()));
   });
   return address.port;
+}
+
+export async function assertVitePortAvailable(vitePort) {
+  const server = createServer();
+  await new Promise((resolveListen, rejectListen) => {
+    server.once("error", rejectListen);
+    server.listen(vitePort, "127.0.0.1", resolveListen);
+  }).catch((error) => {
+    throw new Error(`Desktop E2E needs port ${vitePort} free for Vite: ${error.message}`);
+  });
+  await new Promise((resolveClose, rejectClose) => {
+    server.close((error) => (error ? rejectClose(error) : resolveClose()));
+  });
 }
 
 export async function waitForRuntimeOutput(runtime, marker, label) {

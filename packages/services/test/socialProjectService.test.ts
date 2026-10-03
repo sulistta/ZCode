@@ -32,6 +32,36 @@ import { createSocialProjectExportFileStore } from "../src/social-project/adapte
 const ACCOUNT_ID = "account-1";
 const VIDEO_ID = "11111111-1111-4111-8111-111111111111";
 
+test("stable project creation requests deduplicate concurrent admission and survive service recreation", async () => {
+  const fixture = await createFixture();
+  try {
+    const request = {
+      accountId: ACCOUNT_ID,
+      displayName: "Agent preparation",
+      requestId: "stable-creation-request",
+    };
+    const [first, repeated] = await Promise.all([
+      fixture.service.create(request),
+      fixture.service.create(request),
+    ]);
+    assert.equal(first.project.projectId, repeated.project.projectId);
+    assert.equal((await fixture.service.list(ACCOUNT_ID)).length, 1);
+    await assert.rejects(
+      fixture.service.create({ ...request, displayName: "Conflicting creation" }),
+      SocialProjectIdempotencyConflictError,
+    );
+    const otherAccount = await fixture.service.create({ ...request, accountId: "account-2" });
+    assert.notEqual(otherAccount.project.projectId, first.project.projectId);
+    const store = createSocialProjectFileStore({ filePath: fixture.filePath });
+    const persisted = await store.get(ACCOUNT_ID, first.project.projectId);
+    assert.equal(persisted?.creationRequest?.requestId, request.requestId);
+    const afterRestart = await fixture.restartService().create(request);
+    assert.equal(afterRestart.project.projectId, first.project.projectId);
+  } finally {
+    await fixture.dispose();
+  }
+});
+
 function createVideoAsset(accountId: string, mediaId = VIDEO_ID) {
   return {
     mediaId,
@@ -66,29 +96,32 @@ async function createFixture(options: { exportRenderer?: SocialProjectExportRend
   const socialMediaService = {
     list: async (accountId: string) => media.filter((asset) => asset.accountId === accountId),
   } as unknown as ISocialMediaService;
-  const service = createSocialProjectService({
-    store: createSocialProjectFileStore({ filePath }),
-    exportStore: createSocialProjectExportFileStore(join(directory, "exports.json")),
-    exportRenderer: options.exportRenderer ?? {
-      async render() {
-        throw new Error("Export renderer not used by this fixture");
+  const restartService = () =>
+    createSocialProjectService({
+      store: createSocialProjectFileStore({ filePath }),
+      exportStore: createSocialProjectExportFileStore(join(directory, "exports.json")),
+      exportRenderer: options.exportRenderer ?? {
+        async render() {
+          throw new Error("Export renderer not used by this fixture");
+        },
+        async discard() {},
+        async createDownloadUrl() {
+          return { url: "social-harness-media://local/preview/opaque", expiresAt: 10_000 };
+        },
       },
-      async discard() {},
-      async createDownloadUrl() {
-        return { url: "social-harness-media://local/preview/opaque", expiresAt: 10_000 };
-      },
-    },
-    socialAccountService,
-    socialMediaService,
-    now: () => clock++,
-    createProjectId: () => `project-${nextProjectId++}`,
-    createTrackId: () => `track-${nextTrackId++}`,
-  });
+      socialAccountService,
+      socialMediaService,
+      now: () => clock++,
+      createProjectId: () => `project-${nextProjectId++}`,
+      createTrackId: () => `track-${nextTrackId++}`,
+    });
+  const service = restartService();
   return {
     directory,
     filePath,
     media,
     service,
+    restartService,
     async dispose() {
       await rm(directory, { recursive: true, force: true });
     },

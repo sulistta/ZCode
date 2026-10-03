@@ -24,6 +24,12 @@ export const socialProjectRecordSchema = z.object({
   undoStack: z.array(socialProjectContentSnapshotSchema),
   redoStack: z.array(socialProjectContentSnapshotSchema),
   appliedCommands: z.array(socialProjectAppliedCommandSchema),
+  creationRequest: z
+    .object({
+      requestId: z.string().trim().min(1).max(120),
+      fingerprint: z.string().regex(/^[\da-f]{64}$/),
+    })
+    .optional(),
 });
 
 export type SocialProjectContentSnapshot = z.infer<typeof socialProjectContentSnapshotSchema>;

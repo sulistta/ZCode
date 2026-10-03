@@ -9,6 +9,7 @@ import type { ISocialMediaService } from "../../social-media/contract.js";
 import type { ISocialProjectService } from "../../social-project/contract.js";
 import type { ISocialPublishingService } from "../../social-publishing/contract.js";
 import type { SocialAgentService, SocialAgentScope } from "../contract.js";
+import { createSocialAgentProductionScope } from "./socialAgentProductionScope.js";
 
 export function createSocialAgentService(options: {
   accountService: ISocialAccountService;
@@ -30,6 +31,7 @@ export function createSocialAgentService(options: {
       }
 
       return {
+        ...createSocialAgentProductionScope({ ...options, accountId, requireCurrentAccount }),
         async getContext() {
           const account = await requireCurrentAccount();
           const [projects, exports, publicationHistory] = await Promise.all([

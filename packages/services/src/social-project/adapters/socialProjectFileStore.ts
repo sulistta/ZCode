@@ -3,6 +3,7 @@ import { atomicWritePrivateTextFile, withFileLock } from "@social-harness/shared
 import { z } from "zod";
 import { socialProjectRecordSchema, type SocialProjectRecord } from "../domain/projectRecord.js";
 import type { SocialProjectStore } from "../app/ports/socialProjectStore.js";
+import { SocialProjectIdempotencyConflictError } from "../app/errors.js";
 
 const storedCatalogSchema = z.object({
   version: z.literal(1),
@@ -46,12 +47,26 @@ export function createSocialProjectFileStore(
     async create(record) {
       return withFileLock(options.filePath, async () => {
         const projects = await readAll();
-        if (projects.some((current) => current.project.projectId === record.project.projectId)) {
+        const existing = projects.find(
+          (current) => current.project.projectId === record.project.projectId,
+        );
+        if (existing && record.creationRequest) {
+          // 创建重试必须在同一目录锁内判重；不能先读后写，否则并发工具调用会生成重复项目。
+          if (
+            existing.project.accountId === record.project.accountId &&
+            existing.creationRequest?.requestId === record.creationRequest.requestId &&
+            existing.creationRequest.fingerprint === record.creationRequest.fingerprint
+          ) {
+            return { record: existing, created: false };
+          }
+          throw new SocialProjectIdempotencyConflictError(record.creationRequest.requestId);
+        }
+        if (existing) {
           throw new Error(`Social project already exists: ${record.project.projectId}`);
         }
         const validated = socialProjectRecordSchema.parse(record);
         await writeAll([...projects, validated]);
-        return validated;
+        return { record: validated, created: true };
       });
     },
     async update(accountId, projectId, transform) {

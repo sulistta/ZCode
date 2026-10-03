@@ -3,7 +3,10 @@
 The Host resolves every Agent request from the current validated account workspace identity. A
 resolved scope exposes only that account's editorial profile and policy, project summaries, local
 publication history, media summaries, YouTube search, and measured clip-candidate evidence. It
-contains no filesystem paths, credentials, or write operations.
+contains no filesystem paths or credentials. Account-scoped preparation commands delegate URL
+import/job control to the existing media owner, idempotent project creation to the project owner,
+and exact-revision export admission to the export owner. Job/export projections omit private source
+URLs, account IDs, paths and credential/artifact material. See [the production-command amendment](../../../../specs/social-harness-agent-production.md).
 
 Candidate analysis is transient and read-only. Catalog mutation, project edits, and publication
 remain owned by their existing services and contracts. Publication history is marked unavailable

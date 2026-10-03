@@ -4,6 +4,7 @@ import {
   zcodeProtocolMethods,
 } from "@social-harness/shared";
 import type { SocialAgentService } from "../social-agent/contract.js";
+import { executeSocialAgentProductionRequest } from "./socialAgentProductionToolRequests.js";
 
 export type SocialAgentRequestResult =
   | { kind: "result"; result: unknown }
@@ -35,6 +36,9 @@ export async function executeSocialAgentRequest(input: {
     const scope = await input.resolveScope(input.workspaceIdentity);
     if (!scope) return scopeUnavailable();
     const request = parsed.data;
+    const productionResult = await executeSocialAgentProductionRequest(scope, request);
+    if (productionResult)
+      return { kind: "result", result: socialAgentQueryResultSchema.parse(productionResult) };
     const result =
       request.action === "context"
         ? { action: request.action, context: await scope.getContext() }
@@ -50,14 +54,16 @@ export async function executeSocialAgentRequest(input: {
                     mode: request.mode,
                   }),
                 }
-              : {
-                  action: request.action,
-                  result: await scope.requestPublication({
-                    exportId: request.exportId,
-                    caption: request.caption,
-                    requestId: request.requestId,
-                  }),
-                };
+              : request.action === "request-publication"
+                ? {
+                    action: request.action,
+                    result: await scope.requestPublication({
+                      exportId: request.exportId,
+                      caption: request.caption,
+                      requestId: request.requestId,
+                    }),
+                  }
+                : null;
     return {
       kind: "result",
       result: socialAgentQueryResultSchema.parse(result),

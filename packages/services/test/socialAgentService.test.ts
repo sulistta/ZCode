@@ -99,9 +99,29 @@ const candidateResult: SocialMediaClipCandidateResult = {
   unavailableReason: null,
 };
 
+const jobId = "33333333-3333-4333-8333-333333333333";
+const mediaJob = {
+  jobId,
+  accountId: account.accountId,
+  sourceKind: "youtube" as const,
+  sourceVideoId: "AbCdEfG1234",
+  sourceUrl: "https://www.youtube.com/watch?v=AbCdEfG1234",
+  sourceKey: "AbCdEfG1234",
+  sourceOrigin: "video-url" as const,
+  state: "queued" as const,
+  downloadedBytes: 0,
+  totalBytes: null,
+  etaSeconds: null,
+  mediaId: null,
+  errorCode: null,
+  createdAt: 1,
+  updatedAt: 1,
+};
+
 function createService() {
   const observedAccountIds: string[] = [];
   const publicationRequests: unknown[] = [];
+  const preparationRequests: unknown[] = [];
   const accountService = {
     async get(accountId: string) {
       observedAccountIds.push(accountId);
@@ -109,6 +129,25 @@ function createService() {
     },
   } as unknown as ISocialAccountService;
   const projectService = {
+    async create(request: unknown) {
+      preparationRequests.push({ operation: "create", request });
+      return { project: { ...project, tracks: [] } };
+    },
+    async startExport(request: unknown) {
+      preparationRequests.push({ operation: "export", request });
+      return {
+        exportId: "export-1",
+        projectId: project.projectId,
+        projectRevision: project.revision,
+        requestId: "private-key",
+        accountId: account.accountId,
+        status: "queued",
+        progressPercent: 0,
+        createdAt: 1,
+        updatedAt: 1,
+        sha256: "a".repeat(64),
+      };
+    },
     async list(accountId: string) {
       observedAccountIds.push(accountId);
       return [project];
@@ -119,6 +158,25 @@ function createService() {
     },
   } as unknown as ISocialProjectService;
   const mediaService = {
+    async downloadSourceUrl(input: { accountId: string; url: string }) {
+      observedAccountIds.push(input.accountId);
+      preparationRequests.push(input);
+      return mediaJob;
+    },
+    async listJobs(accountId: string) {
+      observedAccountIds.push(accountId);
+      return [mediaJob];
+    },
+    async cancelJob(input: { accountId: string; jobId: string }) {
+      observedAccountIds.push(input.accountId);
+      preparationRequests.push(input);
+      return { ...mediaJob, state: "cancelled" };
+    },
+    async retryJob(input: { accountId: string; jobId: string }) {
+      observedAccountIds.push(input.accountId);
+      preparationRequests.push(input);
+      return mediaJob;
+    },
     async list(accountId: string) {
       observedAccountIds.push(accountId);
       return [asset, remoteAsset];
@@ -176,6 +234,7 @@ function createService() {
   return {
     observedAccountIds,
     publicationRequests,
+    preparationRequests,
     service: createSocialAgentService({
       accountService,
       mediaService,
@@ -224,6 +283,99 @@ test("Social Agent context and library stay in the conversation's account and hi
   const suggestions = await scope.suggestClipCandidates({ mediaId, mode: "podcast" });
   assert.equal("accountId" in suggestions, false);
   assert.deepEqual(new Set(observedAccountIds), new Set([account.accountId]));
+});
+
+test("Agent source import and job control use only the bound account and expose safe state", async () => {
+  const { service, observedAccountIds, preparationRequests } = createService();
+  const scope = await service.resolveScope(account.workspaceIdentity);
+  assert.ok(scope);
+  const admitted = await scope.importSource(mediaJob.sourceUrl);
+  assert.equal(admitted.jobId, jobId);
+  assert.equal(admitted.state, "queued");
+  assert.equal(JSON.stringify(admitted).includes(mediaJob.sourceUrl), false);
+  assert.equal("accountId" in admitted, false);
+  assert.equal("sourceKey" in admitted, false);
+  assert.equal((await scope.listMediaJobs(jobId))[0]?.jobId, jobId);
+  assert.equal((await scope.mediaJobCommand({ action: "cancel", jobId })).state, "cancelled");
+  assert.equal((await scope.mediaJobCommand({ action: "retry", jobId })).state, "queued");
+  assert.deepEqual(preparationRequests, [
+    { accountId: account.accountId, url: mediaJob.sourceUrl },
+    { accountId: account.accountId, jobId },
+    { accountId: account.accountId, jobId },
+  ]);
+  assert.deepEqual(new Set(observedAccountIds), new Set([account.accountId]));
+  const forged = await executeSocialAgentRequest({
+    method: zcodeProtocolMethods.socialAgentQuery,
+    params: { action: "import-source", url: mediaJob.sourceUrl, accountId: "account-2" },
+    workspaceIdentity: account.workspaceIdentity,
+    resolveScope: service.resolveScope,
+  });
+  assert.equal(forged.kind, "error");
+  if (forged.kind === "error") assert.equal(forged.code, -32602);
+});
+
+test("Agent project/export commands bind account, strip private fields and reject overrides", async () => {
+  const { service, preparationRequests } = createService();
+  const scope = await service.resolveScope(account.workspaceIdentity);
+  assert.ok(scope);
+  const created = await scope.createProject({
+    displayName: "Requested Reel",
+    requestId: "stable-call",
+  });
+  assert.equal(created.projectId, project.projectId);
+  assert.equal("accountId" in created, false);
+  const exported = await scope.startExport({
+    projectId: project.projectId,
+    expectedRevision: project.revision,
+    requestId: "export-call",
+  });
+  assert.equal(exported.status, "queued");
+  for (const key of ["accountId", "requestId", "sha256", "filePath"])
+    assert.equal(key in exported, false);
+  assert.deepEqual(preparationRequests, [
+    {
+      operation: "create",
+      request: {
+        accountId: account.accountId,
+        displayName: "Requested Reel",
+        requestId: "stable-call",
+      },
+    },
+    {
+      operation: "export",
+      request: {
+        accountId: account.accountId,
+        projectId: project.projectId,
+        expectedRevision: project.revision,
+        requestId: "export-call",
+      },
+    },
+  ]);
+  const listed = await scope.listExports({});
+  assert.ok(
+    listed.every((job) => !("accountId" in job) && !("sha256" in job) && !("requestId" in job)),
+  );
+  for (const params of [
+    { action: "create-project", displayName: "Reel", requestId: "call-id", accountId: "foreign" },
+    {
+      action: "start-export",
+      projectId: "project-1",
+      expectedRevision: 4,
+      requestId: "call-id",
+      outputPath: "/tmp/leak",
+    },
+    { action: "media-job-command", jobId, command: "retry", accountId: "foreign" },
+    { action: "list-exports", projectId: "project-1", secret: "credential" },
+  ]) {
+    const result = await executeSocialAgentRequest({
+      method: zcodeProtocolMethods.socialAgentQuery,
+      params,
+      workspaceIdentity: account.workspaceIdentity,
+      resolveScope: service.resolveScope,
+    });
+    assert.equal(result.kind, "error");
+    if (result.kind === "error") assert.equal(result.code, -32602);
+  }
 });
 
 test("Social Agent protocol derives scope from the Host identity and rejects account parameters", async () => {

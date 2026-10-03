@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { createServer as createNetServer } from "node:net";
 import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, resolve, join } from "node:path";
@@ -12,6 +11,8 @@ import {
   assertNoRetiredZCodeProductApiRequests,
   resolveE2EMediaTools,
   reserveVitePort,
+  createIsolatedAccountE2EEnvironment,
+  assertVitePortAvailable,
 } from "./socialHarnessAccountE2EUtils.mjs";
 import { prepareSocialHarnessMediaIntakeFixtures } from "./socialHarnessMediaIntakeE2E.mjs";
 import {
@@ -37,6 +38,7 @@ import {
 } from "./socialProjectEffectsE2E.mjs";
 import * as candidateHandoffE2E from "./socialProjectCandidateHandoffE2E.mjs";
 import { verifySocialAgentProjectEditInElectron } from "./socialProjectAgentEditingE2E.mjs";
+import { verifySocialAgentProductionInElectron } from "./socialHarnessAgentProductionE2E.mjs";
 
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = resolve(desktopRoot, "../..");
@@ -54,19 +56,6 @@ const vitePort =
 
 function appendOutput(runtime, chunk) {
   runtime.output = `${runtime.output}${chunk.toString()}`.slice(-maxCapturedOutputLength);
-}
-
-async function assertVitePortAvailable() {
-  const server = createNetServer();
-  await new Promise((resolveListen, rejectListen) => {
-    server.once("error", rejectListen);
-    server.listen(vitePort, "127.0.0.1", resolveListen);
-  }).catch((error) => {
-    throw new Error(`Desktop E2E needs port ${vitePort} free for Vite: ${error.message}`);
-  });
-  await new Promise((resolveClose, rejectClose) => {
-    server.close((error) => (error ? rejectClose(error) : resolveClose()));
-  });
 }
 
 function startDesktopRuntime(environment) {
@@ -238,7 +227,7 @@ let succeeded = false;
 
 try {
   const mediaIntakeFixtures = await prepareSocialHarnessMediaIntakeFixtures(testRoot);
-  await assertVitePortAvailable();
+  await assertVitePortAvailable(vitePort);
   await mkdir(dirname(legacySentinelPath), { recursive: true });
   await writeFile(legacySentinelPath, legacySentinel);
   const settingsDir = join(homeDir, ".social-harness", "v1", "config");
@@ -249,22 +238,14 @@ try {
   );
   const sentinelBefore = await stat(legacySentinelPath);
 
-  const environment = {
-    ...process.env,
-    HOME: homeDir,
-    USERPROFILE: homeDir,
-    SOCIAL_HARNESS_DESKTOP_HOME_DIR: homeDir,
-    SOCIAL_HARNESS_DESKTOP_USER_DATA_DIR: join(testRoot, "electron-user-data"),
-    SOCIAL_HARNESS_DESKTOP_SESSION_DATA_DIR: join(testRoot, "electron-session-data"),
-    SOCIAL_HARNESS_E2E_RUN_ID: runId,
-    SOCIAL_HARNESS_E2E_VITE_PORT: String(vitePort),
-    SOCIAL_HARNESS_DATA_BASE_DIR: dataBaseDir,
-    SOCIAL_HARNESS_E2E_FORCE_X11: "1",
-    SOCIAL_HARNESS_E2E_CDP_PORT: "auto",
-    SOCIAL_HARNESS_E2E_FILE_PICKER_RESPONSES: mediaIntakeFixtures.pickerResponses,
-    SOCIAL_HARNESS_E2E_SAVE_DIALOG_RESPONSE: "cancel",
-    SOCIAL_HARNESS_YT_DLP_PATH: mediaIntakeFixtures.ytDlpPath,
-  };
+  const environment = createIsolatedAccountE2EEnvironment({
+    homeDir,
+    testRoot,
+    dataBaseDir,
+    runId,
+    vitePort,
+    fixtures: mediaIntakeFixtures,
+  });
 
   console.log("[social-e2e] starting first isolated Electron instance");
   runtime = startDesktopRuntime(environment);
@@ -276,6 +257,11 @@ try {
   const editedName = `Social Harness pilot ${runId}`;
   const projectName = `Motion smoke ${runId}`;
   const projectAgentScenario = createSocialProjectEditScenario(runId, projectName);
+  const productionScenario = {
+    marker: `PRODUCTION_${runId}`,
+    projectName: `Conversation Reel ${runId}`,
+    finalResponseText: "E2E conversation Reel exported and awaiting approval.",
+  };
   const automationTitle = `Weekly source research ${runId}`;
   const editedAutomationTitle = `Weekly account research ${runId}`;
   const automationWeekday = (new Date().getDay() + 2) % 7;
@@ -305,6 +291,7 @@ try {
     mockProvider = await startLocalOpenAiMock({
       projectEdits: projectAgentScenario.projectEdits,
       candidateHandoffs: candidateFixtures.candidateHandoffs,
+      production: productionScenario,
     });
     await configureLocalMockProvider(settingsDir, mockProvider.baseUrl);
     const positiveAutomationTitle = `Near-future scheduled success ${runId}`;
@@ -357,6 +344,13 @@ try {
     ffprobeExecutable,
   });
   assertNoRetiredZCodeProductApiRequests(runtime);
+  await verifySocialAgentProductionInElectron(page, {
+    scenario: productionScenario,
+    mockProvider,
+    dataBaseDir,
+    firstAccountName: editedName,
+    runId,
+  });
   console.log(
     "[social-e2e] account policy, second-account library/project isolation, manual automation management, scheduled Scheduler/Main/Host rejection and successful local-model settlement, Social Agent project-tool editing, podcast/music candidate timestamp handoff, and same-timestamp preview/export parity verified",
   );

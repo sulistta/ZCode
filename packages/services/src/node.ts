@@ -2439,6 +2439,7 @@ export function createLocalServices(options: {
     }),
     sourceUrlDownload: createYtDlpSourceDownloadAdapter({
       executablePath: process.env.SOCIAL_HARNESS_YT_DLP_PATH,
+      ffmpegExecutablePath: process.env.SOCIAL_HARNESS_FFMPEG_PATH,
     }),
     createPreviewUrl: options?.createLocalMediaPreviewUrl,
   });

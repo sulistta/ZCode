@@ -4,7 +4,7 @@ import type { SocialProjectRecord } from "../../domain/projectRecord.js";
 export interface SocialProjectStore {
   list(accountId: string): Promise<SocialProjectRecord[]>;
   get(accountId: string, projectId: string): Promise<SocialProjectRecord | null>;
-  create(record: SocialProjectRecord): Promise<SocialProjectRecord>;
+  create(record: SocialProjectRecord): Promise<{ record: SocialProjectRecord; created: boolean }>;
   update(
     accountId: string,
     projectId: string,

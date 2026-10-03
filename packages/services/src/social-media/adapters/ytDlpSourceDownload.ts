@@ -33,6 +33,7 @@ export function buildYtDlpSourceDownloadArgs(input: {
   workingDirectory: string;
   language: string;
   proxyUrl: string;
+  ffmpegExecutablePath?: string;
 }): string[] {
   const sourceKey = socialMediaSourceKeySchema.parse(input.sourceKey);
   const source = normalizeSocialMediaSourceUrl(input.sourceUrl);
@@ -69,7 +70,14 @@ export function buildYtDlpSourceDownloadArgs(input: {
     "--max-filesize",
     "4G",
     "--format",
-    "best[ext=mp4]/best",
+    // YouTube 可能只提供分离的音视频；只选 combined 格式会在首字节前失败。
+    // 用已有 FFmpeg 无损合并，保留源分辨率与编解码器，不降质绕过格式错误。
+    "bv*+ba/b",
+    "--merge-output-format",
+    "mkv",
+    ...(input.ffmpegExecutablePath?.trim()
+      ? ["--ffmpeg-location", input.ffmpegExecutablePath.trim()]
+      : []),
     "--write-info-json",
     "--write-subs",
     "--write-auto-subs",
@@ -78,9 +86,11 @@ export function buildYtDlpSourceDownloadArgs(input: {
     "--sub-format",
     "vtt/best",
     "--output",
-    `video:${join(root, `${sourceKey}.%(ext)s`)}`,
+    // 默认视频模板不能加 video: 前缀；上游会把它当作字面目录而不是 output type。
+    join(root, `${sourceKey}.%(ext)s`),
     "--output",
-    `infojson:${join(root, `${sourceKey}.info.json`)}`,
+    // infojson 会自动追加 .info；使用扩展名占位符避免 .info.json 重复。
+    `infojson:${join(root, `${sourceKey}.%(ext)s`)}`,
     "--output",
     `subtitle:${join(root, `${sourceKey}.%(language)s.%(ext)s`)}`,
     "--progress-template",
@@ -108,7 +118,7 @@ function parseProgressLine(line: string): SocialMediaSourceDownloadProgress | nu
 }
 
 export function createYtDlpSourceDownloadAdapter(
-  options: { executablePath?: string } = {},
+  options: { executablePath?: string; ffmpegExecutablePath?: string } = {},
 ): SocialMediaSourceUrlDownload {
   const command = resolveYtDlpCommand(options.executablePath);
 
@@ -144,7 +154,11 @@ export function createYtDlpSourceDownloadAdapter(
         try {
           const proxyUrl = await proxy.ready;
           if (cancelRequested) throw new SocialMediaSourceDownloadFailedError();
-          const args = buildYtDlpSourceDownloadArgs({ ...input, proxyUrl });
+          const args = buildYtDlpSourceDownloadArgs({
+            ...input,
+            proxyUrl,
+            ffmpegExecutablePath: options.ffmpegExecutablePath,
+          });
           try {
             child = spawn(command.executable, [...command.argsPrefix, ...args], {
               cwd: input.workingDirectory,

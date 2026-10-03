@@ -311,5 +311,6 @@ export * from "./session-debug.js";
 export { redactFeedbackText } from "./feedbackPrivacy.js";
 export * from "./social-account.js";
 export * from "./social-agent.js";
+export * from "./social-agent-production.js";
 export * from "./social-media.js";
 export * from "./social-project.js";

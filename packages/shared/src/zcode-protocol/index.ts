@@ -3586,6 +3586,7 @@ export const zcodeSocialProjectCommandParamsSchema = z
 export const zcodeSocialProjectCommandResultSchema = z
   .object({ result: socialProjectCommandResultSchema })
   .strict();
+// 准备命令与只读查询共享严格协议；账户 scope 始终由 Host 验证，不接受模型覆盖。
 export const zcodeSocialAgentQueryParamsSchema = socialAgentQueryParamsSchema;
 export const zcodeSocialAgentQueryResultSchema = socialAgentQueryResultSchema;
 

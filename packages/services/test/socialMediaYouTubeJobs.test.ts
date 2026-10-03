@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import test from "node:test";
 import { normalizeSocialMediaYouTubeVideoUrl } from "@social-harness/shared";
 import type { SocialMediaTranscript } from "@social-harness/shared";
@@ -164,12 +164,23 @@ test("YouTube URL normalization rejects playlists and constructs a canonical URL
     workingDirectory: "/private/jobs/job-id",
     language: "pt-BR",
     proxyUrl: "http://127.0.0.1:43210",
+    ffmpegExecutablePath: "/bundled/tools/ffmpeg/ffmpeg",
   });
   assert.ok(args.includes("--no-playlist"));
   assert.ok(args.includes("--ignore-config"));
   assert.ok(args.includes("--proxy"));
   assert.ok(args.includes("--"));
   assert.equal(args.at(-1), canonical);
+  assert.equal(args[args.indexOf("--format") + 1], "bv*+ba/b");
+  assert.equal(args[args.indexOf("--merge-output-format") + 1], "mkv");
+  assert.equal(args[args.indexOf("--ffmpeg-location") + 1], "/bundled/tools/ffmpeg/ffmpeg");
+  const outputRoot = resolve("/private/jobs/job-id");
+  assert.ok(args.includes(join(outputRoot, `${VIDEO_ID}.%(ext)s`)));
+  assert.ok(args.includes(`infojson:${join(outputRoot, `${VIDEO_ID}.%(ext)s`)}`));
+  assert.equal(
+    args.some((arg) => arg.startsWith("video:")),
+    false,
+  );
 });
 
 test("YouTube jobs are idempotent per account and persist media, subtitle, provenance, and heatmap", async () => {

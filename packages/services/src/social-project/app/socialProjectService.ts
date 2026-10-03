@@ -187,21 +187,37 @@ export function createSocialProjectService(
     async create(request) {
       const input = createSocialProjectRequestSchema.parse(request);
       await requireAccount(input.accountId);
+      const creationRequest = input.requestId
+        ? {
+            requestId: input.requestId,
+            fingerprint: createHash("sha256")
+              .update(canonicalize({ accountId: input.accountId, displayName: input.displayName }))
+              .digest("hex"),
+          }
+        : undefined;
       const project = defaultProject({
         accountId: input.accountId,
-        projectId: socialProjectIdSchema.parse(createProjectId()),
+        // Agent 原先没有创建入口；稳定请求键让同一工具调用在重连后复用已创建的项目。
+        projectId: socialProjectIdSchema.parse(
+          input.requestId
+            ? `creation-${createHash("sha256")
+                .update(canonicalize([input.accountId, input.requestId]))
+                .digest("hex")}`
+            : createProjectId(),
+        ),
         trackId: () => socialProjectIdSchema.parse(createTrackId()),
         displayName: input.displayName,
         createdAt: Math.max(0, Math.trunc(now())),
       });
-      const record = await options.store.create({
+      const { record, created } = await options.store.create({
         project,
         history: [],
         undoStack: [],
         redoStack: [],
         appliedCommands: [],
+        ...(creationRequest ? { creationRequest } : {}),
       });
-      emit(record.project);
+      if (created) emit(record.project);
       return readModel(record);
     },
     async executeCommand(request) {

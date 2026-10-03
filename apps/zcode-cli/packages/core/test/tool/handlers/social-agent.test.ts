@@ -11,6 +11,9 @@ import {
   SOCIAL_PUBLICATION_REQUEST_TOOL_NAME,
 } from "@social-harness/contracts";
 import { registerBuiltInTools } from "../../../src/tool/handlers/index.js";
+import { socialProductionToolEntries } from "../../../src/tool/handlers/social-production.js";
+import type { SocialAgentPort } from "@social-harness/contracts";
+import type { ToolExecutionContext } from "../../../src/tool/types.js";
 
 const accountToolNames = [
   SOCIAL_PROJECT_LIST_TOOL_NAME,
@@ -21,6 +24,12 @@ const accountToolNames = [
   SOCIAL_YOUTUBE_SEARCH_TOOL_NAME,
   SOCIAL_CLIP_CANDIDATES_TOOL_NAME,
   SOCIAL_PUBLICATION_REQUEST_TOOL_NAME,
+  "SocialMediaImportUrl",
+  "SocialMediaJobs",
+  "SocialMediaJobCommand",
+  "SocialProjectCreate",
+  "SocialProjectExport",
+  "SocialProjectExports",
 ];
 
 function registerAccountTools(includeSocialAgent: boolean): string[] {
@@ -89,5 +98,62 @@ test("candidate tool guidance grounds editorial ranking in account context and m
   assert.match(candidateDescription, /complete phrases, context, and pauses/u);
   assert.match(candidateDescription, /audio structure\/rhythm and sparse visual evidence/u);
   assert.match(candidateDescription, /Separate measured facts from editorial-fit judgments/u);
-  assert.match(candidateDescription, /Never invent transcripts, heatmaps, signals, or publication outcomes/u);
+  assert.match(
+    candidateDescription,
+    /Never invent transcripts, heatmaps, signals, or publication outcomes/u,
+  );
+});
+
+test("preparation tools derive stable keys, reject account/path overrides and omit URL traces", async () => {
+  const requests: unknown[] = [];
+  const socialAgentPort = {
+    async createProject(input: unknown) {
+      requests.push(input);
+      return {};
+    },
+    async startExport(input: unknown) {
+      requests.push(input);
+      return {};
+    },
+    async importSource(url: unknown) {
+      requests.push(url);
+      return {};
+    },
+  } as unknown as SocialAgentPort;
+  const context = { toolCallId: "same-runtime-call", socialAgentPort } as ToolExecutionContext;
+  const find = (name: string) =>
+    socialProductionToolEntries.find((entry) => entry.metadata.name === name)!;
+  const create = find("SocialProjectCreate");
+  await create.handler({ displayName: "Reel" }, context);
+  await create.handler({ displayName: "Reel" }, context);
+  assert.deepEqual(requests[0], requests[1]);
+  assert.match((requests[0] as { requestId: string }).requestId, /^[a-f0-9]{64}$/);
+  await assert.rejects(() =>
+    create.handler({ displayName: "Reel", accountId: "foreign" }, context),
+  );
+  await assert.rejects(() =>
+    create.handler({ displayName: "Reel", requestId: "model-key" }, context),
+  );
+  const exportTool = find("SocialProjectExport");
+  await exportTool.handler({ projectId: "project-1", expectedRevision: 5 }, context);
+  assert.equal((requests[2] as { expectedRevision: number }).expectedRevision, 5);
+  await assert.rejects(() =>
+    exportTool.handler(
+      { projectId: "project-1", expectedRevision: 5, outputPath: "/private" },
+      context,
+    ),
+  );
+  const importTool = find("SocialMediaImportUrl");
+  assert.equal(importTool.trace.recordInput, "none");
+  assert.equal(importTool.metadata.readOnly, false);
+  assert.equal(importTool.metadata.sideEffectScope, "network");
+  assert.equal(importTool.cancellation.supported, false);
+  await importTool.handler({ url: "https://media.example.test/source.mp4" }, context);
+  await assert.rejects(() =>
+    importTool.handler(
+      { url: "https://media.example.test/source.mp4", accountId: "foreign" },
+      context,
+    ),
+  );
+  assert.equal(find("SocialProjectExports").metadata.readOnly, true);
 });

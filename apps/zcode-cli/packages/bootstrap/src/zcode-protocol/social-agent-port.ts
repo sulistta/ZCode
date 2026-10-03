@@ -14,7 +14,9 @@ import {
 
 export function createProtocolSocialAgentPort(
   context: ZCodeProtocolAgentServerContext,
-  resolveOwnSession: () => { app: { sessionId?: string }; workspace: { workspaceIdentity?: string } } | undefined,
+  resolveOwnSession: () =>
+    | { app: { sessionId?: string }; workspace: { workspaceIdentity?: string } }
+    | undefined,
 ): SocialAgentPort {
   function requireAccountSession(sessionId: string): void {
     const session = resolveOwnSession() ?? requireSession(context, sessionId);
@@ -29,7 +31,7 @@ export function createProtocolSocialAgentPort(
   async function query(
     params: SocialAgentQueryParams,
     options?: {
-    signal?: AbortSignal;
+      signal?: AbortSignal;
       traceContext?: TraceContext;
     },
   ): Promise<SocialAgentQueryResult> {
@@ -50,6 +52,45 @@ export function createProtocolSocialAgentPort(
   }
 
   return {
+    async importSource(url, options) {
+      const result = await query({ action: "import-source", url }, options);
+      if (result.action !== "import-source")
+        throw new Error("Social Agent returned the wrong result.");
+      return result.job;
+    },
+    async listMediaJobs(input, options) {
+      const result = await query({ action: "list-media-jobs", ...input }, options);
+      if (result.action !== "list-media-jobs")
+        throw new Error("Social Agent returned the wrong result.");
+      return result.jobs;
+    },
+    async mediaJobCommand(input, options) {
+      const result = await query(
+        { action: "media-job-command", jobId: input.jobId, command: input.action },
+        options,
+      );
+      if (result.action !== "media-job-command")
+        throw new Error("Social Agent returned the wrong result.");
+      return result.job;
+    },
+    async createProject(input, options) {
+      const result = await query({ action: "create-project", ...input }, options);
+      if (result.action !== "create-project")
+        throw new Error("Social Agent returned the wrong result.");
+      return result.project;
+    },
+    async startExport(input, options) {
+      const result = await query({ action: "start-export", ...input }, options);
+      if (result.action !== "start-export")
+        throw new Error("Social Agent returned the wrong result.");
+      return result.job;
+    },
+    async listExports(input, options) {
+      const result = await query({ action: "list-exports", ...input }, options);
+      if (result.action !== "list-exports")
+        throw new Error("Social Agent returned the wrong result.");
+      return result.jobs;
+    },
     async getContext(options) {
       const result = await query({ action: "context" }, options);
       if (result.action !== "context") throw new Error("Social Agent returned the wrong result.");
@@ -57,7 +98,8 @@ export function createProtocolSocialAgentPort(
     },
     async listMedia(options) {
       const result = await query({ action: "list-media" }, options);
-      if (result.action !== "list-media") throw new Error("Social Agent returned the wrong result.");
+      if (result.action !== "list-media")
+        throw new Error("Social Agent returned the wrong result.");
       return result.assets;
     },
     async searchYouTube(queryText, options) {

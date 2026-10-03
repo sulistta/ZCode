@@ -291,6 +291,7 @@ export const socialProjectOperationSchema = z.discriminatedUnion("type", [
 export const createSocialProjectRequestSchema = z.object({
   accountId: z.string().trim().min(1).max(120),
   displayName: projectTextSchema,
+  requestId: socialProjectIdSchema.optional(),
 });
 
 export const socialProjectCommandRequestSchema = z.object({

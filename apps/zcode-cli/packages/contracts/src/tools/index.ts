@@ -20,6 +20,7 @@ export * from "./todo.js";
 export * from "./automation.js";
 export * from "./social-project.js";
 export * from "./social-agent.js";
+export * from "./social-production.js";
 export * from "./off-peak.js";
 export * from "./target.js";
 export * from "./plan-mode.js";

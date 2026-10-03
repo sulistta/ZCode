@@ -33,6 +33,12 @@ test("social account runtimes expose only account-scoped social tools", () => {
     SOCIAL_YOUTUBE_SEARCH_TOOL_NAME,
     SOCIAL_CLIP_CANDIDATES_TOOL_NAME,
     SOCIAL_PUBLICATION_REQUEST_TOOL_NAME,
+    "SocialMediaImportUrl",
+    "SocialMediaJobs",
+    "SocialMediaJobCommand",
+    "SocialProjectCreate",
+    "SocialProjectExport",
+    "SocialProjectExports",
   ]);
 });
 
@@ -65,5 +71,11 @@ test("malformed social account identity keeps the generic tool surface closed", 
     SOCIAL_YOUTUBE_SEARCH_TOOL_NAME,
     SOCIAL_CLIP_CANDIDATES_TOOL_NAME,
     SOCIAL_PUBLICATION_REQUEST_TOOL_NAME,
+    "SocialMediaImportUrl",
+    "SocialMediaJobs",
+    "SocialMediaJobCommand",
+    "SocialProjectCreate",
+    "SocialProjectExport",
+    "SocialProjectExports",
   ]);
 });

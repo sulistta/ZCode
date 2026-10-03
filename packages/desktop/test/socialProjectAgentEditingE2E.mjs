@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
+import { setTimeout as delay } from "node:timers/promises";
 import { verifyPreviewExportParityInElectron } from "./socialProjectPreviewExportE2E.mjs";
 
-async function sendSocialAgentPrompt(
+export async function sendSocialAgentPrompt(
   page,
-  { marker, projectName, captionText, promptText, responseText },
+  { marker, projectName, captionText, promptText, responseText, approveToolNames },
 ) {
   await page.getByRole("button", { name: "Conversations", exact: true }).click();
   const conversationInput = page.locator('[data-testid="v4-composer-input"]');
@@ -43,7 +44,29 @@ async function sendSocialAgentPrompt(
     await page.getByRole("button", { name: "Confirm", exact: true }).click();
   }
   await permissionList.waitFor({ state: "hidden", timeout: 15_000 });
-  await page.getByText(responseText, { exact: true }).waitFor({ timeout: 90_000 });
+  if (!approveToolNames) {
+    await page.getByText(responseText, { exact: true }).waitFor({ timeout: 90_000 });
+    return;
+  }
+  const response = page.getByText(responseText, { exact: true });
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
+    if (await response.isVisible()) return;
+    if (await permissionList.isVisible()) {
+      const text = await permissionList.locator("..").locator("..").innerText();
+      assert.ok(
+        approveToolNames.some((name) => text.includes(name)),
+        `Unexpected preparation permission: ${text}`,
+      );
+      const option = permissionList.locator('[data-permission-option-kind="allowOnce"]');
+      const selected = (await option.getAttribute("aria-selected")) === "true";
+      await option.click();
+      if (!selected) await page.getByRole("button", { name: "Confirm", exact: true }).click();
+      await permissionList.waitFor({ state: "hidden", timeout: 15_000 });
+    }
+    await delay(50);
+  }
+  assert.fail(`The production conversation did not return ${responseText}`);
 }
 
 export async function createCandidateProjectsInElectron(page, handoffs) {

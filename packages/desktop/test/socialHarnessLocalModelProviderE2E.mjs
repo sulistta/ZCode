@@ -14,6 +14,7 @@ import {
 } from "./socialHarnessCandidateHandoffMockE2E.mjs";
 
 export { createSocialProjectCandidateHandoffScenarios };
+import { planSocialProductionResponse } from "./socialHarnessAgentProductionE2E.mjs";
 
 function parseToolContent(content) {
   if (typeof content === "string") {
@@ -189,6 +190,8 @@ export function createSocialProjectEditScenario(runId, projectName) {
 export async function startLocalOpenAiMock(options = {}) {
   const projectEdits = options.projectEdits ?? (options.projectEdit ? [options.projectEdit] : []);
   const candidateHandoffs = options.candidateHandoffs ?? [];
+  const production = options.production;
+  const productionToolCalls = [];
   const requests = [];
   const projectEditToolCalls = [];
   const candidateHandoffToolCalls = [];
@@ -225,15 +228,17 @@ export async function startLocalOpenAiMock(options = {}) {
           .find(
             (message) =>
               message.role === "user" &&
-              [...projectEdits, ...candidateHandoffs].some((candidate) =>
-                JSON.stringify(message).includes(candidate.marker),
+              [...projectEdits, ...candidateHandoffs, ...(production ? [production] : [])].some(
+                (candidate) => JSON.stringify(message).includes(candidate.marker),
               ),
           );
         const serializedMarkedMessage = markedUserMessage ? JSON.stringify(markedUserMessage) : "";
         const projectEdit = projectEdits.find((candidate) =>
           serializedMarkedMessage.includes(candidate.marker),
         );
-        if (projectEdit) {
+        if (production && serializedMarkedMessage.includes(production.marker)) {
+          answer = planSocialProductionResponse(body, production, productionToolCalls);
+        } else if (projectEdit) {
           answer = planProjectEditResponse(body, projectEdit, projectEditToolCalls);
         } else {
           const candidateHandoff = candidateHandoffs.find((candidate) =>
@@ -331,6 +336,7 @@ export async function startLocalOpenAiMock(options = {}) {
   return {
     baseUrl: `http://127.0.0.1:${address.port}/v1`,
     requests,
+    productionToolCalls,
     projectEditToolCalls,
     candidateHandoffs,
     candidateHandoffToolCalls,

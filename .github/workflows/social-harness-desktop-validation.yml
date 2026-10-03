@@ -72,6 +72,11 @@ jobs:
       - name: Typecheck internal headless Agent
         run: pnpm --dir apps/zcode-cli typecheck
 
+      - name: Test conversational media preparation and isolation
+        run: |
+          node --import tsx --test packages/services/test/socialAgentService.test.ts packages/services/test/socialProjectService.test.ts packages/services/test/socialMediaYouTubeJobs.test.ts
+          pnpm --dir apps/zcode-cli exec node --import tsx --test packages/core/test/tool/handlers/social-agent.test.ts packages/core/test/runtime/helpers/tool-allowlist.test.ts packages/core/test/context/social-account-guidance.test.ts
+
       - name: Test localized internal CLI help
         run: pnpm --filter @social-harness/i18n test
 

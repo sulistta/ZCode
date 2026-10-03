@@ -5,6 +5,10 @@ import { socialProjectSummarySchema } from "./social-project.js";
 import { socialMediaYouTubeSearchResultSchema } from "./social-media.js";
 import { socialProjectIdSchema } from "./social-project.js";
 import { instagramPublicationStatusSchema } from "./social-publishing.js";
+import {
+  socialAgentProductionParamsSchema,
+  socialAgentProductionResultSchema,
+} from "./social-agent-production.js";
 
 const socialAgentPublicationHistoryItemSchema = z.object({
   projectId: z.string().trim().min(1).max(120),
@@ -58,6 +62,7 @@ export const socialAgentMediaAssetSchema = z.object({
 });
 
 export const socialAgentQueryParamsSchema = z.discriminatedUnion("action", [
+  ...socialAgentProductionParamsSchema.options,
   z.object({ action: z.literal("context") }).strict(),
   z.object({ action: z.literal("list-media") }).strict(),
   z
@@ -93,6 +98,7 @@ export const socialAgentPublicationRequestResultSchema = z.object({
 });
 
 export const socialAgentQueryResultSchema = z.discriminatedUnion("action", [
+  ...socialAgentProductionResultSchema.options,
   z
     .object({
       action: z.literal("context"),

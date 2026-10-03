@@ -64,6 +64,7 @@ import {
   socialYouTubeSearchToolEntry,
   socialPublicationRequestToolEntry,
 } from "./social-agent.js";
+import { socialProductionToolEntries } from "./social-production.js";
 import {
   createEnterPlanModeToolEntry,
   enterPlanModeToolEntry,
@@ -116,9 +117,10 @@ export const builtInTools: ToolEntry[] = [
   socialProjectCommandToolEntry,
   socialAgentContextToolEntry,
   socialMediaListToolEntry,
-      socialYouTubeSearchToolEntry,
-      socialClipCandidatesToolEntry,
-      socialPublicationRequestToolEntry,
+  socialYouTubeSearchToolEntry,
+  socialClipCandidatesToolEntry,
+  socialPublicationRequestToolEntry,
+  ...socialProductionToolEntries,
   enterPlanModeToolEntry,
   exitPlanModeToolEntry,
   askUserQuestionToolEntry,
@@ -296,7 +298,8 @@ export function registerBuiltInTools(
         entry.metadata.name === SOCIAL_MEDIA_LIST_TOOL_NAME ||
         entry.metadata.name === SOCIAL_YOUTUBE_SEARCH_TOOL_NAME ||
         entry.metadata.name === SOCIAL_CLIP_CANDIDATES_TOOL_NAME ||
-        entry.metadata.name === SOCIAL_PUBLICATION_REQUEST_TOOL_NAME) &&
+        entry.metadata.name === SOCIAL_PUBLICATION_REQUEST_TOOL_NAME ||
+        socialProductionToolEntries.some((tool) => tool.metadata.name === entry.metadata.name)) &&
       options.includeSocialAgent !== true
     ) {
       continue;
