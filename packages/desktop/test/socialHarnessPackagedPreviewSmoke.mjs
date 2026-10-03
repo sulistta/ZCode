@@ -47,9 +47,10 @@ async function reserveCdpPort() {
   return address.port;
 }
 
-function startPackagedApp(port) {
+function startPackagedApp(port, deepLink) {
   const args =
     process.platform === "linux" ? ["--appimage-extract-and-run", "--ozone-platform=x11"] : [];
+  if (deepLink) args.push(deepLink);
   const environment = {
     ...process.env,
     ELECTRON_RENDERER_URL: "",
@@ -182,6 +183,38 @@ async function connectToPackagedPage(port) {
   throw new Error(`Installed Preview did not render account setup; pages=${JSON.stringify(urls)}`);
 }
 
+async function verifyPackagedOAuthReturn(page) {
+  await page.evaluate(() => {
+    window.__packagedOAuthReturns = 0;
+    window.zcode.onOAuthCallback(() => {
+      window.__packagedOAuthReturns++;
+    });
+    window.zcode.registerOAuthState({
+      provider: "instagram",
+      state: "packaged-fixture-oauth-state",
+    });
+    // 不在测试里补 ready：必须由真实 Social Accounts 接收器完成握手，才能发现回跳被无限排队的回归。
+  });
+  const callback =
+    "social-harness://oauth/callback?state=packaged-fixture-oauth-state&code=packaged-fixture-opaque-ticket&_oauth_provider=instagram";
+  const secondary = startPackagedApp(0, callback);
+  try {
+    await page.waitForFunction(() => window.__packagedOAuthReturns === 1, undefined, {
+      timeout: 30_000,
+    });
+    assert.equal(await waitForExit(secondary, processStopTimeoutMs), true);
+  } finally {
+    await stopPackagedApp(secondary);
+  }
+  const replay = startPackagedApp(0, callback);
+  try {
+    assert.equal(await waitForExit(replay, processStopTimeoutMs), true);
+    assert.equal(await page.evaluate(() => window.__packagedOAuthReturns), 1);
+  } finally {
+    await stopPackagedApp(replay);
+  }
+}
+
 async function launchAndInspect() {
   const port = await reserveCdpPort();
   runtime = startPackagedApp(port);
@@ -226,6 +259,7 @@ try {
     .getByText("Instagram not connected", { exact: true })
     .waitFor();
   await inspectInstagramAssistant(page);
+  await verifyPackagedOAuthReturn(page);
   await closeCurrentApp();
 
   page = await launchAndInspect();
@@ -246,7 +280,7 @@ try {
   assert.deepEqual(sentinelAfter, legacySentinel);
   assert.equal(sentinelAfterInfo.mtimeMs, sentinelBefore.mtimeMs);
   console.log(
-    "Installed Social Harness Preview smoke passed: account UI, Convex assistant, disconnected state, create/relaunch persistence, and unchanged legacy data.",
+    "Installed Social Harness Preview smoke passed: account UI, Convex assistant, actual secondary-process OAuth return and replay rejection, disconnected state, create/relaunch persistence, and unchanged legacy data (fixture ticket, no real Meta authentication).",
   );
 } finally {
   await closeCurrentApp();

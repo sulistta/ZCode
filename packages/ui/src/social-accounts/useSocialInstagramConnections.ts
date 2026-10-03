@@ -123,7 +123,7 @@ export function useSocialInstagramConnections({
 
   useEffect(() => {
     if (!service || !isDesktop) return;
-    return platform.onOAuthCallback(async (callbackUrl) => {
+    const disposeOAuth = platform.onOAuthCallback(async (callbackUrl) => {
       let url: URL;
       try {
         url = new URL(callbackUrl);
@@ -146,6 +146,10 @@ export function useSocialInstagramConnections({
         setErrorMessageId(connectionErrorMessageId(error));
       }
     });
+    // Social Accounts 未挂载旧 Root OAuth effect，导致 Main 一直排队回调。
+    // 必须先安装接收器再发送既有 ready 握手，才能投递票据并由 Host 保存连接。
+    platform.notifyRendererReady();
+    return disposeOAuth;
   }, [isDesktop, platform, service]);
 
   const connect = useCallback(

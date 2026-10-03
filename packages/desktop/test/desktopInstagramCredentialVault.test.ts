@@ -18,7 +18,7 @@ function createSafeStorage(backend: () => string = () => "gnome_libsecret") {
   };
 }
 
-test("credential vault stores only encrypted text and round-trips token metadata", async () => {
+test("credential vault stores only encrypted text and restores token metadata after recreation", async () => {
   const rootDir = await mkdtemp(join(tmpdir(), "social-instagram-vault-"));
   try {
     const vault = createDesktopInstagramCredentialVault({
@@ -41,7 +41,12 @@ test("credential vault stores only encrypted text and round-trips token metadata
     const path = join(rootDir, "social-publishing", "credentials", "account-one.json");
     const encryptedFile = await readFile(path, "utf8");
     assert.equal(encryptedFile.includes("secret-token"), false);
-    assert.deepEqual(JSON.parse((await vault.get("account-one")) ?? "null"), {
+    const reopenedVault = createDesktopInstagramCredentialVault({
+      rootDir,
+      platform: "linux",
+      safeStorage: createSafeStorage(),
+    });
+    assert.deepEqual(JSON.parse((await reopenedVault.get("account-one")) ?? "null"), {
       accessToken: "secret-token",
       expiresAt: 123,
       refreshedAt: 100,

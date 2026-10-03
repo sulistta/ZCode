@@ -29,6 +29,25 @@ Validate setup requests before parsing URLs or comparing project identities. A m
 
 ## Event order and authentication
 
+Desktop must announce callback readiness through `IPlatformService.notifyRendererReady` only after installing its Instagram OAuth listener. Main remains the single owner of state-to-window routing and queued callbacks; readiness and callback delivery use the existing platform IPC, not a second timer or polling path. The Social Accounts owner stays mounted while switching account views. Host alone redeems the installation-bound ticket and commits the verified connection through the OS vault and connection store. A successful consent screen or bridge-ready notice never substitutes for this commit.
+
+```mermaid
+sequenceDiagram
+    participant UI as Social Accounts OAuth listener
+    participant Main as Main callback router
+    participant Browser as System browser
+    participant Host as Host connection owner
+    UI->>Main: subscribe callback; announce renderer ready
+    UI->>Host: start authorization for account
+    UI->>Main: register state for this window
+    Browser->>Main: return installation-bound ticket via deep link
+    Main->>UI: deliver once to registered, ready window
+    UI->>Host: redeem ticket and commit verified connection
+    Host-->>UI: connection changed; show authenticated status
+```
+
+On app/OS restart, persisted project configuration, installation credential and committed account credentials survive. Pending states/verifiers do not survive; an authorization interrupted before commit requires a new login, not new provisioning or new Meta credentials. Empty secret inputs are expected and do not mean that saved setup was lost. Acceptance must exercise the real Main deep-link router with the Social Accounts listener: ready-before-return, queued-before-ready, unknown state, duplicate callback, and distinct bridge-ready versus authenticated status. Existing Host persistence tests must prove that a committed connection survives service recreation; a renderer-only fixture cannot establish real Meta authentication or OS vault persistence.
+
 ```mermaid
 sequenceDiagram
     participant UI as Desktop assistant (drafts)
@@ -102,3 +121,9 @@ Host setup admission blocks throughout authorization command admission/profile c
 - Regular third-party inventory validation passed. Strict production material review still fails on the same 11 previously recorded gaps, with no new production gap introduced by Convex; five development-only reviews remain separately recorded. This work does not claim that production release gate is closed.
 - Hosted native validation [run 37088215749](https://github.com/sulistta/ZCode/actions/runs/37088215749) completed successfully on implementation commit `a591885` (2026-10-03 UTC). All five jobs passed: static checks, legacy bridge container fixture, and native Linux/Windows/macOS. Each native job passed the bundled CLI/backend smoke, assistant E2E, full account E2E, Preview installer build, packaged CLI/backend smoke and installed/payload account/assistant/relaunch smoke. Windows used a temporary NSIS installation; macOS copied the DMG app into a temporary directory; Linux launched the AppImage. These fixtures make no real Meta/Convex provisioning request and do not prove production signing or a real publishing round-trip.
 - Not executed: actual Convex account signup/card eligibility, Management API provisioning/deployment against a real team, Meta dashboard callback acceptance, real OAuth/code exchange/profile and Reel publication, or actual large-file transfer/free-capacity exhaustion. The user-owned pilot project and Meta app credentials are not ready. Backend-presence validation is not proof of a working Meta app.
+
+## Pilot and callback regression — 2026-10-03
+
+The user completed production provisioning after creating a key with the documented permissions, saved the Meta variables and obtained the authenticated bridge-ready result. Meta consent returned to the running Desktop through the registered Linux AppImage handler. Local Main evidence showed the callback queued indefinitely for renderer readiness; no connected profile had been committed before the user's OS restart. This supersedes the earlier statement that pilot configuration was unavailable, but does not establish successful code exchange, verified profile commit or publication.
+
+The Social Accounts listener now announces readiness after subscribing, using the existing Main router and platform contract. The expanded assistant Electron E2E reproduced the missing-handshake failure before the fix and passed after it: real Main/preload/hook ticket delivery, unknown-state rejection, exactly one completion and replay rejection. Its cloud/Host responses remain fixtures. Focused Host/OS-vault adapter coverage passes 24 tests, including real file-store recreation for committed connections and rejection of interrupted pre-restart states; vault encryption is simulated in its unit test. The 16 existing Main routing/platform tests also pass. Root typecheck, lint (54 existing warnings, zero errors), formatting and architecture checks pass. Actual account authentication and publication still require the user to repeat login in the rebuilt preview and finish the pilot.

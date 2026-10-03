@@ -33,10 +33,56 @@ const server = createServer((request, response) => {
 });
 await new Promise((resolveListen) => server.listen(0, "127.0.0.1", resolveListen));
 const main = join(directory, "main.cjs");
-await writeFile(
-  main,
-  `const {app,BrowserWindow}=require("electron");app.setPath("userData",${JSON.stringify(join(directory, "profile"))});app.whenReady().then(()=>{const window=new BrowserWindow({show:false,width:1100,height:1400,webPreferences:{contextIsolation:true,nodeIntegration:false}});window.loadURL(${JSON.stringify(`http://127.0.0.1:${server.address().port}/`)});});`,
-);
+const preload = join(directory, "preload.cjs");
+const preloadBuild = await build({
+  stdin: {
+    contents: `import { contextBridge, ipcRenderer } from "electron";
+      import { PlatformChannels } from "@social-harness/shared";
+      import { createOAuthCallbackHandler } from ${JSON.stringify(join(root, "packages/desktop/src/preload/oauthCallbackBridge.ts"))};
+      contextBridge.exposeInMainWorld("oauthFixturePlatform", {
+        registerOAuthState: payload => ipcRenderer.send(PlatformChannels.OAuthRegisterState, payload),
+        notifyRendererReady: () => ipcRenderer.send(PlatformChannels.RendererReady),
+        onOAuthCallback: callback => {
+          const handler = createOAuthCallbackHandler(callback, () => ipcRenderer.send(PlatformChannels.OAuthCallbackHandled));
+          ipcRenderer.on(PlatformChannels.OAuthCallback, handler);
+          return () => ipcRenderer.removeListener(PlatformChannels.OAuthCallback, handler);
+        },
+      });`,
+    resolveDir: join(root, "packages/desktop"),
+    loader: "ts",
+  },
+  bundle: true,
+  write: false,
+  platform: "node",
+  format: "cjs",
+  external: ["electron"],
+});
+await writeFile(preload, preloadBuild.outputFiles[0].contents);
+const mainBuild = await build({
+  stdin: {
+    contents: `import { app, BrowserWindow, ipcMain } from "electron";
+      import { PlatformChannels } from "@social-harness/shared";
+      import { registerOAuthState, deliverPendingDeepLink, handleDeepLink } from ${JSON.stringify(join(root, "packages/desktop/src/main/desktopOAuthDeepLink.ts"))};
+      const logger = { info() {}, warn() {} };
+      globalThis.oauthFixtureRoute = url => handleDeepLink(url, logger);
+      ipcMain.on(PlatformChannels.OAuthRegisterState, (event, payload) => registerOAuthState(event.sender.id, payload));
+      ipcMain.on(PlatformChannels.RendererReady, event => deliverPendingDeepLink(event.sender));
+      app.setPath("userData", ${JSON.stringify(join(directory, "profile"))});
+      app.whenReady().then(() => {
+        const window = new BrowserWindow({show:false,width:1100,height:1400,
+          webPreferences:{contextIsolation:true,nodeIntegration:false,preload:${JSON.stringify(preload)},sandbox:false}});
+        window.loadURL(${JSON.stringify(`http://127.0.0.1:${server.address().port}/`)});
+      });`,
+    resolveDir: join(root, "packages/desktop"),
+    loader: "ts",
+  },
+  bundle: true,
+  write: false,
+  platform: "node",
+  format: "cjs",
+  external: ["electron"],
+});
+await writeFile(main, mainBuild.outputFiles[0].contents);
 let app;
 try {
   app = await electron.launch({
@@ -85,7 +131,9 @@ try {
   await page
     .getByText("The backend is reachable; the Meta App ID or App Secret is still missing.")
     .waitFor();
-  const meta = page.getByRole("region", { name: "3. Save your Meta app credentials in Convex" });
+  const meta = page.getByRole("region", {
+    name: "3. Save your Meta app credentials in Convex",
+  });
   await meta.getByLabel("Instagram App ID").fill("123456789");
   await meta.getByLabel("Instagram App Secret").fill("meta-fixture-secret-for-test");
   await meta
@@ -113,17 +161,55 @@ try {
     0,
   );
   await page.getByRole("button", { name: "Continue with Instagram Login" }).click();
+  await page.waitForFunction(() =>
+    window.setupFixture.opened.some((url) => url.includes("oauth/authorize")),
+  );
+  assert.equal(
+    await app.evaluate(() =>
+      globalThis.oauthFixtureRoute(
+        "social-harness://oauth/callback?state=unknown-state&code=fixture-ticket",
+      ),
+    ),
+    false,
+  );
+  assert.equal(await page.evaluate(() => window.setupFixture.completions), 0);
+  assert.equal(
+    await app.evaluate(() =>
+      globalThis.oauthFixtureRoute(
+        "social-harness://oauth/callback?state=setup-fixture-state&code=fixture-ticket",
+      ),
+    ),
+    true,
+    "The Social Accounts listener must announce readiness before the real Main callback router delivers the ticket",
+  );
   await page.getByText("Instagram account authenticated and saved securely.").waitFor();
+  assert.equal(
+    await app.evaluate(() =>
+      globalThis.oauthFixtureRoute(
+        "social-harness://oauth/callback?state=setup-fixture-state&code=fixture-ticket",
+      ),
+    ),
+    false,
+  );
+  assert.equal(await page.evaluate(() => window.setupFixture.completions), 1);
   const persistence = await page.evaluate(() =>
-    JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage } }),
+    JSON.stringify({
+      local: { ...localStorage },
+      session: { ...sessionStorage },
+    }),
   );
   assert.doesNotMatch(persistence, /fixture-secret|fixture-key|fixture-token/);
   assert.deepEqual(errors, []);
   console.log(
-    "Instagram setup Electron E2E passed: invalid-key retry, creation quota/retry, callback copy, Meta instructions, cleared secret fields, readiness ordering and distinct OAuth completion (fixture services).",
+    "Instagram setup Electron E2E passed: invalid-key retry, creation quota/retry, callback copy, Meta instructions, cleared secret fields, readiness ordering and actual Main/preload/hook OAuth handoff with unknown-state and replay rejection (fixture services).",
   );
 } finally {
   await app?.close();
   await new Promise((resolveClose) => server.close(resolveClose));
-  await rm(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  await rm(directory, {
+    recursive: true,
+    force: true,
+    maxRetries: 5,
+    retryDelay: 100,
+  });
 }
