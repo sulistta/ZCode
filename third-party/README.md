@@ -152,3 +152,35 @@ reviews remain open until complete original publisher materials are available.
 The recursive source trees for the exact Hono middleware, strict-event-emitter,
 and deferred-promise commits were also checked and contain no license-named
 path; these additional checks are recorded in the scan JSON.
+
+On 2026-10-03, publisher history inspection found the original `boolbase`
+ISC notice in immutable merge revision
+`b566b40fabb9310c9e1e8bd5719afb6eece98425`, whose manifest still declares
+`boolbase@1.0.0`. A fresh download of the exact npm archive matched its registry
+SHA-512 SRI and the earlier recorded SHA-256. The shipped `index.js` and
+`README.md` match this source revision byte-for-byte. The manifest differs only
+in its development test script; identity, runtime entry point, dependencies,
+author and license are unchanged. The complete publisher copyright/permission
+notice is retained with its immutable URL and hash. Exact comparisons and both
+manifest hashes are recorded in
+`upstream/boolbase-1.0.0-source-notice-evidence.json`. This closes only the
+`boolbase@1.0.0` notice review and supersedes the earlier negative tag-only
+attribution finding for this package. The other records remain open. See
+`specs/social-harness-release-materials.md` for the verification boundary.
+
+The same follow-up established a notice attribution chain for
+`react-remove-scroll-bar@2.3.8` without recovering its unavailable `gitHead`.
+Both 2.3.7 and 2.3.8 archives match their registry SHA-512 SRI. All 26 shipped
+non-manifest files are byte-identical, including every compiled code file,
+type declaration and README. Their manifests differ only in version and the
+`react-style-singleton` minimum range (`^2.2.1` to `^2.2.2`); that dependency's
+actual installed version and its separate notice are unchanged. The resolvable
+2.3.7 `gitHead` is the parent of the publisher's accepted license addition;
+comparison with merge `8ca9ba5ea52de03308fe8ced94f7b159a44d28ff` reports only
+the original `LICENSE` file. Its complete MIT copyright/permission text is
+retained verbatim. Archive/file hashes, manifest differences and the immutable
+source comparison are recorded in
+`upstream/react-remove-scroll-bar-2.3.8-source-notice-evidence.json`. This closes
+the notice review for the proven unchanged shipped software; it does not
+claim that the missing 2.3.8 release commit was recovered or that unrelated
+release obligations are complete.

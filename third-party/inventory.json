@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "inputHashEncoding": "UTF-8 with CRLF normalized to LF; notice and source snapshot hashes remain byte-exact",
   "scope": "Production dependency union across current workspace projects, copied source/assets and native tools; not a per-installer SBOM or a certification of all licensing obligations.",
-  "noticesSha256": "f5a39177dff6f570a2058eba85c7a48af24f67abc2eb7bba1f2dd01187c00e56",
+  "noticesSha256": "e60b63803f065bd0eac3bc88569aaec535defb09d410aef60b194d8337f3a19e",
   "inputs": {
     ".agents/skills/agent-browser/references/authentication.md": "e2c3b0f4a1dc1368dee821f03c000d818a48421d09f3872525dddffe73f2112b",
     ".agents/skills/agent-browser/references/commands.md": "17522fc56d742663f47231ff06c4811abc87e12c7f78e11f94d253ddd540a909",
@@ -2810,7 +2810,7 @@
     "third-party/native-search/licenses/f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af.txt": "f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af",
     "third-party/native-search/licenses/f9c375a1be4a41f7b70301dd83c91cb89e41567478859b77eef375a52d782505.txt": "f9c375a1be4a41f7b70301dd83c91cb89e41567478859b77eef375a52d782505",
     "third-party/native-search/sources.json": "cbf6d936aeb79fca146c54e83df3b9ceec0d406475827b23e3149d3fefbad65e",
-    "third-party/npm-overrides.json": "d913ae880a87a0cc81da176d70cbadb3fa0c0a4f8408d69612af8185c3f2c2bb",
+    "third-party/npm-overrides.json": "afcad92d498dcd8feddb94804ceeec91d04b7fdc9185941f49bba21dce916dfb",
     "third-party/runtime/ffmpeg-9.0.1-GPLv3-LICENSE.txt": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
     "third-party/runtime/node-22.16.0-LICENSE.txt": "1ae62e2015784ba438db7b04ebd33f3c4ff3efdb824c111c4ececd99945fd52d",
     "third-party/runtime/node-24.14.0-LICENSE.txt": "4573185d56580da2b890ba34a85a409257640f1c5632eade4300137266194d18",
@@ -2831,7 +2831,6 @@
     "third-party/upstream/268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5.txt": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
     "third-party/upstream/2711a8b5a5cdfef0e639f96c1aca12ae23d7d64a02d0507f1bdf14d2b27bbc3a.txt": "2711a8b5a5cdfef0e639f96c1aca12ae23d7d64a02d0507f1bdf14d2b27bbc3a",
     "third-party/upstream/2c976d327b293bd74c257cd53e9b4ecef97a06b1651baa3b24327c97192cb3de.txt": "2c976d327b293bd74c257cd53e9b4ecef97a06b1651baa3b24327c97192cb3de",
-    "third-party/upstream/2d2349188616c4b64ceeae33e1386bb546b0658864b4f7f8c9785757cb065b5d.txt": "2d2349188616c4b64ceeae33e1386bb546b0658864b4f7f8c9785757cb065b5d",
     "third-party/upstream/3007cd45c9afdf93812c0c8a7643ea32a7db0b24e495dc0f2312c8a43990b0dd.txt": "3007cd45c9afdf93812c0c8a7643ea32a7db0b24e495dc0f2312c8a43990b0dd",
     "third-party/upstream/31b15de82aa19a845156169a17a5488bf597e561b2c318d159ed583139b25e87.txt": "31b15de82aa19a845156169a17a5488bf597e561b2c318d159ed583139b25e87",
     "third-party/upstream/328eb7864c20ab77607b26ee1913b65a9b880f6300eea9e667b890da896a2f40.txt": "328eb7864c20ab77607b26ee1913b65a9b880f6300eea9e667b890da896a2f40",
@@ -2868,6 +2867,7 @@
     "third-party/upstream/9b7a157a0079ef346f3215b964071fa460d0dd251ca93cbf581bcc91595066ca.txt": "9b7a157a0079ef346f3215b964071fa460d0dd251ca93cbf581bcc91595066ca",
     "third-party/upstream/a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400.txt": "a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400",
     "third-party/upstream/a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2.txt": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+    "third-party/upstream/a79aae0c0f21990d9d963bb3c5a79cdcea9a46f8523ba55c58d7fe776b6ebc84.txt": "a79aae0c0f21990d9d963bb3c5a79cdcea9a46f8523ba55c58d7fe776b6ebc84",
     "third-party/upstream/af0d7d2cef91fc243cf4ad98570b03d1f26f5e0227cad0f5f4a7376e2feb3160.txt": "af0d7d2cef91fc243cf4ad98570b03d1f26f5e0227cad0f5f4a7376e2feb3160",
     "third-party/upstream/b1688598c3e32605b3973902a546225e0159349c05a0f74db67f76e08e116e65.txt": "b1688598c3e32605b3973902a546225e0159349c05a0f74db67f76e08e116e65",
     "third-party/upstream/b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681.txt": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681",
@@ -2880,6 +2880,7 @@
     "third-party/upstream/cb992262f361a5359e6771c28740d33c7041e15332ae8537fae40538992591a9.txt": "cb992262f361a5359e6771c28740d33c7041e15332ae8537fae40538992591a9",
     "third-party/upstream/cc3273e0694ea5896145e0677699b53471b03ea43021ddc50e7923fbb9f5023c.txt": "cc3273e0694ea5896145e0677699b53471b03ea43021ddc50e7923fbb9f5023c",
     "third-party/upstream/cdab3014d4f69b49dde2b85e81792208c72de613aa6aed7f7a9b5c6609b89670.txt": "cdab3014d4f69b49dde2b85e81792208c72de613aa6aed7f7a9b5c6609b89670",
+    "third-party/upstream/cdf4d87ae0a6c160227263bf4e39a0a10e30e89ae7256e0f7ac7bde0836552c6.txt": "cdf4d87ae0a6c160227263bf4e39a0a10e30e89ae7256e0f7ac7bde0836552c6",
     "third-party/upstream/cf81859d85e99ff2fad83d51d9dfd85ca5189b23c4442aacf1890c54665d92f4.txt": "cf81859d85e99ff2fad83d51d9dfd85ca5189b23c4442aacf1890c54665d92f4",
     "third-party/upstream/cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
     "third-party/upstream/d65ff929f8a373ea16b21d45d5489557d51389ba6583a5c9959d5487c02ce965.txt": "d65ff929f8a373ea16b21d45d5489557d51389ba6583a5c9959d5487c02ce965",
@@ -2887,7 +2888,6 @@
     "third-party/upstream/e2b35be49f7284a45b7baca8fc7b3ab7440e7902392b2528a457816b5bb2a15c.txt": "e2b35be49f7284a45b7baca8fc7b3ab7440e7902392b2528a457816b5bb2a15c",
     "third-party/upstream/e49e62397b603438476e0d6b5ca3b6e6d4f23a80594e596aff29ac04fa3e1b1c.txt": "e49e62397b603438476e0d6b5ca3b6e6d4f23a80594e596aff29ac04fa3e1b1c",
     "third-party/upstream/ebb2e920800c6353474e3e23d84f714ee8aaecd8f5a71851aa03594a4129d855.txt": "ebb2e920800c6353474e3e23d84f714ee8aaecd8f5a71851aa03594a4129d855",
-    "third-party/upstream/f158b3bd10b867740fdbf81447216f1f8685473acf61e6a105ef91ba9fe8ebc3.txt": "f158b3bd10b867740fdbf81447216f1f8685473acf61e6a105ef91ba9fe8ebc3",
     "third-party/upstream/f18c12b8e7daf98d572518b7db133b2dc66a713921dac4825410dd656e0c1a1a.txt": "f18c12b8e7daf98d572518b7db133b2dc66a713921dac4825410dd656e0c1a1a",
     "third-party/upstream/f29b60ea39a2132e3baa98927c2d473b349a54143da44a0c6762b243e6459452.txt": "f29b60ea39a2132e3baa98927c2d473b349a54143da44a0c6762b243e6459452",
     "third-party/upstream/f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af.txt": "f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af",
@@ -6838,8 +6838,8 @@
       "repository": "https://github.com/fb55/boolbase",
       "notices": [
         {
-          "member": "https://registry.npmjs.org/boolbase/1.0.0",
-          "sha256": "2d2349188616c4b64ceeae33e1386bb546b0658864b4f7f8c9785757cb065b5d"
+          "member": "https://raw.githubusercontent.com/fb55/boolbase/b566b40fabb9310c9e1e8bd5719afb6eece98425/LICENSE",
+          "sha256": "cdf4d87ae0a6c160227263bf4e39a0a10e30e89ae7256e0f7ac7bde0836552c6"
         }
       ]
     },
@@ -11978,8 +11978,8 @@
           "sha256": "8ee8354d5f5f12f11ba596bba67b060d43d3cd677075171404ab5a73703450e8"
         },
         {
-          "member": "https://registry.npmjs.org/react-remove-scroll-bar/2.3.8",
-          "sha256": "f158b3bd10b867740fdbf81447216f1f8685473acf61e6a105ef91ba9fe8ebc3"
+          "member": "https://raw.githubusercontent.com/theKashey/react-remove-scroll-bar/8ca9ba5ea52de03308fe8ced94f7b159a44d28ff/LICENSE",
+          "sha256": "a79aae0c0f21990d9d963bb3c5a79cdcea9a46f8523ba55c58d7fe776b6ebc84"
         }
       ]
     },
@@ -25268,26 +25268,6 @@
   ],
   "exceptions": [
     {
-      "package": "react-remove-scroll-bar@2.3.8",
-      "repo": "theKashey/react-remove-scroll-bar",
-      "refs": [
-        "b3b1287aad81def2e2ae707274b74531b61ddbaf"
-      ],
-      "file": "third-party/upstream/f158b3bd10b867740fdbf81447216f1f8685473acf61e6a105ef91ba9fe8ebc3.txt",
-      "sha256": "f158b3bd10b867740fdbf81447216f1f8685473acf61e6a105ef91ba9fe8ebc3",
-      "source": "https://registry.npmjs.org/react-remove-scroll-bar/2.3.8",
-      "evidenceKind": "publisher-license-identifier-and-standard-terms",
-      "license": "MIT",
-      "reviewEvidence": {
-        "checkedOn": "2026-09-29",
-        "result": "The versioned npm archive contains no standalone complete LICENSE. Registry metadata identifies gitHead b3b1287aad81def2e2ae707274b74531b61ddbaf, but GitHub no longer resolves that commit, so no exact upstream copyright/license file was available to verify.",
-        "npmArchiveSha256": "ccc872d7a2dc007cbf9d755f30d56b8d80eabdbe22c44c95a709129bfdc46f01",
-        "sourceRevision": "b3b1287aad81def2e2ae707274b74531b61ddbaf",
-        "sourceCommitLookupUrl": "https://api.github.com/repos/theKashey/react-remove-scroll-bar/commits/b3b1287aad81def2e2ae707274b74531b61ddbaf",
-        "sourceCommitLookupResult": "GitHub returned 422 No commit found for SHA."
-      }
-    },
-    {
       "package": "quickjs-wasi@2.2.0",
       "repo": "vercel-labs/quickjs-wasi",
       "refs": [
@@ -25391,29 +25371,6 @@
         "sourceRevision": "88a33875b168cc7b5943d7fe987c36d08321d252",
         "sourceTreeUrl": "https://api.github.com/repos/abrkn/semaphore.js/git/trees/88a33875b168cc7b5943d7fe987c36d08321d252?recursive=1",
         "upstreamLicenseFiles": []
-      }
-    },
-    {
-      "package": "boolbase@1.0.0",
-      "repo": "fb55/boolbase",
-      "refs": [
-        "v1.0.0",
-        "boolbase@1.0.0",
-        "1.0.0"
-      ],
-      "file": "third-party/upstream/2d2349188616c4b64ceeae33e1386bb546b0658864b4f7f8c9785757cb065b5d.txt",
-      "sha256": "2d2349188616c4b64ceeae33e1386bb546b0658864b4f7f8c9785757cb065b5d",
-      "source": "https://registry.npmjs.org/boolbase/1.0.0",
-      "evidenceKind": "publisher-license-identifier-and-standard-terms",
-      "license": "ISC",
-      "reviewEvidence": {
-        "checkedOn": "2026-09-29",
-        "result": "The versioned npm archive contains only README.md, index.js, and package.json, with no standalone LICENSE or gitHead. The upstream repository currently exposes only tag v2.0.0; no immutable v1.0.0 source revision or original ISC copyright notice was found. The newer tag's license is not treated as evidence for this older package.",
-        "npmArchiveSha256": "69628ff8092c5ff940ea4a0f29da98d520615bae138755c9e059033606c6caa8",
-        "upstreamTagLookupUrl": "https://api.github.com/repos/fb55/boolbase/tags?per_page=100",
-        "upstreamTagsObserved": [
-          "v2.0.0"
-        ]
       }
     },
     {
@@ -26102,12 +26059,6 @@
       "reason": "Before release, publish corresponding source and reproducible build materials for every bundled GPL build dependency, attest the exact provider build-script revision for each target (the recorded Martin Riedl revision is currently unverified), and complete the platform-specific third-party license aggregate."
     },
     {
-      "id": "react-remove-scroll-bar@2.3.8",
-      "reason": "Original version-specific publisher copyright/license material remains incomplete.",
-      "evidenceKind": "publisher-license-identifier-and-standard-terms",
-      "source": "https://registry.npmjs.org/react-remove-scroll-bar/2.3.8"
-    },
-    {
       "id": "quickjs-wasi@2.2.0",
       "reason": "Original version-specific publisher copyright/license material remains incomplete.",
       "evidenceKind": "publisher-license-identifier-and-standard-terms",
@@ -26124,12 +26075,6 @@
       "reason": "Original version-specific publisher copyright/license material remains incomplete.",
       "evidenceKind": "publisher-license-identifier-and-standard-terms",
       "source": "https://registry.npmjs.org/lazy-val/1.0.5"
-    },
-    {
-      "id": "boolbase@1.0.0",
-      "reason": "Original version-specific publisher copyright/license material remains incomplete.",
-      "evidenceKind": "publisher-license-identifier-and-standard-terms",
-      "source": "https://registry.npmjs.org/boolbase/1.0.0"
     },
     {
       "id": "@arms/rum-browser@0.1.8",

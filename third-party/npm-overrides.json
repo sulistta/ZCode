@@ -14,19 +14,18 @@
   {
     "package": "react-remove-scroll-bar@2.3.8",
     "repo": "theKashey/react-remove-scroll-bar",
-    "refs": ["b3b1287aad81def2e2ae707274b74531b61ddbaf"],
-    "file": "third-party/upstream/f158b3bd10b867740fdbf81447216f1f8685473acf61e6a105ef91ba9fe8ebc3.txt",
-    "sha256": "f158b3bd10b867740fdbf81447216f1f8685473acf61e6a105ef91ba9fe8ebc3",
-    "source": "https://registry.npmjs.org/react-remove-scroll-bar/2.3.8",
-    "evidenceKind": "publisher-license-identifier-and-standard-terms",
+    "refs": ["8ca9ba5ea52de03308fe8ced94f7b159a44d28ff"],
+    "file": "third-party/upstream/a79aae0c0f21990d9d963bb3c5a79cdcea9a46f8523ba55c58d7fe776b6ebc84.txt",
+    "sha256": "a79aae0c0f21990d9d963bb3c5a79cdcea9a46f8523ba55c58d7fe776b6ebc84",
+    "source": "https://raw.githubusercontent.com/theKashey/react-remove-scroll-bar/8ca9ba5ea52de03308fe8ced94f7b159a44d28ff/LICENSE",
     "license": "MIT",
     "reviewEvidence": {
-      "checkedOn": "2026-09-29",
-      "result": "The versioned npm archive contains no standalone complete LICENSE. Registry metadata identifies gitHead b3b1287aad81def2e2ae707274b74531b61ddbaf, but GitHub no longer resolves that commit, so no exact upstream copyright/license file was available to verify.",
+      "checkedOn": "2026-10-03",
+      "result": "Complete original MIT notice from accepted publisher merge. All 26 non-manifest files in 2.3.8 match verified 2.3.7 archive; its gitHead resolves to the same source with only LICENSE added. Exact version/dependency-range manifest differences are retained. Missing 2.3.8 gitHead was not recovered.",
       "npmArchiveSha256": "ccc872d7a2dc007cbf9d755f30d56b8d80eabdbe22c44c95a709129bfdc46f01",
-      "sourceRevision": "b3b1287aad81def2e2ae707274b74531b61ddbaf",
-      "sourceCommitLookupUrl": "https://api.github.com/repos/theKashey/react-remove-scroll-bar/commits/b3b1287aad81def2e2ae707274b74531b61ddbaf",
-      "sourceCommitLookupResult": "GitHub returned 422 No commit found for SHA."
+      "npmArchiveIntegrity": "sha512-9r+yi9+mgU33AKcj6IbT9oRCO78WriSj6t/cF8DWBZJ9aOGPOTEDvdUDz1FwKim7QXWwmHqtdHnRJfhAxEG46Q==",
+      "sourceRevision": "8ca9ba5ea52de03308fe8ced94f7b159a44d28ff",
+      "sourceComparisonEvidence": "third-party/upstream/react-remove-scroll-bar-2.3.8-source-notice-evidence.json"
     }
   },
   {
@@ -230,18 +229,18 @@
   {
     "package": "boolbase@1.0.0",
     "repo": "fb55/boolbase",
-    "refs": ["v1.0.0", "boolbase@1.0.0", "1.0.0"],
-    "file": "third-party/upstream/2d2349188616c4b64ceeae33e1386bb546b0658864b4f7f8c9785757cb065b5d.txt",
-    "sha256": "2d2349188616c4b64ceeae33e1386bb546b0658864b4f7f8c9785757cb065b5d",
-    "source": "https://registry.npmjs.org/boolbase/1.0.0",
-    "evidenceKind": "publisher-license-identifier-and-standard-terms",
+    "refs": ["b566b40fabb9310c9e1e8bd5719afb6eece98425"],
+    "file": "third-party/upstream/cdf4d87ae0a6c160227263bf4e39a0a10e30e89ae7256e0f7ac7bde0836552c6.txt",
+    "sha256": "cdf4d87ae0a6c160227263bf4e39a0a10e30e89ae7256e0f7ac7bde0836552c6",
+    "source": "https://raw.githubusercontent.com/fb55/boolbase/b566b40fabb9310c9e1e8bd5719afb6eece98425/LICENSE",
     "license": "ISC",
     "reviewEvidence": {
-      "checkedOn": "2026-09-29",
-      "result": "The versioned npm archive contains only README.md, index.js, and package.json, with no standalone LICENSE or gitHead. The upstream repository currently exposes only tag v2.0.0; no immutable v1.0.0 source revision or original ISC copyright notice was found. The newer tag's license is not treated as evidence for this older package.",
+      "checkedOn": "2026-10-03",
+      "result": "Original ISC copyright/license from an immutable publisher source revision declaring boolbase 1.0.0. Published index.js and README.md match byte-for-byte; package.json differs only in its development test script. No package/runtime/dependency change.",
       "npmArchiveSha256": "69628ff8092c5ff940ea4a0f29da98d520615bae138755c9e059033606c6caa8",
-      "upstreamTagLookupUrl": "https://api.github.com/repos/fb55/boolbase/tags?per_page=100",
-      "upstreamTagsObserved": ["v2.0.0"]
+      "npmArchiveIntegrity": "sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==",
+      "sourceRevision": "b566b40fabb9310c9e1e8bd5719afb6eece98425",
+      "sourceComparisonEvidence": "third-party/upstream/boolbase-1.0.0-source-notice-evidence.json"
     }
   },
   {
