@@ -3,16 +3,21 @@ export const convexDeploymentUrlSchema = z
   .string()
   .url()
   .refine((value) => {
-    const url = new URL(value);
-    return (
-      url.protocol === "https:" &&
-      /^[a-z0-9-]+(?:\.[a-z0-9-]+)?\.convex\.cloud$/u.test(url.hostname) &&
-      url.pathname === "/" &&
-      !url.username &&
-      !url.password &&
-      !url.search &&
-      !url.hash
-    );
+    // 修复：格式校验失败后 refine 仍可能执行；URL 异常携带原始 input，不能进入凭据 RPC 日志。
+    try {
+      const url = new URL(value);
+      return (
+        url.protocol === "https:" &&
+        /^[a-z0-9-]+(?:\.[a-z0-9-]+)?\.convex\.cloud$/u.test(url.hostname) &&
+        url.pathname === "/" &&
+        !url.username &&
+        !url.password &&
+        !url.search &&
+        !url.hash
+      );
+    } catch {
+      return false;
+    }
   }, "Use the production deployment URL from the Convex dashboard");
 export const instagramBridgeConfigurationSchema = z
   .object({

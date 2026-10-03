@@ -4,10 +4,13 @@ import { createHash } from "node:crypto";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { inspect } from "node:util";
+import { LoggingChannelServer, type IServerChannel } from "@social-harness/rpc";
 import { createInstagramConvexIntegration } from "../src/social-publishing/adapters/instagramConvexIntegration.js";
 import type { ISocialInstagramSetupService } from "../src/social-publishing/setupContract.js";
 import { createSocialPublishingService } from "../src/social-publishing/app/socialPublishingService.js";
 import { createInstagramConnectionProjector } from "../src/social-publishing/app/instagramConnectionProjection.js";
+import { createSocialPublishingSetupService } from "../src/social-publishing/app/socialPublishingSetupService.js";
 const projection = {
   stage: "project" as const,
   deploymentUrl: null,
@@ -29,6 +32,70 @@ function gate() {
   });
   return { promise, release: () => release!() };
 }
+test("invalid setup requests never expose entered secrets through actual RPC failure logging", async () => {
+  let busy = false;
+  let provisioned = false;
+  const service = createSocialPublishingSetupService({
+    isBusy: () => busy,
+    setBusy: (value) => {
+      busy = value;
+    },
+    listConnections: async () => [],
+    setup: {
+      get: async () => ({ ...projection, deploymentUrl: request.deploymentUrl }),
+      provision: async () => {
+        provisioned = true;
+        return projection;
+      },
+      configureMeta: async () => {
+        provisioned = true;
+        return projection;
+      },
+      validate: async () => projection,
+    },
+  });
+  let channel: IServerChannel<string>;
+  const messages: string[] = [];
+  const logger = new LoggingChannelServer<string>(
+    {
+      registerChannel: (_name, value) => {
+        channel = value;
+      },
+    },
+    (...values) => messages.push(inspect(values)),
+  );
+  logger.registerChannel("social-instagram-setup", {
+    call: async (_ctx, command, input) =>
+      (command === "provisionInstagramBridge"
+        ? service.provisionInstagramBridge(input)
+        : service.configureInstagramBridgeMeta(input)) as never,
+    listen: () => {
+      throw new Error("No setup events");
+    },
+  });
+  const secret = "private-value-must-not-be-logged";
+  for (const [command, input] of [
+    [
+      "provisionInstagramBridge",
+      { ...request, deploymentUrl: secret, provisioningCredential: secret },
+    ],
+    ["provisionInstagramBridge", { ...request, [secret]: secret }],
+    [
+      "configureInstagramBridgeMeta",
+      { appId: "invalid", appSecret: secret, provisioningCredential: secret, [secret]: secret },
+    ],
+  ] as const) {
+    await assert.rejects(channel!.call("host", command, input), (error) => {
+      assert.equal(error.name, "SocialPublishingError");
+      assert.doesNotMatch(inspect(error), new RegExp(secret));
+      return error.code === "bridge-deployment-failed";
+    });
+    assert.equal(busy, false);
+  }
+  assert.equal(provisioned, false);
+  assert.doesNotMatch(messages.join("\n"), new RegExp(secret));
+  assert.equal(messages.filter((message) => message.includes("FAIL")).length, 3);
+});
 test("Host guards setup throughout authorization admission and commit, then permits expired-flow retry", async () => {
   const accountGate = gate();
   const profileGate = gate();
