@@ -16,7 +16,7 @@ on:
       - packages/ui/**
       - packages/web/**
       - scripts/**
-      - specs/social-harness.md
+      - specs/social-harness*.md
       - third-party/**
       - mise.toml
       - package.json
@@ -63,6 +63,11 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+      - name: Test user-owned Instagram bridge and provisioning
+        run: |
+          pnpm --filter @social-harness/social-auth-bridge test
+          node --import tsx --test packages/services/test/instagramConvex*.test.ts packages/services/test/socialPublishingService.test.ts packages/services/test/socialInstagramPublicationWorkflow.test.ts
 
       - name: Typecheck internal headless Agent
         run: pnpm --dir apps/zcode-cli typecheck
@@ -134,6 +139,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends xvfb rpm xz-utils zstd libarchive-tools
 
+      - name: Verify bundled Convex provisioner with embedded Node
+        run: pnpm --filter @social-harness/desktop test:convex-runtime
+
+      - name: Run Instagram assistant Electron E2E
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum pnpm --filter @social-harness/desktop test:instagram-setup-e2e
+
+      - name: Run Instagram assistant Electron E2E
+        if: runner.os != 'Linux'
+        run: pnpm --filter @social-harness/desktop test:instagram-setup-e2e
+
       - name: Run Social Harness account Electron E2E
         if: runner.os == 'Linux'
         run: xvfb-run --auto-servernum pnpm --filter @social-harness/desktop test:social-harness-e2e
@@ -203,6 +219,9 @@ jobs:
           executable="$app_target/Contents/MacOS/Social Harness Preview"
           test -x "$executable"
           printf 'SOCIAL_HARNESS_PACKAGED_EXECUTABLE=%s\n' "$executable" >> "$GITHUB_ENV"
+
+      - name: Verify packaged Convex provisioner with embedded Node
+        run: pnpm --filter @social-harness/desktop test:convex-runtime
 
       - name: Run installed Preview package smoke
         if: runner.os == 'Linux'

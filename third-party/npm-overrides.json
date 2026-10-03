@@ -476,5 +476,47 @@
       "npmArchiveIntegrity": "sha512-ieiMhVQNpkSEv3tgwfQZqhvy8p9cyhl3B7AS4j+8kikDcriNOA5xE0d8JwpItzfOm7kfeYqGbZYwZMF45EDl4Q==",
       "sourceRevision": "d472fec87e50b4bceb552800da99a8e7510bf1e1"
     }
+  },
+  {
+    "package": "@esbuild/darwin-arm64@0.27.0",
+    "file": "third-party/upstream/b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681.txt",
+    "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681",
+    "source": "https://raw.githubusercontent.com/evanw/esbuild/v0.27.0/LICENSE.md",
+    "license": "MIT"
+  },
+  {
+    "package": "@esbuild/darwin-x64@0.27.0",
+    "file": "third-party/upstream/b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681.txt",
+    "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681",
+    "source": "https://raw.githubusercontent.com/evanw/esbuild/v0.27.0/LICENSE.md",
+    "license": "MIT"
+  },
+  {
+    "package": "@esbuild/linux-arm64@0.27.0",
+    "file": "third-party/upstream/b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681.txt",
+    "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681",
+    "source": "https://raw.githubusercontent.com/evanw/esbuild/v0.27.0/LICENSE.md",
+    "license": "MIT"
+  },
+  {
+    "package": "@esbuild/linux-x64@0.27.0",
+    "file": "third-party/upstream/b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681.txt",
+    "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681",
+    "source": "https://raw.githubusercontent.com/evanw/esbuild/v0.27.0/LICENSE.md",
+    "license": "MIT"
+  },
+  {
+    "package": "@esbuild/win32-arm64@0.27.0",
+    "file": "third-party/upstream/b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681.txt",
+    "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681",
+    "source": "https://raw.githubusercontent.com/evanw/esbuild/v0.27.0/LICENSE.md",
+    "license": "MIT"
+  },
+  {
+    "package": "@esbuild/win32-x64@0.27.0",
+    "file": "third-party/upstream/b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681.txt",
+    "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681",
+    "source": "https://raw.githubusercontent.com/evanw/esbuild/v0.27.0/LICENSE.md",
+    "license": "MIT"
   }
 ]

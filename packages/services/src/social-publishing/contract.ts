@@ -47,7 +47,7 @@ export type SocialPublishingPublicationChange = {
 export interface ISocialPublishingService {
   listConnections(): Promise<InstagramConnection[]>;
   getConnection(accountId: string): Promise<InstagramConnection | null>;
-  /** Public configuration projection only; never returns the bridge URL or any credential. */
+  /** Public configuration projection only; returns no credential. */
   isInstagramAuthorizationAvailable(): Promise<boolean>;
   startInstagramConnection(
     request: StartInstagramConnectionRequest,

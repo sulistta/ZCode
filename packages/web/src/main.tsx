@@ -111,6 +111,7 @@ function createWebPlatform(): IPlatformService {
         importedCount: 0,
         skippedCount: 0,
       }),
+    copyTextToClipboard: (text) => navigator.clipboard.writeText(text),
     openExternal: (url) => {
       window.open(url, "_blank", "noopener,noreferrer");
     },

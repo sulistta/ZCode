@@ -3,5 +3,5 @@ export const socialPublishingModule = {
   id: "social-publishing",
   requires: ["shared", "rpc", "services", "social-account", "social-media", "social-project"],
   provides: ["social-publishing-service"],
-  publicEntrypoints: ["contract.ts"],
+  publicEntrypoints: ["contract.ts", "setupContract.ts"],
 } as const;

@@ -214,6 +214,10 @@ export async function verifySocialAgentProjectEditInElectron(page, options) {
 
   const initialProject = await openEditedProject(page, projectName, clipIds.textClipId);
   await page
+    .getByRole("note")
+    .filter({ hasText: "The supported file ceiling stays 1 GiB." })
+    .waitFor();
+  await page
     .getByText(
       "Instagram Reels support up to 1920 px on each side and 23–60 fps. Change Project settings and export again if needed.",
       { exact: true },

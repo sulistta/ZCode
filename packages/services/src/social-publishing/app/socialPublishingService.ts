@@ -4,7 +4,6 @@ import type {
   CompleteInstagramConnectionRequest,
   DisconnectInstagramRequest,
   InstagramConnection,
-  InstagramConnectionProfile,
   StartInstagramConnectionRequest,
   StartInstagramConnectionResult,
   SocialMediaAsset,
@@ -17,18 +16,8 @@ import {
   socialAccountIdSchema,
   startInstagramConnectionRequestSchema,
 } from "@social-harness/shared";
-import type { ISocialAccountService } from "../../social-account/contract.js";
-import type { ISocialMediaService } from "../../social-media/contract.js";
 import type { ISocialPublishingService, SocialPublishingConnectionChange } from "../contract.js";
-import type { InstagramAuthBridge } from "./ports/instagramAuthBridge.js";
-import type { InstagramConnectionStore } from "./ports/instagramConnectionStore.js";
-import type { InstagramCredentialStore } from "./ports/instagramCredentialStore.js";
-import type { InstagramTokenRefresher } from "./ports/instagramTokenRefresher.js";
-import type { InstagramMediaReader } from "./ports/instagramMediaReader.js";
-import type { InstagramPublicationStore } from "./ports/instagramPublicationStore.js";
-import type { InstagramReelPublisher } from "./ports/instagramReelPublisher.js";
-import type { SocialProjectExportArtifactReader } from "./ports/socialProjectExportArtifactReader.js";
-import type { ISocialProjectService } from "../../social-project/contract.js";
+import { createSocialPublishingSetupService } from "./socialPublishingSetupService.js";
 import { createInstagramConnectionProjector } from "./instagramConnectionProjection.js";
 import { createInstagramMediaLister } from "./instagramMediaListService.js";
 import { persistInstagramConnection } from "./instagramConnectionPersistence.js";
@@ -48,30 +37,25 @@ import {
   revokeInstagramMediaCredentialBestEffort,
 } from "./instagramMediaCredentialCleanup.js";
 
-const logger = createServiceLogger("social-publishing");
+import type { SocialPublishingServiceOptions } from "./socialPublishingServiceOptions.js";
 
-interface SocialPublishingServiceOptions {
-  accountService: Pick<ISocialAccountService, "get" | "list">;
-  authBridge?: InstagramAuthBridge;
-  credentialStore: InstagramCredentialStore;
-  tokenRefresher?: InstagramTokenRefresher;
-  mediaReader?: InstagramMediaReader;
-  socialMediaService?: Pick<ISocialMediaService, "list">;
-  connectionStore: InstagramConnectionStore;
-  publication?: {
-    store: InstagramPublicationStore;
-    projectService: Pick<ISocialProjectService, "get" | "getExport">;
-    artifactReader: SocialProjectExportArtifactReader;
-    publisher?: InstagramReelPublisher;
-  };
-  verifyProfile: (accessToken: string) => Promise<InstagramConnectionProfile>;
-  now?: () => number;
-  createNonce?: () => string;
-}
+const logger = createServiceLogger("social-publishing");
 
 export function createSocialPublishingService(
   options: SocialPublishingServiceOptions,
 ): ISocialPublishingService {
+  let setupBusy = false;
+  let authorizationAdmissions = 0;
+  async function admitAuthorization<T>(operation: () => Promise<T>): Promise<T> {
+    if (setupBusy)
+      throw new SocialPublishingError("bridge-setup-busy", "Wait for bridge setup to finish.");
+    authorizationAdmissions++;
+    try {
+      return await operation();
+    } finally {
+      authorizationAdmissions--;
+    }
+  }
   const now = options.now ?? Date.now;
   const createNonce = options.createNonce ?? defaultNonce;
   const changed = new Emitter<SocialPublishingConnectionChange>();
@@ -91,6 +75,7 @@ export function createSocialPublishingService(
     connectionStore: options.connectionStore,
     tokenRefresher: options.tokenRefresher,
     withAccountLock,
+    acceptsCredential: options.authBridge?.acceptsCredential,
   });
 
   function notify(accountId: string, status: InstagramConnection["status"]): void {
@@ -134,6 +119,7 @@ export function createSocialPublishingService(
   });
 
   const publicationOperations = createSocialPublishingPublicationService({
+    isSetupBusy: () => setupBusy,
     now,
     publication: options.publication,
     credentialStore: options.credentialStore,
@@ -153,6 +139,8 @@ export function createSocialPublishingService(
   async function startInstagramConnection(
     request: StartInstagramConnectionRequest,
   ): Promise<StartInstagramConnectionResult> {
+    if (setupBusy)
+      throw new SocialPublishingError("bridge-setup-busy", "Wait for project setup to finish.");
     const input = startInstagramConnectionRequestSchema.parse(request);
     await requireAccount(input.accountId);
     if (!options.authBridge) {
@@ -195,7 +183,7 @@ export function createSocialPublishingService(
         throw new Error("Invalid Instagram authorization URL");
       }
       return { state, authorizeUrl, expiresAt };
-    } catch {
+    } catch (error) {
       if (pendingByState.get(state) === pending) {
         pendingByState.delete(state);
         if (pendingStateByAccount.get(input.accountId) === state) {
@@ -205,6 +193,8 @@ export function createSocialPublishingService(
       if (currentGeneration(input.accountId) === generation) {
         notify(input.accountId, previous.status);
       }
+      if (error instanceof SocialPublishingError && error.code === "capacity-unavailable")
+        throw error;
       throw new SocialPublishingError(
         "authorization-unavailable",
         "Could not start Instagram authorization. Try again.",
@@ -314,7 +304,10 @@ export function createSocialPublishingService(
         reason: "rejected-connection",
       });
       if (currentGeneration(accountId) === generation) notify(accountId, previous.status);
-      if (error instanceof SocialPublishingError && error.code === "authorization-invalid") {
+      if (
+        error instanceof SocialPublishingError &&
+        ["authorization-invalid", "capacity-unavailable"].includes(error.code)
+      ) {
         throw error;
       }
       throw new SocialPublishingError(
@@ -360,9 +353,31 @@ export function createSocialPublishingService(
     return connection;
   }
 
+  if (options.bridgeSetup && options.registerBridgeSetup) {
+    options.registerBridgeSetup(
+      createSocialPublishingSetupService({
+        setup: options.bridgeSetup,
+        isBusy: () =>
+          setupBusy ||
+          authorizationAdmissions > 0 ||
+          [...pendingByState.values()].some(isPending) ||
+          publicationOperations.isBusy(),
+        setBusy: (busy) => {
+          setupBusy = busy;
+        },
+        listConnections: async () =>
+          Promise.all(
+            (await options.accountService.list()).map((account) => project(account.accountId)),
+          ),
+      }),
+    );
+  }
+
   return {
     async isInstagramAuthorizationAvailable() {
-      return Boolean(options.authBridge);
+      return options.authBridge?.isAvailable
+        ? options.authBridge.isAvailable()
+        : Boolean(options.authBridge);
     },
     async listConnections() {
       const accounts = await options.accountService.list();
@@ -372,11 +387,13 @@ export function createSocialPublishingService(
       );
     },
     getConnection,
-    startInstagramConnection,
-    completeInstagramConnection,
-    disconnectInstagram,
+    startInstagramConnection: (request) =>
+      admitAuthorization(() => startInstagramConnection(request)),
+    completeInstagramConnection: (request) =>
+      admitAuthorization(() => completeInstagramConnection(request)),
+    disconnectInstagram: (request) => admitAuthorization(() => disconnectInstagram(request)),
     listInstagramMedia,
-    ...publicationOperations,
+    ...publicationOperations.operations,
     onConnectionChanged: changed.event,
   };
 }

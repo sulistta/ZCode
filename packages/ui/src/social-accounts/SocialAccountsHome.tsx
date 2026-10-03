@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button.js";
 import { DesktopWindowControls } from "@/DesktopWindowControls.js";
 import { DesktopWindowFrame } from "@/DesktopWindowFrame.js";
 import { WindowsTopLeftLogo } from "@/WindowsTopLeftLogo.js";
+import { useOptionalServices } from "@/hooks/useServices.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { SocialAccountPolicyForm } from "./SocialAccountPolicyForm.js";
 import { SocialAccountProfileForm } from "./SocialAccountProfileForm.js";
@@ -26,6 +27,7 @@ import { SocialInstagramMediaPanel } from "./SocialInstagramMediaPanel.js";
 import { useSocialInstagramMedia } from "./useSocialInstagramMedia.js";
 import { useSocialAccountEditor } from "./useSocialAccountEditor.js";
 import { SocialAccountAutomationsHome } from "./SocialAccountAutomationsHome.js";
+import { SocialInstagramSetup } from "./SocialInstagramSetup.js";
 import { SocialModelSettings } from "./SocialModelSettings.js";
 
 export function SocialAccountsHome({
@@ -50,6 +52,7 @@ export function SocialAccountsHome({
   isWindowsDesktop?: boolean;
 }) {
   const { intl } = useZCodeIntl();
+  const setupService = useOptionalServices()?.socialInstagramSetupService;
   const {
     accounts,
     beginCreate,
@@ -246,6 +249,21 @@ export function SocialAccountsHome({
                         onRetryAuthorizationAvailability={() =>
                           void instagramConnections.reloadAuthorizationAvailability()
                         }
+                      />
+                    ) : null}
+                    {!isCreating &&
+                    selectedAccount &&
+                    setupService &&
+                    isDesktop &&
+                    selectedConnection ? (
+                      <SocialInstagramSetup
+                        service={setupService}
+                        platform={platform}
+                        onReady={instagramConnections.reloadAuthorizationAvailability}
+                        onConnect={() =>
+                          void instagramConnections.connect(selectedAccount.accountId)
+                        }
+                        connectionStatus={selectedConnection.status}
                       />
                     ) : null}
                     {!isCreating &&

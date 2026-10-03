@@ -86,6 +86,7 @@ export const instagramPublicationSchema = z
         "project-changed",
         "unsupported-video",
         "media-upload-failed",
+        "capacity-unavailable",
         "container-rejected",
         "media-processing-failed",
         "publish-rejected",

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "inputHashEncoding": "UTF-8 with CRLF normalized to LF; notice and source snapshot hashes remain byte-exact",
   "scope": "Production dependency union across current workspace projects, copied source/assets and native tools; not a per-installer SBOM or a certification of all licensing obligations.",
-  "noticesSha256": "d4f798cb3b62dea2d0d265c451dfb6ce0127a9dbb09a49156aca2af780b1087d",
+  "noticesSha256": "f5a39177dff6f570a2058eba85c7a48af24f67abc2eb7bba1f2dd01187c00e56",
   "inputs": {
     ".agents/skills/agent-browser/references/authentication.md": "e2c3b0f4a1dc1368dee821f03c000d818a48421d09f3872525dddffe73f2112b",
     ".agents/skills/agent-browser/references/commands.md": "17522fc56d742663f47231ff06c4811abc87e12c7f78e11f94d253ddd540a909",
@@ -240,7 +240,7 @@
     "apps/zcode-cli/tools/typescript/package.json": "60c11c57f331b7164ee9dfa279fe202acc924dbf50275df8739b0775d52246bc",
     "package.json": "ade99fdf8a8d05421bcacdc5dec7d2448a7fe17c01475ae372b282088fc26670",
     "packages/client/package.json": "963c6c93b38ca5c237a0a1cb39e35fa7c2f63d67082645958b1b686d8381f857",
-    "packages/desktop/package.json": "7b993bf1ca4066e642979cf5776a2081bbbfd5908f32fbfc7af1484fd49cace3",
+    "packages/desktop/package.json": "68e21360a2e13d7756582fb83d45a219e34293ae2fc6e79aa663c813b64b74eb",
     "packages/desktop/scripts/ffmpeg-runtime-assets.mjs": "a34ea9b7d2cd6afce48d3d3f92f598231aac96ad995ef886c90fe204f2bfea2d",
     "packages/desktop/scripts/prepare-ffmpeg-runtime.mjs": "45fbb7f8a47d7c8b44b6bbbe46bcec0ad37f2b30fed5b286db26bda73cb6cde3",
     "packages/desktop/scripts/prepare-whisper-runtime.mjs": "4f32fda8c2f9851d1088543e9c117113b21fc143c7f0d349d929f24f3eaa76e9",
@@ -1436,7 +1436,7 @@
     "packages/services/package.json": "ad80b01ff3eeb562ba98767a4a18cbd3ce9674f3ff0aef8e89720fb24537fcab",
     "packages/shared/package.json": "74ef311f042fbf94014aac3965a03238f4b504e27e617046551bd1a49eaa58c4",
     "packages/shared/src/zcode-protocol-v4/wire-codec.ts": "7baa177e6d29afc7a60622be0a3c0f78cb22b4f237b9a40704103ff96a7abb04",
-    "packages/social-auth-bridge/package.json": "b31691ba97b0dd62d3fa7082a228254945b2818842bf4d609ce41dcdf30eaade",
+    "packages/social-auth-bridge/package.json": "ee9f84f3f8c0bae9f21e6d77cc4ec8d3adfe58ee11090458843925e60020fa3f",
     "packages/ui/package.json": "0afa8a88f65698ad7031ee00222e0df304d5c42e9c271ae0d5b8f9bb5dbd2b64",
     "packages/ui/src/components/ai-elements/agent.tsx": "830e7ea9e927de1524851337f1d35bda0e5690e3e4fa307fff854b60006b16c7",
     "packages/ui/src/components/ai-elements/artifact.tsx": "7d73f08864d6280ac86c77d32e56d0e702f8aa6208e5910820139d0fb08ce64c",
@@ -2687,7 +2687,7 @@
     "patches/@ai-sdk__anthropic@3.0.81.patch": "d3a7c381eba7f5157f765a0528003af17cf84544911dfb7412c7800168e01c18",
     "patches/@ai-sdk__openai-compatible@2.0.60.patch": "9632fe9d821b3dc20939ae509cc35b968d90d018bbd1d812390718898182a38b",
     "patches/@arms__rum-electron@0.0.3.patch": "36855354851ea495bc47a03340b0484ff62836b739cad56904b8a69f18e2ae97",
-    "pnpm-lock.yaml": "94a622428333036bcd44fcf0504f2a18035ffff8bd9922eeb30936c1546a474f",
+    "pnpm-lock.yaml": "16922967e6267979d418a4cb1a65df46625f4db4cf44710e607996876ee97240",
     "pnpm-workspace.yaml": "c75878eee9578dc4ab069c9172a166c8f088077ddcbfe43e46b5b5de26b74010",
     "scripts/license-texts/Apache-2.0.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
     "scripts/native-search-tools-config.mjs": "281d368464f61363fa2d8ab74f416962fe730dd0a0572db5564475f876bb65aa",
@@ -2810,7 +2810,7 @@
     "third-party/native-search/licenses/f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af.txt": "f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af",
     "third-party/native-search/licenses/f9c375a1be4a41f7b70301dd83c91cb89e41567478859b77eef375a52d782505.txt": "f9c375a1be4a41f7b70301dd83c91cb89e41567478859b77eef375a52d782505",
     "third-party/native-search/sources.json": "cbf6d936aeb79fca146c54e83df3b9ceec0d406475827b23e3149d3fefbad65e",
-    "third-party/npm-overrides.json": "937c60b6ecf00c9f89c7e4c01a01717c959cb80eb3171c2297806149ad749d38",
+    "third-party/npm-overrides.json": "d913ae880a87a0cc81da176d70cbadb3fa0c0a4f8408d69612af8185c3f2c2bb",
     "third-party/runtime/ffmpeg-9.0.1-GPLv3-LICENSE.txt": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
     "third-party/runtime/node-22.16.0-LICENSE.txt": "1ae62e2015784ba438db7b04ebd33f3c4ff3efdb824c111c4ececd99945fd52d",
     "third-party/runtime/node-24.14.0-LICENSE.txt": "4573185d56580da2b890ba34a85a409257640f1c5632eade4300137266194d18",
@@ -2870,6 +2870,7 @@
     "third-party/upstream/a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2.txt": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
     "third-party/upstream/af0d7d2cef91fc243cf4ad98570b03d1f26f5e0227cad0f5f4a7376e2feb3160.txt": "af0d7d2cef91fc243cf4ad98570b03d1f26f5e0227cad0f5f4a7376e2feb3160",
     "third-party/upstream/b1688598c3e32605b3973902a546225e0159349c05a0f74db67f76e08e116e65.txt": "b1688598c3e32605b3973902a546225e0159349c05a0f74db67f76e08e116e65",
+    "third-party/upstream/b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681.txt": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681",
     "third-party/upstream/b4f9adb7c568904834d0dd6cc98d16c390d21ca32fc17ae7a267715269bd5529.txt": "b4f9adb7c568904834d0dd6cc98d16c390d21ca32fc17ae7a267715269bd5529",
     "third-party/upstream/ba8f810f2455c2f08e2d56bb49b72f37fcf68f1f4fade38977cfd7372050ad64.txt": "ba8f810f2455c2f08e2d56bb49b72f37fcf68f1f4fade38977cfd7372050ad64",
     "third-party/upstream/bdb0a645ea18c60507d0368379b1ac5474b92255fcc2d115e07486a7672ba526.txt": "bdb0a645ea18c60507d0368379b1ac5474b92255fcc2d115e07486a7672ba526",
@@ -3280,6 +3281,78 @@
         {
           "member": "LICENSE",
           "sha256": "edab8abb78d9c5b36944c3e00aebf6a90eb32378993f49ac8a3904007029c629"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/darwin-arm64",
+      "version": "0.27.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "notices": [
+        {
+          "member": "https://raw.githubusercontent.com/evanw/esbuild/v0.27.0/LICENSE.md",
+          "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/darwin-x64",
+      "version": "0.27.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "notices": [
+        {
+          "member": "https://raw.githubusercontent.com/evanw/esbuild/v0.27.0/LICENSE.md",
+          "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-arm64",
+      "version": "0.27.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "notices": [
+        {
+          "member": "https://raw.githubusercontent.com/evanw/esbuild/v0.27.0/LICENSE.md",
+          "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-x64",
+      "version": "0.27.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "notices": [
+        {
+          "member": "https://raw.githubusercontent.com/evanw/esbuild/v0.27.0/LICENSE.md",
+          "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/win32-arm64",
+      "version": "0.27.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "notices": [
+        {
+          "member": "https://raw.githubusercontent.com/evanw/esbuild/v0.27.0/LICENSE.md",
+          "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/win32-x64",
+      "version": "0.27.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "notices": [
+        {
+          "member": "https://raw.githubusercontent.com/evanw/esbuild/v0.27.0/LICENSE.md",
+          "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681"
         }
       ]
     },
@@ -7175,6 +7248,30 @@
       ]
     },
     {
+      "name": "convex",
+      "version": "1.46.0",
+      "license": "Apache-2.0",
+      "repository": "git+https://github.com/get-convex/convex-backend.git",
+      "notices": [
+        {
+          "member": "LICENSE",
+          "sha256": "79aaec53ef1333544088fe80ecb8ec70f2b84f60c0c4157240df0911cf9696c7"
+        },
+        {
+          "member": "src/vendor/jwt-decode/LICENSE",
+          "sha256": "2144eb6894cb440fde6b2b3aaae3b617c8f1dc9bb19813079dcf62ec6c517042"
+        },
+        {
+          "member": "src/vendor/jwt-encode/LICENSE",
+          "sha256": "2ecdf30947dfe709077315f7b75e3f1317420c90a3490308fca3855519b45855"
+        },
+        {
+          "member": "src/vendor/progress/LICENSE",
+          "sha256": "d7d2a7786de7c7cfd96f920c6f12927d74e1d2a861ca4498bf465c3bc3f4c21c"
+        }
+      ]
+    },
+    {
       "name": "core-util-is",
       "version": "1.0.3",
       "license": "MIT",
@@ -8311,6 +8408,18 @@
         {
           "member": "LICENSE.md",
           "sha256": "9f655c5baa5a6f254d1e87f27e14d04acaff4bd0b489ea3c2f33723919da2f44"
+        }
+      ]
+    },
+    {
+      "name": "esbuild",
+      "version": "0.27.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "notices": [
+        {
+          "member": "LICENSE.md",
+          "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681"
         }
       ]
     },
@@ -11623,6 +11732,22 @@
       ]
     },
     {
+      "name": "prettier",
+      "version": "3.9.9",
+      "license": "MIT",
+      "repository": "prettier/prettier",
+      "notices": [
+        {
+          "member": "LICENSE",
+          "sha256": "b0f2417199889f1c0d28ec4e0244eacf1a15de5819d61f641dd7d8f45153ac9c"
+        },
+        {
+          "member": "THIRD-PARTY-NOTICES.md",
+          "sha256": "aaf6032babb49d6e5601ab06f315d6d6bab605cb4672f03e9972ff3c80232cdc"
+        }
+      ]
+    },
+    {
       "name": "process-nextick-args",
       "version": "2.0.1",
       "license": "MIT",
@@ -12896,14 +13021,10 @@
     },
     {
       "name": "tinyexec",
-      "version": "1.1.1",
+      "version": "1.2.4",
       "license": "MIT",
       "repository": "git+https://github.com/tinylibs/tinyexec.git",
       "notices": [
-        {
-          "member": "dist/LICENSES.txt",
-          "sha256": "538cf6250ba4f1ecf9986515e6db7885fd8f28892ab593f4f3dfb78a5deb6159"
-        },
         {
           "member": "LICENSE",
           "sha256": "f95f668fe64081ddb4153b322e34fdd719b991285ed08177d5ad7133b7988d92"
@@ -13779,6 +13900,22 @@
       ]
     },
     {
+      "name": "ws",
+      "version": "8.21.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/websockets/ws.git",
+      "notices": [
+        {
+          "member": "LICENSE",
+          "sha256": "2b29dcfe0d6471f7e8c92c5fb38c9f93edee10330937055440192f1832b1ecef"
+        },
+        {
+          "member": "README.md (license section)",
+          "sha256": "c63ef91c14f147f837c11850187ac35794e22e192ee846ad0daffb55e13a86cd"
+        }
+      ]
+    },
+    {
       "name": "xml-parse-from-string",
       "version": "1.0.1",
       "license": "MIT",
@@ -13983,6 +14120,86 @@
     {
       "name": "@napi-rs/canvas-linux-x64-musl",
       "version": "0.1.100"
+    },
+    {
+      "name": "@esbuild/aix-ppc64",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/android-arm",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/android-arm64",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/android-x64",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/freebsd-arm64",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/freebsd-x64",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/linux-arm",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/linux-ia32",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/linux-loong64",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/linux-mips64el",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/linux-ppc64",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/linux-riscv64",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/linux-s390x",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/netbsd-arm64",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/netbsd-x64",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/openbsd-arm64",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/openbsd-x64",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/openharmony-arm64",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/sunos-x64",
+      "version": "0.27.0"
+    },
+    {
+      "name": "@esbuild/win32-ia32",
+      "version": "0.27.0"
     }
   ],
   "copied": [

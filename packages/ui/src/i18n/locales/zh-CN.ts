@@ -1,5 +1,69 @@
 /** 中文翻译 */
 const zhCN: Record<string, string> = {
+  "socialConvex.title": "配置自己的 Instagram 基础设施",
+  "socialConvex.ownership":
+    "所有 Instagram 账号使用你自己的专用 Convex 项目和 Meta 应用。只需安装 Social Harness，通过出站 HTTPS 连接，无需配置路由器或开放端口。",
+  "socialConvex.freeLimits":
+    "从 Convex Free 开始，无需信用卡即可开始使用。团队所有项目和备份共用 1 GB 文件存储及每月 1 GB 文件出站流量。额度有限；Social Harness 不会启用计费或升级套餐。",
+  "socialConvex.mediaLimits":
+    "文件上限仍为 1 GiB。Convex Free 共用 1 GB 存储和每月文件出站额度；最大文件可能耗尽或超过该免费额度。上传须在两分钟内完成。容量不足时需待空间或额度恢复后重试，视频质量不会降低。",
+  "socialConvex.limitsLink": "查看 Convex 当前限制",
+  "socialConvex.projectStep": "1. 连接并部署专用 Convex 项目",
+  "socialConvex.projectInstructions":
+    "在 Convex 控制台选择自己的团队，创建仅供 Social Harness Instagram 使用的项目，并选择 Production 部署。保留 Free 套餐。在 Settings → URL & Deploy Key 复制部署 URL。",
+  "socialConvex.openConvex": "打开 Convex 控制台",
+  "socialConvex.existing": "使用已有项目",
+  "socialConvex.create": "通过 Convex API 创建",
+  "socialConvex.keyInstructions":
+    "在部署 Settings → Deploy Keys 生成临时 production key，授予 deployment:deploy、deployment:env:write、deployment:data:view、deployment:functions:runInternalQueries 和 deployment:functions:runInternalMutations。应用会部署内置后端并创建独立安装凭据。临时 key 不会保存；配置完成后可在控制台撤销。",
+  "socialConvex.teamInstructions":
+    "如需自动创建项目，请在 Team Settings → Access Tokens 创建临时团队令牌。该令牌权限较广，仅用于创建或确认专用项目并签发两小时部署 key，不会保存。重试时使用相同项目名称，完成后在控制台撤销团队令牌。",
+  "socialConvex.deploymentUrl": "Production 部署 URL",
+  "socialConvex.projectName": "专用项目名称",
+  "socialConvex.deployKey": "临时 production deploy key",
+  "socialConvex.teamToken": "临时 Convex 团队令牌",
+  "socialConvex.working": "正在配置…",
+  "socialConvex.deploy": "部署内置桥接后端",
+  "socialConvex.metaStep": "2. 配置自己的 Meta 应用回调",
+  "socialConvex.metaInstructions":
+    "在 Meta for Developers 创建或选择自己的应用。打开 Instagram → API setup with Instagram Login → Set up Instagram business login → Business login settings。将下方完整回调加入 Valid OAuth Redirect URIs 并保存。使用本节的 Instagram App ID 和 Secret，它们可能不同于父级 Facebook 应用。",
+  "socialConvex.openMeta": "打开 Meta 应用",
+  "socialConvex.callbackPending": "部署项目后即可获得 HTTPS 回调。",
+  "socialConvex.accessInstructions":
+    "使用 Creator 或 Business 专业 Instagram 账号。开发模式下，在 App roles → Instagram testers 添加账号，并在 Instagram 接受邀请。应用角色之外的账号需要通过 Meta App Review，并取得 instagram_business_basic 和 instagram_business_content_publish 的 Advanced Access。",
+  "socialConvex.secretStep": "3. 将 Meta 应用凭据保存到 Convex",
+  "socialConvex.secretInstructions":
+    "提交后字段立即清空。Host 通过 HTTPS 将 App Secret 写入你自己的 Convex 项目环境变量，不保留副本。请再次提供临时 deploy key；日常请求使用独立安装凭据。",
+  "socialConvex.appId": "Instagram App ID",
+  "socialConvex.appSecret": "Instagram App Secret",
+  "socialConvex.saveMeta": "保存凭据到我的 Convex 项目",
+  "socialConvex.manualMeta":
+    "也可打开该部署的 Settings → Environment Variables，在 Convex 中直接设置以下两个变量，然后执行下方验证。",
+  "socialConvex.openSettings": "打开该部署的设置",
+  "socialConvex.validateStep": "4. 验证并登录 Instagram",
+  "socialConvex.validationInstructions":
+    "验证会检查后端版本、安装身份及 Meta 配置是否存在。只有完成浏览器登录才能验证 Meta 凭据和账号。真实发布需另外使用已批准导出进行测试。",
+  "socialConvex.validate": "验证项目配置",
+  "socialConvex.login": "继续 Instagram Login",
+  "socialConvex.ready": "桥接配置已就绪。完成 Instagram Login 以验证应用和账号。",
+  "socialConvex.metaMissing": "后端可连接，但仍缺少 Meta App ID 或 App Secret。",
+  "socialConvex.connected": "Instagram 账号已验证，并安全保存凭据。",
+  "socialConvex.copy": "复制",
+  "socialConvex.copied": "已复制。",
+  "socialConvex.reload": "重新加载配置状态",
+  "socialConvex.error.unavailable": "无法加载项目配置，请在桌面应用重试。",
+  "socialConvex.error.failed":
+    "配置未完成。请检查所选项目 URL、key 权限和设置后重试。此前有效配置会保留。",
+  "socialConvex.error.capacity-unavailable":
+    "Convex 容量或额度不足。请在团队 Usage 面板检查存储、月流量和函数额度。清理临时文件或等待额度恢复后，以新批准重试。Social Harness 不会启用计费或升级套餐。",
+  "socialConvex.error.invalid-provisioning-credential":
+    "临时凭据无效、已过期、已撤销或权限不足。请为当前 production 部署生成新 key 后重试。",
+  "socialConvex.error.bridge-not-dedicated":
+    "此项目包含无关数据或函数。请选择专供 Social Harness Instagram 使用的空项目。",
+  "socialConvex.error.bridge-switch-requires-disconnect":
+    "切换其他 Convex 项目前，请先断开当前 Instagram 账号。",
+  "socialConvex.error.bridge-setup-busy": "请先完成当前授权或配置操作，再更改项目配置。",
+  "socialConvex.error.copy": "复制失败，请选择并复制上方显示的值。",
   "socialAccounts.brand": "Social Harness",
   "socialAccounts.nav.accounts": "账号",
   "socialAccounts.nav.conversations": "对话",
@@ -112,7 +176,7 @@ const zhCN: Record<string, string> = {
   "socialAccounts.connection.disconnect": "断开连接",
   "socialAccounts.connection.desktopRequired": "请在 Social Harness 桌面应用中发起连接。",
   "socialAccounts.connection.notConfigured":
-    "此安装暂不可用 Instagram 授权。维护者完成配置前，您仍可继续设置账号。",
+    "请使用下方配置助手连接自己的 Convex 项目和 Meta 应用。",
   "socialAccounts.connection.availabilityChecking": "正在检查 Instagram 授权是否可用…",
   "socialAccounts.connection.availabilityFailed": "无法检查 Instagram 授权是否可用。",
   "socialAccounts.connection.failed": "无法验证 Instagram。请重新发起连接。",

@@ -1,4 +1,11 @@
 export type SocialPublishingErrorCode =
+  | "bridge-setup-unavailable"
+  | "bridge-setup-busy"
+  | "bridge-switch-requires-disconnect"
+  | "invalid-provisioning-credential"
+  | "capacity-unavailable"
+  | "bridge-deployment-failed"
+  | "bridge-not-dedicated"
   | "account-not-found"
   | "authorization-unavailable"
   | "authorization-expired"

@@ -4,7 +4,7 @@ import type {
   ResolveInstagramPublicationRequest,
 } from "./contract.js";
 
-/** Read whether the Host can start OAuth without exposing maintainer configuration. */
+/** Read whether the user-owned bridge is ready. */
 export function isInstagramAuthorizationAvailable(service: ISocialPublishingService) {
   return service.isInstagramAuthorizationAvailable();
 }
@@ -35,4 +35,11 @@ export function resolveInstagramReel(
   request: ResolveInstagramPublicationRequest,
 ) {
   return service.resolveInstagramPublication(request);
+}
+
+/** Open the assistant with safe project configuration; credentials never appear in the projection. */
+export function readInstagramBridgeSetup(
+  service: import("./setupContract.js").ISocialInstagramSetupService,
+) {
+  return service.getInstagramBridgeSetup();
 }

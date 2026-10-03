@@ -199,6 +199,14 @@ async function closeCurrentApp() {
   runtime = undefined;
 }
 
+async function inspectInstagramAssistant(page) {
+  const assistant = page.getByTestId("instagram-infrastructure-assistant");
+  await assistant.locator("summary").click();
+  await assistant.getByLabel("Production deployment URL").waitFor();
+  await assistant.getByRole("button", { name: "Deploy the bundled bridge" }).waitFor();
+  await assistant.locator("summary").click();
+}
+
 try {
   await mkdir(dirname(legacySentinelPath), { recursive: true });
   await writeFile(legacySentinelPath, legacySentinel);
@@ -217,6 +225,7 @@ try {
     .getByRole("region", { name: "Instagram connection" })
     .getByText("Instagram not connected", { exact: true })
     .waitFor();
+  await inspectInstagramAssistant(page);
   await closeCurrentApp();
 
   page = await launchAndInspect();
@@ -227,6 +236,7 @@ try {
     await page.getByLabel("Visual style").inputValue(),
     "Clear captions with restrained motion",
   );
+  await inspectInstagramAssistant(page);
   await closeCurrentApp();
 
   const [sentinelAfter, sentinelAfterInfo] = await Promise.all([
@@ -236,7 +246,7 @@ try {
   assert.deepEqual(sentinelAfter, legacySentinel);
   assert.equal(sentinelAfterInfo.mtimeMs, sentinelBefore.mtimeMs);
   console.log(
-    "Installed Social Harness Preview smoke passed: account UI, disconnected state, create/relaunch persistence, and unchanged legacy data.",
+    "Installed Social Harness Preview smoke passed: account UI, Convex assistant, disconnected state, create/relaunch persistence, and unchanged legacy data.",
   );
 } finally {
   await closeCurrentApp();

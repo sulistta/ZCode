@@ -242,6 +242,9 @@ export function spawnHostProcess(
     serviceName: formatZCodeHostProcessName(label),
     execArgv,
     env: {
+      SOCIAL_HARNESS_CONVEX_ASSETS_DIR: app.isPackaged
+        ? join(process.resourcesPath, "convex-provisioner")
+        : join(app.getAppPath(), "bundled-tools", "convex-provisioner"),
       ...buildHostProcessEnv(dependencies.hostProcessLocalEnv),
       ...buildHostE2ECoverageEnv(),
       SOCIAL_HARNESS_PROCESS_LABEL: label,

@@ -24,6 +24,7 @@ import { createServiceLogger } from "../../logger/serviceLogger.js";
 const logger = createServiceLogger("social-publishing-publication");
 
 interface SocialPublishingPublicationServiceOptions {
+  isSetupBusy?: () => boolean;
   now: () => number;
   credentialStore: InstagramCredentialStore;
   authBridge?: InstagramAuthBridge;
@@ -47,6 +48,7 @@ export function createSocialPublishingPublicationService(
   options: SocialPublishingPublicationServiceOptions,
 ) {
   const changed = new Emitter<SocialPublishingPublicationChange>();
+  let admissions = 0;
   const workflow = options.publication
     ? createInstagramPublicationWorkflow({
         now: options.now,
@@ -75,11 +77,28 @@ export function createSocialPublishingPublicationService(
     : undefined;
 
   if (workflow) {
-    void workflow.recoverPublications().catch(() => {
-      logger.warn(undefined, "Instagram publication recovery did not finish", {
-        errorCode: "publication-recovery-failed",
+    admissions++;
+    void workflow
+      .recoverPublications()
+      .catch(() => {
+        logger.warn(undefined, "Instagram publication recovery did not finish", {
+          errorCode: "publication-recovery-failed",
+        });
+      })
+      .finally(() => {
+        admissions--;
       });
-    });
+  }
+
+  async function admit<T>(operation: () => Promise<T>): Promise<T> {
+    if (options.isSetupBusy?.())
+      throw new SocialPublishingError("bridge-setup-busy", "Wait for bridge setup to finish.");
+    admissions++;
+    try {
+      return await operation();
+    } finally {
+      admissions--;
+    }
   }
 
   async function unavailable(): Promise<never> {
@@ -90,29 +109,40 @@ export function createSocialPublishingPublicationService(
   }
 
   return {
-    async approveAndPublishInstagramReel(
-      request: ApproveInstagramPublicationRequest,
-    ): Promise<InstagramPublication> {
-      return workflow ? workflow.approveAndPublishInstagramReel(request) : unavailable();
+    isBusy: () => admissions > 0 || Boolean(workflow?.isRunnerActive()),
+    operations: {
+      async approveAndPublishInstagramReel(
+        request: ApproveInstagramPublicationRequest,
+      ): Promise<InstagramPublication> {
+        return admit(() =>
+          workflow ? workflow.approveAndPublishInstagramReel(request) : unavailable(),
+        );
+      },
+      async requestAutomatedInstagramPublication(
+        request: RequestAutomatedInstagramPublicationRequest,
+      ): Promise<InstagramPublication> {
+        return admit(() =>
+          workflow ? workflow.requestAutomatedInstagramPublication(request) : unavailable(),
+        );
+      },
+      async approveInstagramPublicationProposal(
+        request: ApproveInstagramPublicationProposalRequest,
+      ): Promise<InstagramPublication> {
+        return admit(() =>
+          workflow ? workflow.approveInstagramPublicationProposal(request) : unavailable(),
+        );
+      },
+      async listInstagramPublications(accountId: string): Promise<InstagramPublication[]> {
+        return workflow ? workflow.listInstagramPublications(accountId) : unavailable();
+      },
+      async resolveInstagramPublication(
+        request: ResolveInstagramPublicationRequest,
+      ): Promise<InstagramPublication> {
+        return admit(() =>
+          workflow ? workflow.resolveInstagramPublication(request) : unavailable(),
+        );
+      },
+      onPublicationChanged: changed.event,
     },
-    async requestAutomatedInstagramPublication(
-      request: RequestAutomatedInstagramPublicationRequest,
-    ): Promise<InstagramPublication> {
-      return workflow ? workflow.requestAutomatedInstagramPublication(request) : unavailable();
-    },
-    async approveInstagramPublicationProposal(
-      request: ApproveInstagramPublicationProposalRequest,
-    ): Promise<InstagramPublication> {
-      return workflow ? workflow.approveInstagramPublicationProposal(request) : unavailable();
-    },
-    async listInstagramPublications(accountId: string): Promise<InstagramPublication[]> {
-      return workflow ? workflow.listInstagramPublications(accountId) : unavailable();
-    },
-    async resolveInstagramPublication(
-      request: ResolveInstagramPublicationRequest,
-    ): Promise<InstagramPublication> {
-      return workflow ? workflow.resolveInstagramPublication(request) : unavailable();
-    },
-    onPublicationChanged: changed.event,
   };
 }

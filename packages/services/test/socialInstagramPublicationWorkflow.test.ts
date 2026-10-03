@@ -10,6 +10,7 @@ import type {
 import { createInstagramPublicationWorkflow } from "../src/social-publishing/app/instagramPublicationWorkflow.js";
 import type { InstagramPublicationStore } from "../src/social-publishing/app/ports/instagramPublicationStore.js";
 import { InstagramReelRemoteError } from "../src/social-publishing/app/ports/instagramReelPublisher.js";
+import { SocialPublishingError } from "../src/social-publishing/app/socialPublishingError.js";
 
 const accountId = "account-one";
 const requestId = "request-key-000001";
@@ -22,6 +23,7 @@ const connected: InstagramConnection = {
 };
 
 function createHarness(options?: {
+  uploadError?: Error;
   projectRevision?: number;
   exportRevision?: number;
   projectSettings?: {
@@ -133,6 +135,7 @@ function createHarness(options?: {
       createAuthorization: async () => "",
       redeemHandoff: async () => ({ accessToken: "secret-token" }),
       uploadTemporaryMedia: async (input) => {
+        if (options?.uploadError) throw options.uploadError;
         uploads.push({
           accountId: input.accountId,
           idempotencyKey: input.idempotencyKey,
@@ -247,6 +250,25 @@ test("approved Reel binds export hash and publishes only after Meta reports FINI
   });
   assert.equal(replay.publicationId, completed.publicationId);
   assert.equal(harness.calls.filter((call) => call === "create").length, 1);
+});
+
+test("capacity exhaustion remains distinct from transport failure and never reaches Meta publication", async () => {
+  for (const [error, expected] of [
+    [new SocialPublishingError("capacity-unavailable", "quota"), "capacity-unavailable"],
+    [new Error("upload timeout"), "media-upload-failed"],
+  ] as const) {
+    const harness = createHarness({ uploadError: error });
+    await harness.workflow.approveAndPublishInstagramReel({
+      accountId,
+      exportId: "export-one",
+      caption: "Approved",
+      requestId,
+    });
+    const completed = await waitForTerminal(harness);
+    assert.equal(completed.status, "failed");
+    assert.equal(completed.errorCode, expected);
+    assert.deepEqual(harness.calls, []);
+  }
 });
 
 test("stale project revisions are rejected before an approval is persisted", async () => {

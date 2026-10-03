@@ -618,6 +618,8 @@ export interface IPlatformService {
 
   /** 打开外部 URL（用于 OAuth 跳转浏览器） */
   openExternal(url: string): void;
+  /** Copy user-visible setup values through the platform boundary. */
+  copyTextToClipboard?(text: string): Promise<void>;
 
   /** 按系统应用标识读取真实 App 图标；非 Desktop 平台可不实现。 */
   getApplicationIcon?(

@@ -115,7 +115,7 @@ test("installer metadata uses its product identity and a configured non-ZCode ma
   );
 });
 
-test("production Desktop requires a safe Instagram bridge origin while Preview may stay disconnected", () => {
+test("Desktop builds without a central bridge and rejects unsafe legacy overrides", () => {
   assert.equal(
     resolveDesktopInstagramAuthBridgeUrl(undefined, {
       productFlavor: "preview",
@@ -137,13 +137,12 @@ test("production Desktop requires a safe Instagram bridge origin while Preview m
     }),
     "https://auth.example.com",
   );
-  assert.throws(
-    () =>
-      resolveDesktopInstagramAuthBridgeUrl(undefined, {
-        productFlavor: "production",
-        isProductionBuild: true,
-      }),
-    /SOCIAL_HARNESS_INSTAGRAM_AUTH_BRIDGE_URL must be set/u,
+  assert.equal(
+    resolveDesktopInstagramAuthBridgeUrl(undefined, {
+      productFlavor: "production",
+      isProductionBuild: true,
+    }),
+    "",
   );
 
   for (const value of [

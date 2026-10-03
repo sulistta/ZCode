@@ -2,19 +2,9 @@ import { readFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 import { atomicWritePrivateTextFile } from "@social-harness/shared/node";
-import { socialAccountIdSchema } from "@social-harness/shared";
+import { instagramSecureCredentialSchema, socialAccountIdSchema } from "@social-harness/shared";
 
-const tokenSetSchema = z
-  .object({
-    accessToken: z.string().trim().min(1),
-    expiresAt: z.number().int().nonnegative().optional(),
-    refreshedAt: z.number().int().nonnegative().optional(),
-    mediaUploadCredential: z
-      .string()
-      .regex(/^[A-Za-z0-9_-]{43,128}$/u)
-      .optional(),
-  })
-  .strict();
+const tokenSetSchema = instagramSecureCredentialSchema;
 
 const encryptedEntrySchema = z
   .object({

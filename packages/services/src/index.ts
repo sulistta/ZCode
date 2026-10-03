@@ -83,6 +83,8 @@ export type {
   UpdateSocialAccountEditorialRequest,
   UpdateSocialAccountPolicyRequest,
 } from "./social-account/contract.js";
+export { ISocialInstagramSetupService } from "./social-publishing/setupContract.js";
+export type { ISocialInstagramSetupService as SocialInstagramSetupService } from "./social-publishing/setupContract.js";
 export { ISocialPublishingService } from "./social-publishing/contract.js";
 export type {
   ApproveInstagramPublicationRequest,

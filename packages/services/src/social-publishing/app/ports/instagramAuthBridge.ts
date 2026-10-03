@@ -5,9 +5,13 @@ export interface InstagramAuthTokenSet {
   refreshedAt?: number;
   /** Separate Host-only bridge credential; never returned to Renderer or Agent. */
   mediaUploadCredential?: string;
+  bridgeOrigin?: string;
+  bridgeInstallationHash?: string;
 }
 
 export interface InstagramAuthBridge {
+  isAvailable?(): Promise<boolean>;
+  acceptsCredential?(tokens: InstagramAuthTokenSet): Promise<boolean>;
   createAuthorization(input: {
     accountId: string;
     state: string;

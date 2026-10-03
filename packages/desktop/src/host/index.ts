@@ -15,6 +15,7 @@
  */
 import { createHostDatabaseStartup } from "./hostDatabaseStartup.js";
 import { randomUUID } from "node:crypto";
+import { instagramSecureCredentialSchema } from "@social-harness/shared";
 import {
   MessagePortProtocol,
   ChannelServer,
@@ -242,34 +243,13 @@ function requestInstagramCredential(
   });
 }
 
-function parseInstagramCredential(serializedCredential: string): {
-  accessToken: string;
-  expiresAt?: number;
-} {
-  let value: unknown;
+function parseInstagramCredential(serializedCredential: string) {
   try {
-    value = JSON.parse(serializedCredential) as unknown;
+    // 原解析器丢弃了媒体 key 与刷新时间，重启后发布会失去凭据；保留完整且严格校验的安全记录。
+    return instagramSecureCredentialSchema.parse(JSON.parse(serializedCredential));
   } catch {
     throw new Error("Stored Instagram credential is invalid");
   }
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("Stored Instagram credential is invalid");
-  }
-  const candidate = value as { accessToken?: unknown; expiresAt?: unknown };
-  if (
-    typeof candidate.accessToken !== "string" ||
-    candidate.accessToken.trim() === "" ||
-    (candidate.expiresAt !== undefined &&
-      (typeof candidate.expiresAt !== "number" ||
-        !Number.isSafeInteger(candidate.expiresAt) ||
-        candidate.expiresAt < 0))
-  ) {
-    throw new Error("Stored Instagram credential is invalid");
-  }
-  return {
-    accessToken: candidate.accessToken,
-    ...(candidate.expiresAt === undefined ? {} : { expiresAt: candidate.expiresAt }),
-  };
 }
 
 const instagramCredentialStore = {

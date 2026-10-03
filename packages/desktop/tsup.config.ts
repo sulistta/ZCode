@@ -4,10 +4,7 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { defineConfig } from "tsup";
 import { getBuildMetadata } from "./scripts/build-metadata.mjs";
-import {
-  resolveDesktopInstagramAuthBridgeUrl,
-  resolveDesktopProductFlavor,
-} from "./scripts/desktop-product-identity.mjs";
+import { resolveDesktopProductFlavor } from "./scripts/desktop-product-identity.mjs";
 // tsup 会先打包配置文件；动态加载构建工具，避免其 import.meta.dirname 被重定位到 desktop。
 const { loadBuiltinProviderConfig } = await import(
   pathToFileURL(resolve(import.meta.dirname, "../../scripts/builtin-provider-config.mjs")).href
@@ -70,13 +67,6 @@ const zcodeProductFlavor = resolveDesktopProductFlavor({
   ...process.env,
   SOCIAL_HARNESS_ENV: zcodeEnv,
 });
-const instagramAuthBridgeUrl = resolveDesktopInstagramAuthBridgeUrl(
-  env.SOCIAL_HARNESS_INSTAGRAM_AUTH_BRIDGE_URL,
-  {
-    productFlavor: zcodeProductFlavor,
-    isProductionBuild: process.env.NODE_ENV === "production",
-  },
-);
 console.log(
   `[tsup] SOCIAL_HARNESS_ENV=${zcodeEnv} SOCIAL_HARNESS_PRODUCT_FLAVOR=${zcodeProductFlavor}`,
 );
@@ -127,9 +117,6 @@ function createSharedDefines() {
     ),
     // 客户端只有一个 CDN 配置，与发布端 OSS 目标列表分离。
     __SOCIAL_HARNESS_CDN_BASE_URL__: JSON.stringify(env.SOCIAL_HARNESS_CDN_BASE_URL?.trim() || ""),
-    // Instagram bridge origin is public configuration, not a credential; embed it in Desktop
-    // releases so end users never have to configure a bridge, router, tunnel, or payment method.
-    __SOCIAL_HARNESS_INSTAGRAM_AUTH_BRIDGE_URL__: JSON.stringify(instagramAuthBridgeUrl),
   };
 }
 

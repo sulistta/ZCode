@@ -1,3 +1,4 @@
+import type { ISocialInstagramSetupService } from "./social-publishing/setupContract.js";
 import { IOffPeakTaskService } from "./session/offPeakTask.js";
 import type { IFileService } from "./file/file.js";
 import type { IMediaPreviewService } from "./media-preview/mediaPreview.js";
@@ -61,6 +62,7 @@ export interface IServiceAccessor {
   readonly socialProjectService?: ISocialProjectService;
   /** Instagram OAuth and publishing account projection; available only on a local Desktop Host. */
   readonly socialPublishingService?: ISocialPublishingService;
+  readonly socialInstagramSetupService?: ISocialInstagramSetupService;
   /** Onboarding 完成记录（本地持久化）；旧测试 double / 不支持的 host 可不提供。 */
   readonly onboardingRecordService?: IOnboardingRecordService;
   readonly credentialService: ICredentialService;

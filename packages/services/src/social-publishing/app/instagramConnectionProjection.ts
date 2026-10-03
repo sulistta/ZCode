@@ -13,6 +13,9 @@ interface InstagramConnectionProjectionOptions {
   credentialStore: InstagramCredentialStore;
   connectionStore: InstagramConnectionStore;
   tokenRefresher?: InstagramTokenRefresher;
+  acceptsCredential?: (
+    tokens: import("./ports/instagramAuthBridge.js").InstagramAuthTokenSet,
+  ) => Promise<boolean>;
   withAccountLock: <T>(accountId: string, operation: () => Promise<T>) => Promise<T>;
 }
 
@@ -28,7 +31,11 @@ export function createInstagramConnectionProjector(options: InstagramConnectionP
       });
     }
     let tokens = await options.credentialStore.load(accountId);
+    // 旧中心桥的 token 不具备新部署的安装绑定，迁移时必须显式重新授权。
+    const deploymentMatches =
+      tokens && options.acceptsCredential ? await options.acceptsCredential(tokens) : true;
     const tokenIsUsable = Boolean(
+      deploymentMatches &&
       tokens?.accessToken.trim() &&
       (tokens.expiresAt === undefined || tokens.expiresAt > options.now()),
     );
@@ -65,6 +72,7 @@ export function createInstagramConnectionProjector(options: InstagramConnectionP
       }
     }
     const tokenStillUsable = Boolean(
+      deploymentMatches &&
       tokens?.accessToken.trim() &&
       (tokens.expiresAt === undefined || tokens.expiresAt > options.now()),
     );

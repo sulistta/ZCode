@@ -169,6 +169,9 @@ export function SocialProjectPublicationPanel({
         <p className="text-ui-sm text-foreground-subtle" role="note">
           {intl.formatMessage({ id: "socialProject.publish.formatLimits" })}
         </p>
+        <p className="text-ui-sm text-foreground-subtle" role="note">
+          {intl.formatMessage({ id: "socialConvex.mediaLimits" })}
+        </p>
       </div>
       {!instagramConnected ? (
         <p className="text-ui-sm text-foreground-subtle" role="status">
@@ -211,6 +214,11 @@ export function SocialProjectPublicationPanel({
               <p className="text-ui-sm font-medium" role="status">
                 {intl.formatMessage({ id: publicationStatusMessageIds[publication.status] })}
               </p>
+              {publication.errorCode === "capacity-unavailable" ? (
+                <p role="alert" className="text-ui-sm text-destructive">
+                  {intl.formatMessage({ id: "socialConvex.error.capacity-unavailable" })}
+                </p>
+              ) : null}
               {publication.status === "approval-required" ? (
                 <>
                   <p className="whitespace-pre-wrap text-ui-sm">{publication.caption}</p>

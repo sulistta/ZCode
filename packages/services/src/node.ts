@@ -1,3 +1,4 @@
+import { ISocialInstagramSetupService } from "./social-publishing/setupContract.js";
 /* eslint-disable max-lines -- host process 服务注册和启动装配需要集中维护，拆散后会更难追踪依赖注入顺序 */
 // Node.js service implementations — NOT safe to import in browser code
 import { randomBytes } from "node:crypto";
@@ -335,12 +336,11 @@ import { createSocialPublishingFileStore } from "./social-publishing/adapters/so
 import { createSocialPublishingPublicationFileStore } from "./social-publishing/adapters/socialPublishingPublicationFileStore.js";
 import { createInstagramReelPublisher } from "./social-publishing/adapters/instagramReelPublisher.js";
 import { createSocialProjectExportArtifactReader } from "./social-publishing/adapters/socialProjectExportArtifactReader.js";
-import { createInstagramAuthBridgeHttpClient } from "./social-publishing/adapters/instagramAuthBridgeHttpClient.js";
+import { createInstagramConvexIntegration } from "./social-publishing/adapters/instagramConvexIntegration.js";
 import { createInstagramProfileReader } from "./social-publishing/adapters/instagramProfileReader.js";
 import { createInstagramTokenRefresher } from "./social-publishing/adapters/instagramTokenRefresher.js";
 import { createInstagramMediaReader } from "./social-publishing/adapters/instagramMediaReader.js";
 
-declare const __SOCIAL_HARNESS_INSTAGRAM_AUTH_BRIDGE_URL__: string;
 import type { InstagramCredentialStore } from "./social-publishing/app/ports/instagramCredentialStore.js";
 import { ISocialMediaService } from "./social-media/contract.js";
 import { ISocialMediaPreviewService } from "./social-media/previewContract.js";
@@ -2393,22 +2393,18 @@ export function createLocalServices(options: {
       await mkdir(workspacePath, { recursive: true });
     },
   });
-  const embeddedInstagramAuthBridgeUrl =
-    typeof __SOCIAL_HARNESS_INSTAGRAM_AUTH_BRIDGE_URL__ === "string"
-      ? __SOCIAL_HARNESS_INSTAGRAM_AUTH_BRIDGE_URL__.trim()
-      : "";
-  const configuredInstagramAuthBridgeUrl =
-    embeddedInstagramAuthBridgeUrl || process.env.SOCIAL_HARNESS_INSTAGRAM_AUTH_BRIDGE_URL?.trim();
-  const instagramAuthBridge = configuredInstagramAuthBridgeUrl
-    ? (() => {
-        try {
-          return createInstagramAuthBridgeHttpClient({
-            baseUrl: configuredInstagramAuthBridgeUrl,
-          });
-        } catch {
-          return undefined;
-        }
-      })()
+  const instagramConvex = options?.instagramCredentialStore
+    ? createInstagramConvexIntegration({
+        configurationPath: join(
+          resolveSocialHarnessDataRootDir(),
+          "social-publishing",
+          "convex-bridge.json",
+        ),
+        assetsDir:
+          process.env.SOCIAL_HARNESS_CONVEX_ASSETS_DIR ??
+          join(process.cwd(), "packages", "desktop", "bundled-tools", "convex-provisioner"),
+        credentials: options.instagramCredentialStore,
+      })
     : undefined;
   socialAccountWorkspaceValidator = (request) =>
     socialAccountService.validateConversationWorkspace(request);
@@ -2467,10 +2463,15 @@ export function createLocalServices(options: {
     socialAccountService,
     socialMediaService,
   });
+  let socialInstagramSetupService: ISocialInstagramSetupService | undefined;
   const socialPublishingService = options?.instagramCredentialStore
     ? createSocialPublishingService({
         accountService: socialAccountService,
-        authBridge: instagramAuthBridge,
+        authBridge: instagramConvex?.bridge,
+        bridgeSetup: instagramConvex?.setup,
+        registerBridgeSetup: (service) => {
+          socialInstagramSetupService = service;
+        },
         credentialStore: options.instagramCredentialStore,
         tokenRefresher: createInstagramTokenRefresher(),
         mediaReader: createInstagramMediaReader(),
@@ -2660,6 +2661,8 @@ export function createLocalServices(options: {
 
   if (socialPublishingService) {
     services.register(ISocialPublishingService, socialPublishingService);
+    if (socialInstagramSetupService)
+      services.register(ISocialInstagramSetupService, socialInstagramSetupService);
   }
 
   // 即使初始配置关闭也必须登记 lifecycle disposer：terminal fence 需要早于任意延迟 setting/acquire

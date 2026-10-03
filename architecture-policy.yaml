@@ -75,7 +75,11 @@ modules:
     roots: [packages/services/src/social-publishing]
     requires: [shared, rpc, services, social-account, social-project]
     managed: true
-    publicEntrypoints: [packages/services/src/social-publishing/contract.ts]
+    publicEntrypoints:
+      [
+        packages/services/src/social-publishing/contract.ts,
+        packages/services/src/social-publishing/setupContract.ts,
+      ]
     layers: { domain: domain, app: app, adapters: adapters }
     layerOrder: [domain, app, adapters]
     owner: social-publishing-service

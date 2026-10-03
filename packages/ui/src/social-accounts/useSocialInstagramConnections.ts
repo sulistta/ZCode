@@ -13,6 +13,13 @@ function connectionErrorMessageId(error: unknown): string {
     error &&
     typeof error === "object" &&
     "code" in error &&
+    error.code === "capacity-unavailable"
+  )
+    return "socialConvex.error.capacity-unavailable";
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
     (error as { code?: unknown }).code === "authorization-unavailable"
   ) {
     return "socialAccounts.connection.notConfigured";
@@ -47,16 +54,18 @@ export function useSocialInstagramConnections({
     const requestId = ++availabilityRequestId.current;
     if (!service || !isDesktop) {
       setAuthorizationAvailability("unavailable");
-      return;
+      return false;
     }
     setAuthorizationAvailability("checking");
     try {
       const available = await service.isInstagramAuthorizationAvailable();
       if (availabilityRequestId.current !== requestId) return;
       setAuthorizationAvailability(available ? "available" : "unavailable");
+      return available;
     } catch {
       if (availabilityRequestId.current !== requestId) return;
       setAuthorizationAvailability("failed");
+      return false;
     }
   }, [isDesktop, service]);
 

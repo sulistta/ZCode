@@ -1,3 +1,4 @@
+import { ISocialInstagramSetupService } from "@social-harness/services";
 import { ProxyChannel, type IChannelClient } from "@social-harness/rpc";
 import {
   IFileService,
@@ -70,6 +71,7 @@ export class RemoteServiceAccess implements IServiceAccessor {
   readonly socialProjectService: ISocialProjectService;
   // WebSocket Host 不一定有 Desktop Main 的 OS 安全凭据库，必须保持可选。
   readonly socialPublishingService?: ISocialPublishingService;
+  readonly socialInstagramSetupService?: ISocialInstagramSetupService;
   readonly onboardingRecordService: IOnboardingRecordService;
   readonly credentialService: ICredentialService;
   readonly broadcastService: IBroadcastService;
@@ -140,6 +142,9 @@ export class RemoteServiceAccess implements IServiceAccessor {
       channelClient.getChannel(ISocialProjectService.channelName),
     );
     if (options.includeSocialPublishing) {
+      this.socialInstagramSetupService = ProxyChannel.toService<ISocialInstagramSetupService>(
+        channelClient.getChannel(ISocialInstagramSetupService.channelName),
+      );
       this.socialPublishingService = ProxyChannel.toService<ISocialPublishingService>(
         channelClient.getChannel(ISocialPublishingService.channelName),
       );

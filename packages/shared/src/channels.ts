@@ -77,6 +77,7 @@ export const ServiceChannels = {
   SocialMediaPreview: "social-media-preview",
   SocialProject: "social-project",
   SocialPublishing: "social-publishing",
+  SocialInstagramSetup: "social-instagram-setup",
   File: "file",
   MediaPreview: "media-preview",
   System: "system",

@@ -10,6 +10,7 @@ import {
 import { verifyBuiltNativeSearchTools } from "../../../scripts/native-search-tools-verify.mjs";
 import { runCommand } from "../../../scripts/spawn-command.mjs";
 import { getTargetPlatform } from "./target-platform.mjs";
+import { isConvexProvisionerReady } from "./convex-provisioner-assets.mjs";
 
 const desktopRoot = resolve(import.meta.dirname, "..");
 const target = getTargetPlatform();
@@ -70,6 +71,16 @@ function isNativeSearchReady() {
 }
 
 const REQUIRED_LOCAL_RUNTIME_ASSETS = [
+  {
+    label: "Convex provisioner",
+    script: "prepare:convex-provisioner",
+    isReady: () =>
+      isConvexProvisionerReady(
+        join(desktopRoot, "bundled-tools/convex-provisioner"),
+        resolve(desktopRoot, "../social-auth-bridge/src/adapters/convex"),
+        target,
+      ),
+  },
   ...(nativeSearchReleasePlan.enabled
     ? [
         {

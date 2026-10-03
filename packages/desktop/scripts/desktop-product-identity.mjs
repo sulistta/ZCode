@@ -69,13 +69,10 @@ export function resolveDesktopProductIdentity(env = process.env) {
 
 /**
  * Resolve the public Instagram bridge origin embedded in a Desktop build.
- * Preview identities may intentionally remain disconnected, but a production
- * installer must not ship without the maintainer-operated OAuth/media bridge.
+ * Legacy config validator retained for migration tests. Desktop builds no longer embed this origin;
+ * each user provisions their Convex project in the app.
  */
-export function resolveDesktopInstagramAuthBridgeUrl(
-  value,
-  { productFlavor, isProductionBuild = false },
-) {
+export function resolveDesktopInstagramAuthBridgeUrl(value, { productFlavor }) {
   if (productFlavor !== "production" && productFlavor !== "preview") {
     throw new Error(
       `Unsupported desktop product flavor for Instagram bridge config: ${productFlavor}`,
@@ -84,11 +81,6 @@ export function resolveDesktopInstagramAuthBridgeUrl(
 
   const bridgeUrl = typeof value === "string" ? value.trim() : "";
   if (!bridgeUrl) {
-    if (isProductionBuild && productFlavor === "production") {
-      throw new Error(
-        "SOCIAL_HARNESS_INSTAGRAM_AUTH_BRIDGE_URL must be set to the public HTTPS bridge origin for production Desktop builds",
-      );
-    }
     return "";
   }
 

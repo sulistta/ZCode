@@ -93,8 +93,13 @@ export function createInstagramPublicationRunner(options: InstagramPublicationRu
             if (mediaUrl.protocol !== "https:" || lease.expiresAt <= dependencies.now()) {
               throw new Error("Temporary media capability is invalid");
             }
-          } catch {
-            await options.markFailed(publication, "media-upload-failed");
+          } catch (error) {
+            await options.markFailed(
+              publication,
+              error instanceof SocialPublishingError && error.code === "capacity-unavailable"
+                ? "capacity-unavailable"
+                : "media-upload-failed",
+            );
             return;
           }
           publication = await options.update(accountId, publicationId, {

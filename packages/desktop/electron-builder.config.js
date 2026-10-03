@@ -38,6 +38,7 @@ import {
 } from "./scripts/desktop-product-identity.mjs";
 import { enforceProductionReleaseMaterialGate } from "./scripts/release-material-gate.mjs";
 import { verifyStagedKoffi } from "./scripts/koffi-package-assets.mjs";
+import { isConvexProvisionerReady } from "./scripts/convex-provisioner-assets.mjs";
 const ELECTRON_BUILDER_ARCH = {
   1: "x64",
   3: "arm64",
@@ -725,6 +726,16 @@ export default {
     await runTimedAsync("afterPack:assertPackagedFfmpegRuntime", () =>
       assertPackagedFfmpegRuntime(context),
     );
+    await runTimedAsync("afterPack:assertPackagedConvexProvisioner", async () => {
+      if (
+        !(await isConvexProvisionerReady(
+          join(resolvePackagedResourcesDir(context), "convex-provisioner"),
+          resolve(workspaceRoot, "packages/social-auth-bridge/src/adapters/convex"),
+          targetPlatform,
+        ))
+      )
+        throw new Error("Packaged Convex CLI/backend assets are incomplete or stale");
+    });
     if (actualWindowsTarget) {
       await runTimedAsync("afterPack:writeWindowsInstallManifest", () =>
         writeWindowsInstallManifest(context),
@@ -732,6 +743,13 @@ export default {
     }
   },
   extraResources: [
+    { from: "bundled-tools/convex-provisioner", to: "convex-provisioner" },
+    {
+      // 修复：资源过滤器会跳过根级 node_modules；以依赖目录为复制根，避免安装包只有模板而缺少 CLI。
+      from: "bundled-tools/convex-provisioner/node_modules",
+      to: "convex-provisioner/node_modules",
+      filter: ["**/*"],
+    },
     { from: resolve(workspaceRoot, noticesFileName), to: noticesFileName },
     ...(targetPlatform.os === "darwin"
       ? [

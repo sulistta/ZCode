@@ -31,6 +31,9 @@ test("credential vault stores only encrypted text and round-trips token metadata
       JSON.stringify({
         accessToken: "secret-token",
         expiresAt: 123,
+        refreshedAt: 100,
+        bridgeOrigin: "https://fixture-123.convex.site",
+        bridgeInstallationHash: "A".repeat(43),
         mediaUploadCredential: "private-media-credential".padEnd(43, "m"),
       }),
     );
@@ -41,6 +44,9 @@ test("credential vault stores only encrypted text and round-trips token metadata
     assert.deepEqual(JSON.parse((await vault.get("account-one")) ?? "null"), {
       accessToken: "secret-token",
       expiresAt: 123,
+      refreshedAt: 100,
+      bridgeOrigin: "https://fixture-123.convex.site",
+      bridgeInstallationHash: "A".repeat(43),
       mediaUploadCredential: "private-media-credential".padEnd(43, "m"),
     });
   } finally {

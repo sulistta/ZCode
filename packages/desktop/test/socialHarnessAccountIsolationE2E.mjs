@@ -80,8 +80,7 @@ export async function createAndEditAccount(page, runtime, accountName, editedNam
   await instagramConnection
     .getByRole("note")
     .filter({
-      hasText:
-        "Instagram authorization is not available in this installation yet. You can keep setting up your account while the maintainer finishes configuration.",
+      hasText: "Connect your own Convex project and Meta app using the setup assistant below.",
     })
     .waitFor();
   assert.equal(
@@ -89,6 +88,16 @@ export async function createAndEditAccount(page, runtime, accountName, editedNam
     false,
     "Connect must stay disabled until the Host confirms its bridge is configured",
   );
+  const assistant = page.getByTestId("instagram-infrastructure-assistant");
+  await assistant.locator("summary").click();
+  await assistant.getByLabel("Production deployment URL").waitFor();
+  await assistant.getByRole("button", { name: "Deploy the bundled bridge" }).waitFor();
+  await assistant.getByRole("button", { name: "Open Meta applications" }).waitFor();
+  assert.equal(
+    await assistant.getByRole("button", { name: "Continue with Instagram Login" }).count(),
+    0,
+  );
+  await assistant.locator("summary").click();
 
   await page.getByLabel("Account name").fill(editedName);
   await page.getByLabel("Niche").fill("Edited podcast and music clips");

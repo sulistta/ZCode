@@ -1,5 +1,73 @@
 /** English translations */
 const enUS: Record<string, string> = {
+  "socialConvex.title": "Set up your Instagram infrastructure",
+  "socialConvex.ownership":
+    "Use your own dedicated Convex project and your own Meta app for all your Instagram accounts. Only Social Harness is installed; connections use outbound HTTPS without router or port changes.",
+  "socialConvex.freeLimits":
+    "Start with Convex Free, which does not require a card to start. The team shares 1 GB file storage and 1 GB file egress per month, including other projects and backups. These are finite quotas. Social Harness never enables billing or upgrades your plan.",
+  "socialConvex.mediaLimits":
+    "The supported file ceiling stays 1 GiB. Convex Free has 1 GB of shared storage and monthly file egress; maximum-size videos can exhaust or exceed that allowance. Uploads must finish within two minutes. Capacity errors require retry after space or quota is available; video quality is preserved.",
+  "socialConvex.limitsLink": "Read current Convex limits",
+  "socialConvex.projectStep": "1. Connect and deploy a dedicated Convex project",
+  "socialConvex.projectInstructions":
+    "In the Convex dashboard, choose your team, create a project used only for Social Harness Instagram, and select its Production deployment. Keep the Free plan. Copy the deployment URL from Settings → URL & Deploy Key.",
+  "socialConvex.openConvex": "Open Convex dashboard",
+  "socialConvex.existing": "Use an existing project",
+  "socialConvex.create": "Create through Convex API",
+  "socialConvex.keyInstructions":
+    "In deployment Settings → Deploy Keys, generate a temporary production key. Grant deployment:deploy, deployment:env:write, deployment:data:view, deployment:functions:runInternalQueries and deployment:functions:runInternalMutations. The app deploys its bundled backend and creates a separate installation credential. The key is never saved; revoke it in the dashboard when setup is complete.",
+  "socialConvex.teamInstructions":
+    "For automatic project creation, open Team Settings → Access Tokens and create a temporary team access token. It grants broader access to your team; the app uses it only to create or reconcile the dedicated project and mint a two-hour deployment key. Nothing is retained. Reuse the same project name on retry, then revoke the team token in the dashboard.",
+  "socialConvex.deploymentUrl": "Production deployment URL",
+  "socialConvex.projectName": "Dedicated project name",
+  "socialConvex.deployKey": "Temporary production deploy key",
+  "socialConvex.teamToken": "Temporary Convex team token",
+  "socialConvex.working": "Configuring…",
+  "socialConvex.deploy": "Deploy the bundled bridge",
+  "socialConvex.metaStep": "2. Configure your Meta app callback",
+  "socialConvex.metaInstructions":
+    "Create or select your app in Meta for Developers. Open Instagram → API setup with Instagram Login → Set up Instagram business login → Business login settings. Add the exact callback below to Valid OAuth Redirect URIs and save. Use the Instagram App ID and Secret from this section, which may differ from the parent Facebook app.",
+  "socialConvex.openMeta": "Open Meta applications",
+  "socialConvex.callbackPending": "Deploy the project to obtain your HTTPS callback.",
+  "socialConvex.accessInstructions":
+    "Use a professional Creator or Business Instagram account. In development mode, add the account under App roles → Instagram testers and accept the invitation in Instagram. Accounts outside app roles need Meta App Review and Advanced Access for instagram_business_basic and instagram_business_content_publish.",
+  "socialConvex.secretStep": "3. Save your Meta app credentials in Convex",
+  "socialConvex.secretInstructions":
+    "These fields are cleared when submitted. The Host writes the App Secret to your Convex project's environment variables over HTTPS and keeps no copy. Supply the temporary deploy key again; daily requests use the installation credential instead.",
+  "socialConvex.appId": "Instagram App ID",
+  "socialConvex.appSecret": "Instagram App Secret",
+  "socialConvex.saveMeta": "Save credentials in my Convex project",
+  "socialConvex.manualMeta":
+    "Alternatively, open this deployment's Settings → Environment Variables and set these two variables directly in Convex, then validate below.",
+  "socialConvex.openSettings": "Open this deployment's settings",
+  "socialConvex.validateStep": "4. Validate and log in to Instagram",
+  "socialConvex.validationInstructions":
+    "Validation checks the backend version, installation authentication and presence of Meta configuration. Only completing browser login verifies your Meta credentials and account. Real publication is a separate test using an approved export.",
+  "socialConvex.validate": "Validate project configuration",
+  "socialConvex.login": "Continue with Instagram Login",
+  "socialConvex.ready":
+    "Bridge configuration is ready. Complete Instagram Login to verify the app and account.",
+  "socialConvex.metaMissing":
+    "The backend is reachable; the Meta App ID or App Secret is still missing.",
+  "socialConvex.connected": "Instagram account authenticated and saved securely.",
+  "socialConvex.copy": "Copy",
+  "socialConvex.copied": "Copied.",
+  "socialConvex.reload": "Reload setup status",
+  "socialConvex.error.unavailable":
+    "Project setup could not be loaded. Retry from the Desktop app.",
+  "socialConvex.error.failed":
+    "Setup could not be completed. Check the selected project's URL, key permissions and settings, then retry. Your last working configuration is preserved.",
+  "socialConvex.error.capacity-unavailable":
+    "Convex capacity is unavailable. Open your team's Usage panel to check storage, monthly traffic and function quotas. Clean temporary files or wait for capacity to recover, then try again with a fresh approval. Social Harness will not enable billing or upgrade your plan.",
+  "socialConvex.error.invalid-provisioning-credential":
+    "The temporary credential is invalid, expired, revoked or lacks permissions. Generate a key for this production deployment and retry.",
+  "socialConvex.error.bridge-not-dedicated":
+    "This project contains unrelated data or functions. Select an empty project dedicated to Social Harness Instagram.",
+  "socialConvex.error.bridge-switch-requires-disconnect":
+    "Disconnect the current Instagram accounts before switching to a different Convex project.",
+  "socialConvex.error.bridge-setup-busy":
+    "Finish the current authorization or setup operation before changing project configuration.",
+  "socialConvex.error.copy": "Copy failed. Select and copy the value shown above.",
   "socialAccounts.brand": "Social Harness",
   "socialAccounts.nav.accounts": "Accounts",
   "socialAccounts.nav.conversations": "Conversations",
@@ -118,7 +186,7 @@ const enUS: Record<string, string> = {
   "socialAccounts.connection.desktopRequired":
     "Start this connection from the Social Harness desktop app.",
   "socialAccounts.connection.notConfigured":
-    "Instagram authorization is not available in this installation yet. You can keep setting up your account while the maintainer finishes configuration.",
+    "Connect your own Convex project and Meta app using the setup assistant below.",
   "socialAccounts.connection.availabilityChecking":
     "Checking Instagram authorization availability…",
   "socialAccounts.connection.availabilityFailed":

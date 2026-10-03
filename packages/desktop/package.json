@@ -22,15 +22,18 @@
     "prepare:native-search": "node ../../scripts/prepare-native-search-tools.mjs",
     "prepare:browser-import-helper": "node scripts/build-windows-browser-import-helper.mjs",
     "prepare:macos-window-bounds": "node scripts/build-macos-window-bounds.mjs",
-    "build:no-runtime-assets": "pnpm prepare:build-meta && node scripts/run-production-build.mjs",
+    "build:no-runtime-assets": "pnpm prepare:build-meta && pnpm prepare:convex-provisioner && node scripts/run-production-build.mjs",
     "build": "pnpm prepare:runtime-assets && pnpm run build:no-runtime-assets",
     "bundle": "node scripts/bundle.mjs",
     "audit:bundle-size": "node scripts/audit-bundle-size.mjs",
     "test:deep-links": "node --experimental-test-module-mocks --import tsx --test src/main/desktopDeepLinkUrl.test.ts src/main/desktopOAuthCallbackRouter.test.ts src/main/desktopOAuthDeepLink.test.ts src/main/desktopSecondInstanceDeepLink.test.ts src/main/desktopLegacyOpenFolderCleanup.test.ts src/main/startupWorkspace.test.ts src/main/about.test.ts src/main/windowsCuaOperationIndicatorContent.test.ts",
     "test:social-harness-e2e": "node --import tsx test/socialHarnessAccountE2E.mjs",
+    "test:instagram-setup-e2e": "node test/socialInstagramSetupE2E.mjs",
+    "test:convex-runtime": "node test/convexProvisionerRuntimeSmoke.mjs",
     "test:packaged-preview-smoke": "node test/socialHarnessPackagedPreviewSmoke.mjs",
     "lint": "oxlint",
-    "lint:fix": "oxlint --fix"
+    "lint:fix": "oxlint --fix",
+    "prepare:convex-provisioner": "node scripts/prepare-convex-provisioner.mjs"
   },
   "dependencies": {
     "@arms/rum-electron": "^0.0.3",

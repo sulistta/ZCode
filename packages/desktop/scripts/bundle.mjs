@@ -12,6 +12,7 @@ import process from "node:process";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { collectRuntimeModuleClosureEntries } from "./runtime-dependency-closure.mjs";
+import { isConvexProvisionerReady } from "./convex-provisioner-assets.mjs";
 import { resolveDesktopProductIdentity } from "./desktop-product-identity.mjs";
 import {
   findDesktopNativePackageViolations,
@@ -635,7 +636,7 @@ function resolveAppAsarPath(os, arch) {
   throw new Error(`不支持的目标操作系统: ${os}`);
 }
 
-function verifyPackagedRuntimeDependencies(os, arch) {
+async function verifyPackagedRuntimeDependencies(os, arch) {
   const appAsarPath = resolveAppAsarPath(os, arch);
   if (!existsSync(appAsarPath)) {
     throw new Error(`打包产物缺少 app.asar: ${appAsarPath}`);
@@ -654,6 +655,15 @@ function verifyPackagedRuntimeDependencies(os, arch) {
   const asarEntries = asarEntriesWithPackState.map((entry) => entry.path);
 
   const targetPlatformKey = `${os === "mac" ? "darwin" : os === "win" ? "win32" : os}-${arch}`;
+  const targetOs = os === "mac" ? "darwin" : os === "win" ? "win32" : os;
+  if (
+    !(await isConvexProvisionerReady(
+      join(dirname(appAsarPath), "convex-provisioner"),
+      resolve(workspaceRoot, "packages/social-auth-bridge/src/adapters/convex"),
+      { os: targetOs, arch, key: targetPlatformKey },
+    ))
+  )
+    throw new Error("Packaged Convex CLI/backend assets are incomplete or stale");
   const nativePackageViolations = findDesktopNativePackageViolations(
     asarEntriesWithPackState,
     targetPlatformKey,
@@ -736,7 +746,7 @@ async function main() {
     runElectronBuilderWithRetry(buildArgs, buildEnv),
   );
 
-  runTimedSync("bundle:verify-runtime-dependencies", () =>
+  await runTimedAsync("bundle:verify-runtime-dependencies", () =>
     verifyPackagedRuntimeDependencies(os, arch),
   );
 

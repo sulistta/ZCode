@@ -370,6 +370,7 @@ export function createInstagramPublicationWorkflow(options: InstagramPublication
   }
 
   return {
+    isRunnerActive: () => activeByAccount.size > 0,
     approveAndPublishInstagramReel,
     requestAutomatedInstagramPublication,
     approveInstagramPublicationProposal,
