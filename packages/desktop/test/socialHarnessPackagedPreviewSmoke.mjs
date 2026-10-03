@@ -25,8 +25,30 @@ const dataBaseDir = homeDir;
 const accountName = `Packaged smoke ${Date.now()}`;
 const legacySentinelPath = join(homeDir, ".zcode", "legacy-sentinel.txt");
 const legacySentinel = Buffer.from("Packaged Social Harness smoke preserves legacy data.\n");
+let runtimeExecutablePath = executablePath;
 let runtime;
 let browser;
+
+async function prepareInstalledExecutable() {
+  if (process.platform !== "linux" || !executablePath.endsWith(".AppImage")) return;
+  const installRoot = join(testRoot, "appimage-install");
+  await mkdir(installRoot, { recursive: true });
+  const child = spawn(executablePath, ["--appimage-extract"], {
+    cwd: installRoot,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  const extraction = { child, output: "" };
+  child.stdout.on("data", (chunk) => appendOutput(extraction, chunk));
+  child.stderr.on("data", (chunk) => appendOutput(extraction, chunk));
+  try {
+    assert.equal(await waitForExit(extraction, launchTimeoutMs), true, extraction.output);
+    assert.equal(child.exitCode, 0, extraction.output);
+    runtimeExecutablePath = join(installRoot, "squashfs-root", "AppRun");
+    await access(runtimeExecutablePath);
+  } finally {
+    await stopPackagedApp(extraction);
+  }
+}
 
 function appendOutput(target, chunk) {
   target.output = `${target.output}${chunk.toString()}`.slice(-12_000);
@@ -48,8 +70,8 @@ async function reserveCdpPort() {
 }
 
 function startPackagedApp(port, deepLink) {
-  const args =
-    process.platform === "linux" ? ["--appimage-extract-and-run", "--ozone-platform=x11"] : [];
+  // 先安装一次再测真实 Electron 退出；每次解包/清理的耗时不属于 OAuth 子进程生命周期。
+  const args = process.platform === "linux" ? ["--ozone-platform=x11"] : [];
   if (deepLink) args.push(deepLink);
   const environment = {
     ...process.env,
@@ -67,14 +89,18 @@ function startPackagedApp(port, deepLink) {
     SOCIAL_HARNESS_E2E_RUN_ID: `packaged-${Date.now()}`,
   };
   if (process.platform === "linux") {
+    if (runtimeExecutablePath !== executablePath) {
+      environment.APPIMAGE = executablePath;
+      environment.APPDIR = dirname(runtimeExecutablePath);
+    }
     environment.XDG_CONFIG_HOME = join(homeDir, ".config");
     environment.XDG_DATA_HOME = join(homeDir, ".local", "share");
     environment.XDG_CACHE_HOME = join(homeDir, ".cache");
     environment.XDG_STATE_HOME = join(homeDir, ".local", "state");
     delete environment.WAYLAND_DISPLAY;
   }
-  const child = spawn(executablePath, args, {
-    cwd: dirname(executablePath),
+  const child = spawn(runtimeExecutablePath, args, {
+    cwd: dirname(runtimeExecutablePath),
     detached: process.platform !== "win32",
     env: environment,
     stdio: ["ignore", "pipe", "pipe"],
@@ -202,13 +228,21 @@ async function verifyPackagedOAuthReturn(page) {
     await page.waitForFunction(() => window.__packagedOAuthReturns === 1, undefined, {
       timeout: 30_000,
     });
-    assert.equal(await waitForExit(secondary, processStopTimeoutMs), true);
+    assert.equal(
+      await waitForExit(secondary, processStopTimeoutMs),
+      true,
+      `OAuth secondary process did not exit after delivery:\n${secondary.output}`,
+    );
   } finally {
     await stopPackagedApp(secondary);
   }
   const replay = startPackagedApp(0, callback);
   try {
-    assert.equal(await waitForExit(replay, processStopTimeoutMs), true);
+    assert.equal(
+      await waitForExit(replay, processStopTimeoutMs),
+      true,
+      `OAuth replay process did not exit:\n${replay.output}`,
+    );
     assert.equal(await page.evaluate(() => window.__packagedOAuthReturns), 1);
   } finally {
     await stopPackagedApp(replay);
@@ -245,6 +279,7 @@ try {
   await writeFile(legacySentinelPath, legacySentinel);
   const sentinelBefore = await stat(legacySentinelPath);
 
+  await prepareInstalledExecutable();
   let page = await launchAndInspect();
   await page.getByRole("button", { name: "Create your first account" }).click();
   await page.getByLabel("Account name").fill(accountName);

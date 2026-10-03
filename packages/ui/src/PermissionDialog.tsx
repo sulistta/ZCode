@@ -732,6 +732,7 @@ export function PermissionDialog({
             <div
               role="listbox"
               aria-label={intl.formatMessage({ id: "chat.permission.title" })}
+              data-permission-request-id={request.requestId}
               className="space-y-1"
             >
               {orderedOptions.map((option, index) => {

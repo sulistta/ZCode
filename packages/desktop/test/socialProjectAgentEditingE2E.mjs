@@ -2,6 +2,31 @@ import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
 import { verifyPreviewExportParityInElectron } from "./socialProjectPreviewExportE2E.mjs";
 
+async function answerPermission(page, permissionList, approveToolNames) {
+  const requestId = await permissionList.getAttribute("data-permission-request-id");
+  assert.ok(requestId, "A permission must expose its existing request identity");
+  if (approveToolNames) {
+    const text = await permissionList.locator("..").locator("..").innerText();
+    assert.ok(
+      approveToolNames.some((name) => text.includes(name)),
+      `Unexpected preparation permission: ${text}`,
+    );
+  }
+  const option = permissionList.locator('[data-permission-option-kind="allowOnce"]');
+  const selected = (await option.getAttribute("aria-selected")) === "true";
+  await option.click();
+  if (!selected) await page.getByRole("button", { name: "Confirm", exact: true }).click();
+  // 连续请求会复用同一可见弹窗；等待当前 requestId 被消费，不能等待弹窗隐藏。
+  await page.waitForFunction(
+    (answeredId) => {
+      const list = document.querySelector('[role="listbox"][data-permission-request-id]');
+      return !list || list.getAttribute("data-permission-request-id") !== answeredId;
+    },
+    requestId,
+    { timeout: 15_000 },
+  );
+}
+
 export async function sendSocialAgentPrompt(
   page,
   { marker, projectName, captionText, promptText, responseText, approveToolNames },
@@ -37,13 +62,7 @@ export async function sendSocialAgentPrompt(
 
   const permissionList = page.getByRole("listbox", { name: "Permission required", exact: true });
   await permissionList.waitFor({ state: "visible", timeout: 30_000 });
-  const allowOnce = permissionList.locator('[data-permission-option-kind="allowOnce"]');
-  const allowOnceWasSelected = (await allowOnce.getAttribute("aria-selected")) === "true";
-  await allowOnce.click();
-  if (!allowOnceWasSelected) {
-    await page.getByRole("button", { name: "Confirm", exact: true }).click();
-  }
-  await permissionList.waitFor({ state: "hidden", timeout: 15_000 });
+  await answerPermission(page, permissionList, approveToolNames);
   if (!approveToolNames) {
     await page.getByText(responseText, { exact: true }).waitFor({ timeout: 90_000 });
     return;
@@ -53,16 +72,7 @@ export async function sendSocialAgentPrompt(
   while (Date.now() < deadline) {
     if (await response.isVisible()) return;
     if (await permissionList.isVisible()) {
-      const text = await permissionList.locator("..").locator("..").innerText();
-      assert.ok(
-        approveToolNames.some((name) => text.includes(name)),
-        `Unexpected preparation permission: ${text}`,
-      );
-      const option = permissionList.locator('[data-permission-option-kind="allowOnce"]');
-      const selected = (await option.getAttribute("aria-selected")) === "true";
-      await option.click();
-      if (!selected) await page.getByRole("button", { name: "Confirm", exact: true }).click();
-      await permissionList.waitFor({ state: "hidden", timeout: 15_000 });
+      await answerPermission(page, permissionList, approveToolNames);
     }
     await delay(50);
   }
