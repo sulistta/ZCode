@@ -208,6 +208,7 @@ async function executeToolCallImpl(
     const workingDirectory = deps.getWorkingDirectory?.();
     const resolution = await entry.resolveInput(executionInput, {
       ...(workingDirectory === undefined ? {} : { workingDirectory }),
+      workspaceIdentity: deps.workspaceIdentity,
       runtimeTaskRegistry: deps.runtimeTaskRegistry,
       ...(deps.dynamicWorkflowRunPort === undefined
         ? {}

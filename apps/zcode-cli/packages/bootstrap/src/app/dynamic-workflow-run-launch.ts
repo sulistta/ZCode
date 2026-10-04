@@ -196,6 +196,7 @@ export function launchDynamicWorkflowRun(
       }
     },
     executionPort: deps.executionPort,
+    ...(deps.capabilityScope === undefined ? {} : { capabilityScope: deps.capabilityScope }),
     fileSystemPort: deps.fileSystemPort,
     escalationRegistry,
     cwd,

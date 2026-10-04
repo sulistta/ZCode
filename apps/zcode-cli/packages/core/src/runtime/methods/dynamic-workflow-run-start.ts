@@ -10,6 +10,7 @@ import {
 import type { CompileDiagnostic } from "@social-harness/dynamic-workflow";
 import {
   resolveSavedWorkflow,
+  isAccountRecipeWorkspace,
   validateWorkflowArgs,
 } from "../../tool/handlers/saved-workflows/index.js";
 import {
@@ -77,9 +78,16 @@ export async function startSavedWorkflowRun(
   }
 
   const cwd = this.workingDirectory;
+  const workspaceIdentity =
+    this.config.workspaceIdentity?.toString() || this.config.memory?.workspaceIdentity;
 
   // (1) 解析 + 实参校验：复用 create-workflow-source 的同一段归一化（第二个调用方，不复制）。
-  const found = resolveSavedWorkflow({ cwd, name: input.name, scope: input.scope });
+  const found = await resolveSavedWorkflow({
+    cwd,
+    name: input.name,
+    scope: input.scope,
+    workspaceIdentity,
+  });
   if (!found.ok) {
     if (found.reason === "invalid_name") {
       return {
@@ -166,7 +174,9 @@ export async function startSavedWorkflowRun(
   // (3b) 工作副本。中枢直接启动与 `CreateWorkflow` 的 saved 来源是同一件事，所以拷贝也按同一条
   // 规矩写：逐字节（元数据块一起）、保存的定义本身一个字都不动。写不成就没有 `scriptPath`——run 照常起，
   // 只是终态通知里没有可编辑的文件可指。
-  const draft = await writeWorkflowDraft({ cwd, name: found.name, source: found.source });
+  const draft = isAccountRecipeWorkspace(workspaceIdentity)
+    ? undefined
+    : await writeWorkflowDraft({ cwd, name: found.name, source: found.source });
 
   // (4) 提交启动。提交失败（拒绝 / 抛错）在启动轮之前退出——绝不吞成带 runId 的成功。
   let runId: string;

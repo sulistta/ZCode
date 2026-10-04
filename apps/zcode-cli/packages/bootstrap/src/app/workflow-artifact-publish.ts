@@ -45,6 +45,7 @@ import { resolveWithinWorkspace, toWorkspaceRelative } from "./workflow-world-re
 
 /** 产物发布需要的端口与基准目录（driver deps 的一个子集，同 {@link WorldReadDeps}）。 */
 interface ArtifactPublishDeps {
+  readonly capabilityScope?: "social-account";
   /** 读取被发布文件的字节所用的文件系统端口。 */
   readonly fileSystemPort: FileSystemPort;
   /** 路径解析与相对化的基准目录（workspace 根）。 */
@@ -77,13 +78,18 @@ export async function executeArtifactPublish(
   deps: ArtifactPublishDeps,
   request: ArtifactPublishRequest,
 ): Promise<ArtifactVersionRecord> {
+  // artifact.file 也是文件读取入口；不能绕过账户脚本的 world-read 能力边界。
+  if (deps.capabilityScope === "social-account" && request.op === "file") {
+    throw new WorkflowError(
+      "DriverError",
+      "Account recipes cannot publish filesystem artifacts; use in-memory artifacts or account export tools.",
+    );
+  }
   assertArtifactId(request);
   const opts = artifactPublishOptions(request);
   const store = requireArtifactStore(deps, request);
   const payload =
-    request.op === "file"
-      ? await readFilePayload(deps, request, opts)
-      : markdownPayload(request);
+    request.op === "file" ? await readFilePayload(deps, request, opts) : markdownPayload(request);
   const written = await writePayload(store, request, payload);
   return {
     id: request.id,
@@ -157,7 +163,8 @@ function artifactPublishOptions(request: ArtifactPublishRequest): ArtifactPublis
     bag.description,
     ARTIFACT_CAPS.maxDescriptionLength,
   );
-  const contentType = request.op === "file" ? optionalContentType(request, bag.contentType) : undefined;
+  const contentType =
+    request.op === "file" ? optionalContentType(request, bag.contentType) : undefined;
   return {
     ...(title === undefined ? {} : { title }),
     ...(description === undefined ? {} : { description }),
@@ -325,7 +332,11 @@ async function readCappedBytes(
     if (isFileSystemPortError(cause)) {
       if (cause.code === "too_large") throw tooLarge(given, cap);
       // not_found / is_directory / not_file 都是"这里没有一个可发布的普通文件"。
-      if (cause.code === "not_found" || cause.code === "is_directory" || cause.code === "not_file") {
+      if (
+        cause.code === "not_found" ||
+        cause.code === "is_directory" ||
+        cause.code === "not_file"
+      ) {
         throw sourceMissing(given, cause);
       }
     }

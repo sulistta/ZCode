@@ -38,7 +38,10 @@ const listSavedWorkflowsHandler: ToolHandler = async (input, context) => {
   ListSavedWorkflowsInputSchema.parse(input);
 
   // cwd 恒取本会话的工作目录：模型无权跨项目扫盘，这同时是 `sideEffectScope: "none"` 的前提。
-  const { entries, invalid } = listSavedWorkflows({ cwd: context.workingDirectory ?? "." });
+  const { entries, invalid } = await listSavedWorkflows({
+    cwd: context.workingDirectory ?? ".",
+    workspaceIdentity: context.workspaceIdentity,
+  });
 
   return {
     workflows: entries,
@@ -158,7 +161,7 @@ export const listSavedWorkflowsToolEntry: ToolEntry = {
     supported: false,
     cleanup: "none",
     userVisibleMessage:
-      "ListSavedWorkflows scans the project's workflow directory synchronously and cannot be cancelled",
+      "ListSavedWorkflows reads the current workspace's saved definitions and cannot be cancelled",
   },
   trace: {
     required: true,

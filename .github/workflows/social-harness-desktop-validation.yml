@@ -74,8 +74,10 @@ jobs:
 
       - name: Test conversational media preparation and isolation
         run: |
-          node --import tsx --test packages/services/test/socialAgentService.test.ts packages/services/test/socialProjectService.test.ts packages/services/test/socialMediaYouTubeJobs.test.ts
+          node --import tsx --test packages/services/test/socialAgentService.test.ts packages/services/test/socialProjectService.test.ts packages/services/test/socialMediaYouTubeJobs.test.ts packages/services/test/socialMediaPreviewProxy.test.ts
           pnpm --dir apps/zcode-cli exec node --import tsx --test packages/core/test/tool/handlers/social-agent.test.ts packages/core/test/runtime/helpers/tool-allowlist.test.ts packages/core/test/context/social-account-guidance.test.ts
+          pnpm --dir apps/zcode-cli exec node --import tsx --test packages/bootstrap/test/social-workflow-capabilities.test.ts packages/bootstrap/test/social-workflow-actor.test.ts
+          pnpm --dir apps/zcode-cli exec node --import tsx --test packages/core/test/tool/account-saved-workflows.test.ts packages/core/test/tool/account-workflow-source.test.ts packages/bootstrap/test/social-workflow-run-access.test.ts
 
       - name: Test localized internal CLI help
         run: pnpm --filter @social-harness/i18n test
@@ -146,6 +148,9 @@ jobs:
 
       - name: Verify bundled Convex provisioner with embedded Node
         run: pnpm --filter @social-harness/desktop test:convex-runtime
+
+      - name: Test native media proxy timestamps and display orientation
+        run: node --import tsx --test packages/desktop/test/socialMediaProxyTiming.test.ts
 
       - name: Run Instagram assistant Electron E2E
         if: runner.os == 'Linux'

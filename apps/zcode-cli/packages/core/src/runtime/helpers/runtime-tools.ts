@@ -50,7 +50,8 @@ export function initializeRuntimeTooling(
 
 function registerRuntimeBuiltInTools(runtime: AgentRuntimeInternal, deps: AgentRuntimeDeps): void {
   const socialAccountRuntime = isSocialAccountRuntime(runtime.config);
-  const nodeReplEnabled = !socialAccountRuntime && runtime.config.runtimeFeatures?.nodeRepl === true;
+  const nodeReplEnabled =
+    !socialAccountRuntime && runtime.config.runtimeFeatures?.nodeRepl === true;
   const browserUseEnabled = !socialAccountRuntime && resolveRuntimeBrowserUseEnabled(runtime, deps);
   registerBuiltInTools(runtime.registry, {
     bashTimeoutPolicy: runtime.config.bashTimeoutPolicy,
@@ -63,34 +64,37 @@ function registerRuntimeBuiltInTools(runtime: AgentRuntimeInternal, deps: AgentR
       Boolean(deps.coordinatorResponsePort),
     // submit_result 只在注入了 workflowSubmitPort 的 workflow actor 会话注册。以端口存在为门，
     // 与 taskType 无关：workflow actor 是 workflow_child，其 runtimeScope 目前是 "main"。
-    includeSubmitResult: !socialAccountRuntime && Boolean(deps.workflowSubmitPort),
+    includeSubmitResult: Boolean(deps.workflowSubmitPort),
     // mono 子代理：typed 声明。门仍是端口。
     ...(deps.workflowSubmitSchema === undefined
       ? {}
       : { submitResultSchema: deps.workflowSubmitSchema }),
     // escalate 与 submit_result 同门同理由：端口在场即注册（不做 opt-in：最可能撞墙的 actor 恰是作者没标记的那个）。
-    includeEscalate: !socialAccountRuntime && Boolean(deps.workflowEscalatePort),
+    includeEscalate: Boolean(deps.workflowEscalatePort),
     includeWorkflow: !socialAccountRuntime && Boolean(deps.workflowPort),
     includeAutomation:
-      !socialAccountRuntime && Boolean(deps.automationPort) && runtime.config.taskType !== "subagent_child",
+      !socialAccountRuntime &&
+      Boolean(deps.automationPort) &&
+      runtime.config.taskType !== "subagent_child",
     includeSocialProject:
       Boolean(deps.socialProjectPort) && runtime.config.taskType !== "subagent_child",
     includeSocialAgent: socialAccountRuntime && Boolean(deps.socialAgentPort),
     // offPeakPort 只在 host 下发 offPeakToolEnabled 时注入（灰度/远程门在 host 端），
     // 端口存在即代表曝光允许；subagent 子会话与 automation 同规则不暴露。
     includeOffPeak:
-      !socialAccountRuntime && Boolean(deps.offPeakPort) && runtime.config.taskType !== "subagent_child",
+      !socialAccountRuntime &&
+      Boolean(deps.offPeakPort) &&
+      runtime.config.taskType !== "subagent_child",
     // 动态工作流灰度门：与 off-peak 相反，
     // 这里不能用端口在场做判据——十个工具的端口在任何 CLI 里都装配齐全，灰度是 Host 的决定。
     // 取值收在 tool-allowlist.ts，与分支刷新那个入口共用同一个推导。
-    includeDynamicWorkflow:
-      !socialAccountRuntime && resolveRuntimeDynamicWorkflowToolsIncluded(runtime.config),
+    includeDynamicWorkflow: resolveRuntimeDynamicWorkflowToolsIncluded(runtime.config),
+    socialAccountRecipes: socialAccountRuntime,
     // browserControlPort 只是宿主能力，不应隐式暴露高权限 node_repl。
     // node_repl/browser-use 由 ZCode 官方 browser-use 插件启停推导出的 runtimeFeatures 控制。
     includeNodeRepl: nodeReplEnabled,
     includeBrowserUse: browserUseEnabled,
-    embeddedSearchEnabled:
-      !socialAccountRuntime && resolveRuntimeEmbeddedSearchEnabled(runtime),
+    embeddedSearchEnabled: !socialAccountRuntime && resolveRuntimeEmbeddedSearchEnabled(runtime),
     agentProfiles: runtime.config.subagents?.profiles,
     allowedTools: resolveBuiltInToolAllowlist(runtime.config),
     // workflow_child 的结构性禁用（CreateWorkflow/SaveWorkflow 因 alwaysAsk 隐形挂起；

@@ -242,6 +242,8 @@ export type ToolInputValidationResult = { result: true } | ToolHandlerFailure;
  */
 export interface ToolInputResolutionContext {
   workingDirectory?: string;
+  /** Trusted identity supplied by the Host, never tool input. */
+  workspaceIdentity?: string;
   runtimeTaskRegistry?: RuntimeTaskRegistry;
   /**
    * workflow run 端口与本会话 id：AmendWorkflow 用它们把 `run_id` 解析成「前驱是不是本会话的、

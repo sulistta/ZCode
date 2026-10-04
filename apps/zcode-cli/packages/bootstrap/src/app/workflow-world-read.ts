@@ -37,6 +37,7 @@ import {
 
 /** 世界读取需要的端口与基准目录（driver deps 的一个子集）。 */
 export interface WorldReadDeps {
+  readonly capabilityScope?: "social-account";
   /** files.glob / files.read / files.grep 落到的文件系统端口。 */
   readonly fileSystemPort: FileSystemPort;
   /** git.* 落到的子进程执行端口（cwd = 工作区根）。 */
@@ -67,6 +68,13 @@ export async function executeWorldRead(
   op: WorldReadOp,
   args: unknown[],
 ): Promise<unknown> {
+  // 账户脚本的确认只授权编排账户工具；不能把已批准的 world.run 升格为原生 IO 权限。
+  if (deps.capabilityScope === "social-account") {
+    throw new WorkflowError(
+      "DriverError",
+      "Account recipes cannot use native world capabilities; use account tools through an actor.",
+    );
+  }
   switch (op) {
     case "glob":
       return await worldGlob(deps, worldReadStringArgs(op, args, ["pattern"])[0]!);

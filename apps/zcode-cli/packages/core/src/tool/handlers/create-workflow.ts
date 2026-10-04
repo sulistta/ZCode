@@ -28,6 +28,7 @@ import {
 } from "@social-harness/contracts";
 import type { ToolApprovalGate, ToolEntry, ToolExecutionContext, ToolHandler } from "../types.js";
 import { CREATE_WORKFLOW_TOOL_DESCRIPTION } from "./create-workflow-description.js";
+import { assertAccountWorkflowSource, isAccountRecipeWorkspace } from "./saved-workflows/index.js";
 import {
   resolveCreateWorkflowInput,
   validateCreateWorkflowSource,
@@ -63,6 +64,10 @@ const createWorkflowHandler: ToolHandler = async (input, context) => {
   // `saved` 只是来龙去脉（run 标签兜底与实参持久化读它），执行一个字节都不读它——因此
   // 一个 hook 若在归一化之后改写 `saved`，是**刻意无效**的，改不了将要跑的东西。
   const parsed = CreateWorkflowInputSchema.parse(input) as CreateWorkflowInput;
+  assertAccountWorkflowSource(context.workspaceIdentity, {
+    path: parsed.path,
+    scope: parsed.saved?.scope,
+  });
   const script = parsed.script;
   if (script === undefined) {
     // 到不了：validateInput 已挡掉「两个都不给」，resolveInput 会把 saved 填成 script。
@@ -82,7 +87,9 @@ const createWorkflowHandler: ToolHandler = async (input, context) => {
   // 脚本反而没有文件」。分析排在前面只为取名：没有 `name` 时文件名取第一个阶段名，而阶段名
   // 在图上。saved 来源的拷贝已在 resolveInput 里写过，`path` 来源不写。
   const inlineDraft =
-    saved === undefined && parsed.path === undefined
+    !isAccountRecipeWorkspace(context.workspaceIdentity) &&
+    saved === undefined &&
+    parsed.path === undefined
       ? await writeWorkflowDraft({
           cwd,
           name: resolveWorkflowDraftName(parsed.name, causalityGraph),
@@ -331,6 +338,7 @@ export const createWorkflowToolEntry: ToolEntry = {
       context.workingDirectory ?? ".",
       context.dynamicWorkflowRunPort?.concurrencyCeiling?.(),
       context.modelCatalogPort,
+      context.workspaceIdentity,
     ),
   prepareApproval: prepareCreateWorkflowApproval,
   inputSchema: CreateWorkflowInputJsonSchema,

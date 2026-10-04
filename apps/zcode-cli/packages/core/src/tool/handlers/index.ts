@@ -25,6 +25,7 @@ import {
   type JsonSchema,
 } from "@social-harness/contracts";
 import type { ToolEntry } from "../types.js";
+import { describeAccountWorkflowTool } from "./account-workflow-description.js";
 import type { AgentProfile } from "../../subagent/profile.js";
 import { readToolEntry } from "./read.js";
 import { writeToolEntry } from "./write.js";
@@ -213,6 +214,7 @@ interface RegisterBuiltInToolsOptions {
    * appRuntimePreferences，不在这一层。
    */
   includeDynamicWorkflow?: boolean;
+  socialAccountRecipes?: boolean;
   /** node_repl（js）默认关闭，由官方 browser-use 插件启用。 */
   includeNodeRepl?: boolean;
   /** browser-use 说明和 agent.browsers 注入由官方 browser-use 插件 + 宿主 browser bridge 共同启用。 */
@@ -323,6 +325,7 @@ function resolveBuiltInToolEntryForBranch(
   entry: ToolEntry,
   options: RegisterBuiltInToolsOptions,
 ): ToolEntry {
+  if (options.socialAccountRecipes) entry = describeAccountWorkflowTool(entry);
   if (entry.metadata.name === "Bash") {
     return createBashToolEntry({
       bashTimeoutPolicy: options.bashTimeoutPolicy,

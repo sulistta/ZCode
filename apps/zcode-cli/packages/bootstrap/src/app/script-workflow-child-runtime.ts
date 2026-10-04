@@ -123,6 +123,16 @@ export function createScriptWorkflowAgentRuntime(input: {
       toolAllowlist: input.request.opts?.tools,
       workingDirectory: input.deps.workingDirectory,
       ...input.configOverrides,
+      // persona 覆盖不能放宽账户身份与权限；旧 yolo 默认会让账户 actor 绕过父会话工具确认。
+      ...(inheritedConfig.workspaceIdentity?.toString().startsWith("social-account:")
+        ? {
+            mode: input.deps.runtime.getMode(),
+            planEnabled: input.deps.runtime.getPlanEnabled(),
+            taskType: "workflow_child",
+            workspaceIdentity: inheritedConfig.workspaceIdentity,
+            workingDirectory: input.deps.workingDirectory,
+          }
+        : {}),
     },
     {
       ...createRuntimeDeps(input.deps, input.traceContext, input.childSessionId, {
@@ -142,9 +152,7 @@ export function createScriptWorkflowAgentRuntime(input: {
       ...(input.workflowSubmitPort && input.workflowSubmitSchema
         ? { workflowSubmitSchema: input.workflowSubmitSchema }
         : {}),
-      ...(input.workflowEscalatePort
-        ? { workflowEscalatePort: input.workflowEscalatePort }
-        : {}),
+      ...(input.workflowEscalatePort ? { workflowEscalatePort: input.workflowEscalatePort } : {}),
       ...(input.modelRequestAdmission
         ? { modelRequestAdmission: input.modelRequestAdmission }
         : {}),
@@ -222,6 +230,8 @@ function createRuntimeDeps(
     ...deps.runtime.createChildClientPorts(clientPortsContext),
     permissionService: deps.permissionService,
     sessionStore: deps.sessionStore,
+    socialAgentPort: deps.appOptions.socialAgentPort,
+    socialProjectPort: deps.appOptions.socialProjectPort,
     skillPort:
       deps.configResult.config.features.skill && deps.configResult.config.skills.enabled
         ? (deps.appOptions.skillPort ??

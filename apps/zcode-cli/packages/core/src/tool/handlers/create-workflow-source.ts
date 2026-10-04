@@ -19,6 +19,8 @@ import type { ToolHandlerFailure, ToolInputResolutionResult } from "../types.js"
 import { resolveModelReference } from "./model-reference.js";
 import {
   listSavedWorkflows,
+  assertAccountWorkflowSource,
+  isAccountRecipeWorkspace,
   resolveSavedWorkflow,
   validateWorkflowArgs,
 } from "./saved-workflows/index.js";
@@ -123,10 +125,16 @@ export async function resolveCreateWorkflowInput(
   cwd: string,
   ceiling?: number,
   catalog?: ModelCatalogPort,
+  workspaceIdentity?: string,
 ): Promise<ToolInputResolutionResult> {
   const parsed = CreateWorkflowInputSchema.safeParse(input);
   if (!parsed.success) return { result: true, input };
   const model: CreateWorkflowInput = parsed.data;
+  try {
+    assertAccountWorkflowSource(workspaceIdentity, { path: model.path, scope: model.saved?.scope });
+  } catch (error) {
+    return failure((error as Error).message);
+  }
   const requested = model.max_concurrency;
 
   // 模型解析排在读盘之前：三条来源同一段代码，而一次解不出来的调用不该先去扫一遍磁盘。
@@ -168,8 +176,20 @@ export async function resolveCreateWorkflowInput(
     };
   }
 
-  const found = resolveSavedWorkflow({ cwd, name: model.saved.name, scope: model.saved.scope });
-  if (!found.ok) return describeResolveFailure(model.saved.name, found, cwd, model.saved.scope);
+  const found = await resolveSavedWorkflow({
+    cwd,
+    name: model.saved.name,
+    scope: model.saved.scope,
+    workspaceIdentity,
+  });
+  if (!found.ok)
+    return describeResolveFailure(
+      model.saved.name,
+      found,
+      cwd,
+      model.saved.scope,
+      workspaceIdentity,
+    );
 
   const validated = validateWorkflowArgs(found.meta.args, model.saved.args);
   if (!validated.ok) {
@@ -185,11 +205,13 @@ export async function resolveCreateWorkflowInput(
 
   // 工作副本就在这一次读之后写下，写的是**刚读到的那串字节**（元数据块一起），所以不可能有
   // 第二次读与它分叉。定义本身永不因为一次 run 被改动：模型改的是这份拷贝
-  const draft = await writeWorkflowDraft({
-    cwd,
-    name: model.name ?? found.name,
-    source: found.source,
-  });
+  const draft = isAccountRecipeWorkspace(workspaceIdentity)
+    ? undefined
+    : await writeWorkflowDraft({
+        cwd,
+        name: model.name ?? found.name,
+        source: found.source,
+      });
 
   return {
     result: true,
@@ -278,12 +300,13 @@ async function resolvePathSource(
  * 找不到的文案分两档：给了 `scope` 说「该作用域下没有」，没给说「哪都没有」——两种都把两个
  * 档案里的名字都列出来，好让模型看清它要的那个是不是在另一档。
  */
-function describeResolveFailure(
+async function describeResolveFailure(
   name: string,
-  found: Exclude<ReturnType<typeof resolveSavedWorkflow>, { ok: true }>,
+  found: Exclude<Awaited<ReturnType<typeof resolveSavedWorkflow>>, { ok: true }>,
   cwd: string,
   scope: SavedWorkflowScope | undefined,
-): ToolHandlerFailure {
+  workspaceIdentity?: string,
+): Promise<ToolHandlerFailure> {
   if (found.reason === "invalid_name") {
     return failure(`'${name}' is not a usable workflow name: ${found.detail}`);
   }
@@ -302,25 +325,34 @@ function describeResolveFailure(
     );
   }
 
-  const headline =
-    scope === undefined
+  const headline = isAccountRecipeWorkspace(workspaceIdentity)
+    ? `No saved recipe named '${name}' in this account.`
+    : scope === undefined
       ? `No saved workflow named '${name}' in this project or globally.`
       : `No ${scope} workflow named '${name}'.`;
-  return failure(`${headline}\n\n${describeAvailableWorkflows(cwd)}`);
+  return failure(`${headline}\n\n${await describeAvailableWorkflows(cwd, workspaceIdentity)}`);
 }
 
 /**
  * 两个档案里实际可用的名字，各带作用域标签。定向扫每一根（不做遮蔽），好让被项目档遮蔽的
  * 全局定义也出现在清单里——模型据此才知道要拿它得指定 `scope: "global"`。
  */
-function describeAvailableWorkflows(cwd: string): string {
-  const project = listSavedWorkflows({ cwd, scope: "project" }).entries;
-  const global = listSavedWorkflows({ cwd, scope: "global" }).entries;
+async function describeAvailableWorkflows(
+  cwd: string,
+  workspaceIdentity?: string,
+): Promise<string> {
+  const project = (await listSavedWorkflows({ cwd, scope: "project", workspaceIdentity })).entries;
+  const global = isAccountRecipeWorkspace(workspaceIdentity)
+    ? []
+    : (await listSavedWorkflows({ cwd, scope: "global" })).entries;
   const tagged = [
     ...project.map((entry) => `${entry.name} (project)`),
     ...global.map((entry) => `${entry.name} (global)`),
   ];
   if (tagged.length === 0) {
+    if (isAccountRecipeWorkspace(workspaceIdentity)) {
+      return "This account has no saved recipes yet. Use SaveWorkflow to create one, or pass an inline `script` instead.";
+    }
     return "There are no saved workflows yet, in this project or globally. Use SaveWorkflow to create one, or pass an inline `script` instead.";
   }
   return `Available saved workflows: ${tagged.join(", ")}. Use ListSavedWorkflows for their descriptions.`;

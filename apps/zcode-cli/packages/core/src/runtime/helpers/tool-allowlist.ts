@@ -1,4 +1,6 @@
 import {
+  ESCALATE_TOOL_NAME,
+  SUBMIT_RESULT_TOOL_NAME,
   AMEND_WORKFLOW_TOOL_NAME,
   CREATE_WORKFLOW_TOOL_NAME,
   RESOLVE_WORKFLOW_QUESTION_TOOL_NAME,
@@ -14,7 +16,11 @@ import {
   SOCIAL_CLIP_CANDIDATES_TOOL_NAME,
   SOCIAL_PUBLICATION_REQUEST_TOOL_NAME,
   SOCIAL_PRODUCTION_TOOL_NAMES,
+  LIST_SAVED_WORKFLOWS_TOOL_NAME,
+  LIST_WORKFLOW_RUNS_TOOL_NAME,
+  GET_WORKFLOW_RUN_TOOL_NAME,
 } from "@social-harness/contracts";
+import { parseSocialAccountWorkspaceIdentity } from "@social-harness/shared";
 import { EXPLORE_AGENT_ALLOWED_TOOLS } from "../../subagent/explore-tools.js";
 import type { AgentRuntimeConfig } from "../types.js";
 import { normalizeToolNameAlias } from "../../tool/tool-visibility.js";
@@ -30,6 +36,16 @@ const SOCIAL_ACCOUNT_RUNTIME_TOOLS = [
   SOCIAL_CLIP_CANDIDATES_TOOL_NAME,
   SOCIAL_PUBLICATION_REQUEST_TOOL_NAME,
   ...SOCIAL_PRODUCTION_TOOL_NAMES,
+] as const;
+
+const SOCIAL_ACCOUNT_RECIPE_TOOLS = [
+  LIST_SAVED_WORKFLOWS_TOOL_NAME,
+  SAVE_WORKFLOW_TOOL_NAME,
+  CREATE_WORKFLOW_TOOL_NAME,
+  LIST_WORKFLOW_RUNS_TOOL_NAME,
+  GET_WORKFLOW_RUN_TOOL_NAME,
+  RESUME_WORKFLOW_RUN_TOOL_NAME,
+  RESOLVE_WORKFLOW_QUESTION_TOOL_NAME,
 ] as const;
 
 /**
@@ -93,6 +109,8 @@ export function resolveRuntimeDisallowedTools(
  * 「缺席即开启」把十个工具原样加回注册表，灰度关闭的会话里模型仍然调到了 ListSavedWorkflows。
  */
 export function resolveRuntimeDynamicWorkflowToolsIncluded(config: AgentRuntimeConfig): boolean {
+  if (isSocialAccountRuntime(config))
+    return Boolean(parseSocialAccountWorkspaceIdentity(config.workspaceIdentity?.toString()));
   return config.dynamicWorkflowEnabled !== false;
 }
 
@@ -102,9 +120,20 @@ export function resolveBuiltInToolAllowlist(
   const normalizedAllowlist = normalizeBuiltInToolAllowlist(config.toolAllowlist);
 
   if (isSocialAccountRuntime(config)) {
-    if (!normalizedAllowlist) return SOCIAL_ACCOUNT_RUNTIME_TOOLS;
-    const configuredTools = new Set(normalizedAllowlist);
-    return SOCIAL_ACCOUNT_RUNTIME_TOOLS.filter((toolName) => configuredTools.has(toolName));
+    const configuredTools = normalizedAllowlist && new Set(normalizedAllowlist);
+    const eligibleTools =
+      config.taskType !== "workflow_child" &&
+      config.taskType !== "subagent_child" &&
+      parseSocialAccountWorkspaceIdentity(config.workspaceIdentity?.toString())
+        ? [...SOCIAL_ACCOUNT_RUNTIME_TOOLS, ...SOCIAL_ACCOUNT_RECIPE_TOOLS]
+        : [...SOCIAL_ACCOUNT_RUNTIME_TOOLS];
+    const tools = configuredTools
+      ? eligibleTools.filter((toolName) => configuredTools.has(toolName))
+      : eligibleTools;
+    // 账户 actor 的结果与升级仍归原引擎；工具收窄不能移除结算通道，也不能增加原生工具。
+    return config.taskType === "workflow_child"
+      ? [...tools, SUBMIT_RESULT_TOOL_NAME, ESCALATE_TOOL_NAME]
+      : tools;
   }
 
   if (config.toolset !== "explore") {

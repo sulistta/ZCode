@@ -31,6 +31,9 @@ export {
 export {
   SAVED_WORKFLOW_SENTINEL,
   findSavedWorkflowShadowing,
+  deleteSavedWorkflow,
+  updateSavedWorkflowMeta,
+  isAccountRecipeWorkspace,
   listSavedWorkflows,
   moveSavedWorkflow,
   parseSavedWorkflow,

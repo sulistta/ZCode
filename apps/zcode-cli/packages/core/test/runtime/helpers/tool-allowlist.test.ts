@@ -9,6 +9,13 @@ import {
   SOCIAL_PROJECT_READ_TOOL_NAME,
   SOCIAL_YOUTUBE_SEARCH_TOOL_NAME,
   SOCIAL_PUBLICATION_REQUEST_TOOL_NAME,
+  CREATE_WORKFLOW_TOOL_NAME,
+  SAVE_WORKFLOW_TOOL_NAME,
+  LIST_SAVED_WORKFLOWS_TOOL_NAME,
+  LIST_WORKFLOW_RUNS_TOOL_NAME,
+  GET_WORKFLOW_RUN_TOOL_NAME,
+  RESUME_WORKFLOW_RUN_TOOL_NAME,
+  RESOLVE_WORKFLOW_QUESTION_TOOL_NAME,
 } from "@social-harness/contracts";
 import type { AgentRuntimeConfig } from "../../../src/runtime/types.js";
 import {
@@ -20,7 +27,7 @@ function runtimeConfig(input: Partial<AgentRuntimeConfig>): AgentRuntimeConfig {
   return input as AgentRuntimeConfig;
 }
 
-test("social account runtimes expose only account-scoped social tools", () => {
+test("social account parent exposes social tools and the bounded recipe surface", () => {
   const config = runtimeConfig({ workspaceIdentity: "social-account:account-1" as never });
 
   assert.equal(isSocialAccountRuntime(config), true);
@@ -39,6 +46,13 @@ test("social account runtimes expose only account-scoped social tools", () => {
     "SocialProjectCreate",
     "SocialProjectExport",
     "SocialProjectExports",
+    LIST_SAVED_WORKFLOWS_TOOL_NAME,
+    SAVE_WORKFLOW_TOOL_NAME,
+    CREATE_WORKFLOW_TOOL_NAME,
+    LIST_WORKFLOW_RUNS_TOOL_NAME,
+    GET_WORKFLOW_RUN_TOOL_NAME,
+    RESUME_WORKFLOW_RUN_TOOL_NAME,
+    RESOLVE_WORKFLOW_QUESTION_TOOL_NAME,
   ]);
 });
 
@@ -56,6 +70,19 @@ test("ordinary workspaces retain their existing unrestricted default", () => {
 
   assert.equal(isSocialAccountRuntime(config), false);
   assert.equal(resolveBuiltInToolAllowlist(config), undefined);
+});
+
+test("account workflow actors keep safe engine control with a narrow tool request", () => {
+  const config = runtimeConfig({
+    workspaceIdentity: "social-account:account-1" as never,
+    taskType: "workflow_child",
+    toolAllowlist: ["Bash", SOCIAL_PROJECT_READ_TOOL_NAME],
+  });
+  assert.deepEqual(resolveBuiltInToolAllowlist(config), [
+    SOCIAL_PROJECT_READ_TOOL_NAME,
+    "submit_result",
+    "escalate",
+  ]);
 });
 
 test("malformed social account identity keeps the generic tool surface closed", () => {

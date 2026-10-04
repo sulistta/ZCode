@@ -7,15 +7,14 @@
 // 全局作用域：五个方法的 params 收可选 `scope`（缺省
 // `project`）。`global` 时改按本机 Social Harness 全局根操作，`workspace` 只是**载体**——
 // 处理器对全局档不读它的路径。`workflows/move` 把全局档搬回 `workspace` 项目（只此一向）。
-import { unlink, writeFile } from "node:fs/promises";
-import { SavedWorkflowMetaSchema, isValidSavedWorkflowName } from "@social-harness/contracts";
+import { SavedWorkflowMetaSchema } from "@social-harness/contracts";
 import {
   listSavedWorkflows,
+  deleteSavedWorkflow,
+  updateSavedWorkflowMeta,
   moveSavedWorkflow,
   resolveSavedWorkflow,
-  savedWorkflowPath,
   savedWorkflowRoot,
-  serializeSavedWorkflow,
   type SavedWorkflowResolveFailure,
 } from "@social-harness/core";
 import {
@@ -34,6 +33,7 @@ import {
   type ZCodeWorkflowsMoveResult,
   type ZCodeWorkflowsRunsResult,
   type ZCodeWorkflowsUpdateMetaResult,
+  type ZCodeWorkspaceRef,
 } from "@social-harness/shared";
 import type { JournalStorePort } from "@social-harness/dynamic-workflow";
 import { artifactsOf } from "../app/dynamic-workflow-run-observation.js";
@@ -44,8 +44,16 @@ import {
 import { parseParams, type ZCodeProtocolAgentServerContext } from "./server-types.js";
 
 // 缺省即 `project`：不给 scope 的旧 GUI 与项目档调用逐字走本项目根，形状不变（版本偏斜）。
-function scopeOf(params: { scope?: ZCodeSavedWorkflowScope }): ZCodeSavedWorkflowScope {
-  return params.scope ?? "project";
+function scopeOf(params: {
+  scope?: ZCodeSavedWorkflowScope;
+  workspace: ZCodeWorkspaceRef;
+}): ZCodeSavedWorkflowScope {
+  const scope = params.scope ?? "project";
+  // 历史全局载体会绕过账户目录；在读取 journal 或定义之前统一拒绝。
+  savedWorkflowRoot(params.workspace.workspacePath, scope, {
+    workspaceIdentity: params.workspace.workspaceIdentity,
+  });
+  return scope;
 }
 
 export async function listSavedWorkflowsOp(
@@ -57,12 +65,17 @@ export async function listSavedWorkflowsOp(
   const scope = scopeOf(params);
   // 中枢的 PROJECT 组只列本项目那一份，全局组只列全局那一份——**永远**传定向 scope，绝不走
   // 无向变体（两根 first-wins 会把 global 混进 project 组，把被遮蔽的 global 从全局组里藏掉）。
-  const listed = listSavedWorkflows({ cwd, scope });
+  const listed = await listSavedWorkflows({
+    cwd,
+    scope,
+    workspaceIdentity: params.workspace.workspaceIdentity,
+  });
   // 扫过的目录（即使不存在也回）：GUI 的文件监听靠它 watch。
   return {
     workflows: listed.entries,
     invalid: listed.invalid,
-    dir: savedWorkflowRoot(cwd, scope).dir,
+    dir: savedWorkflowRoot(cwd, scope, { workspaceIdentity: params.workspace.workspaceIdentity })
+      .dir,
   };
 }
 
@@ -72,10 +85,11 @@ export async function getSavedWorkflowOp(
 ): Promise<ZCodeWorkflowsGetResult> {
   const params = parseParams(zcodeWorkflowsGetParamsSchema, rawParams);
   // 定向 scope：`global` 只查全局根、不做遮蔽——中枢的全局组要看到被项目档遮蔽的那份。
-  const resolved = resolveSavedWorkflow({
+  const resolved = await resolveSavedWorkflow({
     cwd: params.workspace.workspacePath,
     name: params.name,
     scope: scopeOf(params),
+    workspaceIdentity: params.workspace.workspaceIdentity,
   });
   if (!resolved.ok) return toFailure(resolved);
   return {
@@ -100,14 +114,14 @@ export async function updateSavedWorkflowMetaOp(
   // shared 与 contracts 的 meta schema 逐字对齐，但序列化器认的是 contracts 那份类型；再过一遍
   // 让「两边漂移」在这里炸成 -32602 而不是写出一个自己读不回来的文件。
   const meta = SavedWorkflowMetaSchema.parse(params.meta);
-  const resolved = resolveSavedWorkflow({
+  const result = await updateSavedWorkflowMeta({
     cwd: params.workspace.workspacePath,
     name: params.name,
     scope: scopeOf(params),
+    workspaceIdentity: params.workspace.workspaceIdentity,
+    meta,
   });
-  if (!resolved.ok) return toFailure(resolved);
-  await writeFile(resolved.path, serializeSavedWorkflow(meta, resolved.script), "utf8");
-  return { ok: true, path: resolved.path };
+  return result.ok ? result : toFailure(result);
 }
 
 /**
@@ -120,19 +134,16 @@ export async function deleteSavedWorkflowOp(
   rawParams: unknown,
 ): Promise<ZCodeWorkflowsDeleteResult> {
   const params = parseParams(zcodeWorkflowsDeleteParamsSchema, rawParams);
-  if (!isValidSavedWorkflowName(params.name)) {
-    return { ok: false, reason: "invalid_name" };
-  }
-  const root = savedWorkflowRoot(params.workspace.workspacePath, scopeOf(params));
-  const path = savedWorkflowPath(root, params.name);
-  try {
-    await unlink(path);
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException | undefined)?.code;
-    if (code === "ENOENT" || code === "ENOTDIR") return { ok: false, reason: "not_found" };
-    return { ok: false, reason: "read_error", detail: describeError(error) };
-  }
-  return { ok: true, path };
+  const result = await deleteSavedWorkflow({
+    cwd: params.workspace.workspacePath,
+    name: params.name,
+    scope: scopeOf(params),
+    workspaceIdentity: params.workspace.workspaceIdentity,
+  });
+  if (result.ok) return result;
+  return result.reason === "read_error"
+    ? { ok: false, reason: "read_error", detail: result.detail }
+    : { ok: false, reason: result.reason === "invalid_name" ? "invalid_name" : "not_found" };
 }
 
 /**
@@ -148,10 +159,11 @@ export async function listSavedWorkflowRunsOp(
   rawParams: unknown,
 ): Promise<ZCodeWorkflowsRunsResult> {
   const params = parseParams(zcodeWorkflowsRunsParamsSchema, rawParams);
+  const scope = scopeOf(params);
   const journal = resolveDynamicWorkflowJournalStore(context.deps.sessionStore);
   if (journal === undefined || !supportsRunIntrospection(journal)) return { runs: [] };
   const limit = Math.min(SOCIAL_HARNESS_WORKFLOWS_RUNS_MAX_LIMIT, params.limit);
-  const global = scopeOf(params) === "global";
+  const global = scope === "global";
   // 多取一条**只为判定 truncated**（run service 与 v4 事件分页的同一惯例）。
   // 全局变体省掉 cwd 谓词（journal 的 cwd 可选 = 跨所有项目）；项目变体传 cwd，逐字不变。
   const rows = journal.listRuns({
@@ -232,7 +244,11 @@ export async function moveSavedWorkflowOp(
   rawParams: unknown,
 ): Promise<ZCodeWorkflowsMoveResult> {
   const params = parseParams(zcodeWorkflowsMoveParamsSchema, rawParams);
-  const result = moveSavedWorkflow({ cwd: params.workspace.workspacePath, name: params.name });
+  const result = await moveSavedWorkflow({
+    cwd: params.workspace.workspacePath,
+    name: params.name,
+    workspaceIdentity: params.workspace.workspaceIdentity,
+  });
   if (result.ok) {
     return { ok: true, from: result.from, to: result.to };
   }
@@ -260,8 +276,4 @@ function toFailure(failure: SavedWorkflowResolveFailure) {
     case "read_error":
       return { ok: false as const, reason: failure.reason, detail: failure.detail };
   }
-}
-
-function describeError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

@@ -598,6 +598,9 @@ export async function createZCodeApp(options: ZCodeAppOptions): Promise<ZCodeApp
       dynamicWorkflowJournal === undefined
         ? undefined
         : createDynamicWorkflowRunService({
+            ...(socialAccountRuntime
+              ? { capabilityScope: "social-account", accountWorkspacePath: workingDirectory }
+              : {}),
             concurrency: workflowConcurrencyGovernor,
             createActorRuntime: ({
               persona,
