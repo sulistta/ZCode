@@ -1,6 +1,6 @@
 // Session 常驻池的真实事实适配与去激活执行面。
 
-import type { SessionId } from "@zcode/contracts";
+import type { SessionId } from "@social-harness/contracts";
 import type {
   SessionDeactivationDecision,
   SessionResidentPoolHost,

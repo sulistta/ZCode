@@ -24,11 +24,12 @@ import type {
   SkillsPromptContext,
   SkillsListResult,
   SkillsCapability,
-} from "@zcode/shared";
-import { DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS } from "@zcode/shared";
+} from "@social-harness/shared";
+import { DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS } from "@social-harness/shared";
 import type { ISkillsService } from "./skills.js";
 import { SKILL_FILE_NAME, walkSkillMarkdownPaths } from "./skillDiscoveryWalk.js";
 import { readInstalledPluginRoots } from "#src/plugins/installedPluginRoots.js";
+import { getSocialHarnessDataRootDir } from "#src/paths.js";
 
 interface DiscoverResult {
   skills: SkillSummary[];
@@ -47,14 +48,11 @@ interface ParsedFrontmatter {
 }
 
 const SKILL_META_FILE_NAME = "_meta.json";
-const SKILL_SETTINGS_DIR = join(resolveUserHomeDir(), ".zcode", "v2");
-const SKILL_CLI_SETTINGS_DIR = join(resolveUserHomeDir(), ".zcode", "cli");
-const SKILL_CLI_CONFIG_FILE = join(SKILL_CLI_SETTINGS_DIR, "config.json");
 const GIT_MARKER = ".git";
 const HOME_PREFIX = "~/";
-const ZCODE_OFFICIAL_PLUGIN_MARKETPLACE = "zcode-plugins-official";
-const ZCODE_INLINE_PLUGIN_MARKETPLACE = "inline";
-const ZCODE_PLUGIN_MANIFEST_PATH = join(".zcode-plugin", "plugin.json");
+const SOCIAL_HARNESS_OFFICIAL_PLUGIN_MARKETPLACE = "zcode-plugins-official";
+const SOCIAL_HARNESS_INLINE_PLUGIN_MARKETPLACE = "inline";
+const SOCIAL_HARNESS_PLUGIN_MANIFEST_PATH = join(".zcode-plugin", "plugin.json");
 const CLAUDE_PLUGIN_MANIFEST_PATH = join(".claude-plugin", "plugin.json");
 const CODEX_PLUGIN_MANIFEST_PATH = join(".codex-plugin", "plugin.json");
 
@@ -80,8 +78,20 @@ function getWorkspaceAgentsSkillRoot(workspacePath: string): string {
 }
 
 /** ZCode Agent 用户级技能目录。 */
-function getUserZcodeSkillRoot(): string {
-  return join(resolveUserHomeDir(), ".zcode", "skills");
+function getUserSocialHarnessSkillRoot(): string {
+  return join(getSocialHarnessDataRootDir(), "skills");
+}
+
+function getSkillSettingsDir(): string {
+  return join(getSocialHarnessDataRootDir(), "skills");
+}
+
+function getSkillCliSettingsDir(): string {
+  return join(getSocialHarnessDataRootDir(), "cli");
+}
+
+function getSkillCliConfigFile(): string {
+  return join(getSkillCliSettingsDir(), "config.json");
 }
 
 /** 兼容目录: 用户级 `~/.agents/skills`。 */
@@ -125,7 +135,11 @@ async function isUserAgentsSkillCoveredByZcode(params: {
   if (rootPath !== getUserAgentsSkillRoot()) {
     return false;
   }
-  if (await exists(join(getUserZcodeSkillRoot(), basename(dirname(skillPath)), SKILL_FILE_NAME))) {
+  if (
+    await exists(
+      join(getUserSocialHarnessSkillRoot(), basename(dirname(skillPath)), SKILL_FILE_NAME),
+    )
+  ) {
     return true;
   }
   return userZcodeSkillNameKeys.has(await readSkillNameKey(skillPath));
@@ -280,9 +294,10 @@ async function appendSkillsAuditLog(params: {
   workspaceIdentity?: string;
   activatedSkillNames: string[];
 }): Promise<void> {
-  await mkdir(SKILL_SETTINGS_DIR, { recursive: true });
+  const settingsDir = getSkillSettingsDir();
+  await mkdir(settingsDir, { recursive: true });
   await appendFile(
-    join(SKILL_SETTINGS_DIR, "skills-audit.log"),
+    join(settingsDir, "skills-audit.log"),
     `${JSON.stringify({
       createdAt: Date.now(),
       workspacePath: params.workspacePath,
@@ -531,7 +546,7 @@ function normalizeSkillConfigPath(path: string): string {
 
 async function readCliConfigFile(): Promise<Record<string, unknown>> {
   try {
-    const raw = await readFile(SKILL_CLI_CONFIG_FILE, "utf-8");
+    const raw = await readFile(getSkillCliConfigFile(), "utf-8");
     const parsed = JSON.parse(raw) as unknown;
     return isObjectRecord(parsed) ? parsed : {};
   } catch {
@@ -579,8 +594,8 @@ async function writeSkillEnabledMap(next: Record<string, boolean>): Promise<void
   } else {
     delete config.skills;
   }
-  await mkdir(SKILL_CLI_SETTINGS_DIR, { recursive: true });
-  await writeFile(SKILL_CLI_CONFIG_FILE, `${JSON.stringify(config, null, 2)}\n`, "utf-8");
+  await mkdir(getSkillCliSettingsDir(), { recursive: true });
+  await writeFile(getSkillCliConfigFile(), `${JSON.stringify(config, null, 2)}\n`, "utf-8");
 }
 
 interface SkillRootDescriptor {
@@ -643,7 +658,7 @@ function readStorageDirFromConfig(config: Record<string, unknown>): string {
   const storage = isObjectRecord(config.storage) ? config.storage : {};
   return typeof storage.dir === "string" && storage.dir.trim().length > 0
     ? storage.dir
-    : "~/.zcode";
+    : getSocialHarnessDataRootDir();
 }
 
 function resolveConfigPath(path: string): string {
@@ -685,7 +700,7 @@ function resolveInside(rootPath: string, rawPath: string): string | null {
 }
 
 async function scanOfficialPluginCacheRoots(pluginStorageRoot: string): Promise<string[]> {
-  const cacheRoot = join(pluginStorageRoot, "cache", ZCODE_OFFICIAL_PLUGIN_MARKETPLACE);
+  const cacheRoot = join(pluginStorageRoot, "cache", SOCIAL_HARNESS_OFFICIAL_PLUGIN_MARKETPLACE);
   let pluginEntries: Dirent[] = [];
   try {
     pluginEntries = await readdir(cacheRoot, { withFileTypes: true });
@@ -742,7 +757,7 @@ async function readPluginManifest(rootPath: string): Promise<PluginManifestSumma
 
 async function findPluginManifestPath(rootPath: string): Promise<string | null> {
   for (const manifestPath of [
-    join(rootPath, ZCODE_PLUGIN_MANIFEST_PATH),
+    join(rootPath, SOCIAL_HARNESS_PLUGIN_MANIFEST_PATH),
     join(rootPath, CLAUDE_PLUGIN_MANIFEST_PATH),
     join(rootPath, CODEX_PLUGIN_MANIFEST_PATH),
   ]) {
@@ -785,12 +800,12 @@ async function resolvePluginSkillRootDescriptors(): Promise<SkillRootDescriptor[
   const candidates: PluginRootCandidate[] = [
     ...config.dirs.map((dir) => ({
       defaultEnabled: true,
-      marketplace: ZCODE_INLINE_PLUGIN_MARKETPLACE,
+      marketplace: SOCIAL_HARNESS_INLINE_PLUGIN_MARKETPLACE,
       rootPath: resolveConfigPath(dir),
     })),
     ...officialCacheRoots.map((rootPath) => ({
       defaultEnabled: false,
-      marketplace: ZCODE_OFFICIAL_PLUGIN_MARKETPLACE,
+      marketplace: SOCIAL_HARNESS_OFFICIAL_PLUGIN_MARKETPLACE,
       rootPath,
     })),
     ...installedRoots,
@@ -808,7 +823,7 @@ async function resolvePluginSkillRootDescriptors(): Promise<SkillRootDescriptor[
     // 官方 cache 时不经过 CLI resolve 的过滤，需要在这里同样跳过，否则被卸载的内置插件
     // 仍会从 cache 贡献技能。
     if (
-      candidate.marketplace === ZCODE_OFFICIAL_PLUGIN_MARKETPLACE &&
+      candidate.marketplace === SOCIAL_HARNESS_OFFICIAL_PLUGIN_MARKETPLACE &&
       config.suppressedBuiltins.includes(pluginId)
     ) {
       continue;
@@ -851,11 +866,11 @@ async function discoverSkills(params: {
     rootPath,
   }));
   if (params.includeUserSkills) {
-    // 用户级技能是全局资源，`.zcode/skills` 里只要存在一个技能就截断
+    // 用户级技能是全局资源；同名项目技能仅在 Social Harness 用户根提供该技能时截断。
     // `.agents/skills` 会导致外部 Agent 的全局技能在导入后从设置页消失。
     roots.push({
       scope: "user" as const,
-      rootPath: getUserZcodeSkillRoot(),
+      rootPath: getUserSocialHarnessSkillRoot(),
     });
     roots.push({
       scope: "user" as const,
@@ -868,7 +883,7 @@ async function discoverSkills(params: {
   const skills: SkillSummary[] = [];
   const seenSkillPaths = new Set<string>();
   const userZcodeSkillNameKeys = params.includeUserSkills
-    ? await collectSkillNameKeysInRoot(getUserZcodeSkillRoot())
+    ? await collectSkillNameKeysInRoot(getUserSocialHarnessSkillRoot())
     : new Set<string>();
   const scanRootPaths = await dedupeScanRootsByRealpath(roots.map((root) => root.rootPath));
   const rootByPath = new Map(roots.map((root) => [root.rootPath, root]));
@@ -1007,7 +1022,8 @@ async function collectSkillMarkdownPaths(
 }
 
 function resolveCapabilities(options?: SkillsServiceOptions): SkillsCapability {
-  const isDesktopRuntime = options?.isDesktopRuntime ?? Boolean(process.env.ZCODE_PROCESS_LABEL);
+  const isDesktopRuntime =
+    options?.isDesktopRuntime ?? Boolean(process.env.SOCIAL_HARNESS_PROCESS_LABEL);
   if (isDesktopRuntime) {
     return { userScopeAvailable: true };
   }
@@ -1136,7 +1152,7 @@ export function createSkillsService(options?: SkillsServiceOptions): ISkillsServ
       const commonRoot =
         skill.scope === "workspace"
           ? getWorkspaceZcodeSkillRoot(params.workspacePath)
-          : getUserZcodeSkillRoot();
+          : getUserSocialHarnessSkillRoot();
       const targetDir = join(commonRoot, basename(sourceDir));
       // 不覆盖已有目录
       if (await exists(targetDir)) {
@@ -1161,7 +1177,7 @@ export function createSkillsService(options?: SkillsServiceOptions): ISkillsServ
         throw new Error(`Skill not found: ${params.skillId}`);
       }
       const normalizedPath = skill.path.replaceAll("\\", "/").toLowerCase();
-      const userCommonRoot = getUserZcodeSkillRoot().replaceAll("\\", "/").toLowerCase();
+      const userCommonRoot = getUserSocialHarnessSkillRoot().replaceAll("\\", "/").toLowerCase();
       const workspaceCommonRoot = getWorkspaceZcodeSkillRoot(params.workspacePath)
         .replaceAll("\\", "/")
         .toLowerCase();
@@ -1193,7 +1209,7 @@ export function createSkillsService(options?: SkillsServiceOptions): ISkillsServ
 
       // 用发现阶段命中的原始路径（sourcePath，未 realpath）定位技能目录项。
       // 软链导入的技能 skill.path 是 realpath 后的目标文件，dirname 会指向目标目录；
-      // sourcePath 才指向 `~/.zcode/skills/<name>` 下的目录项本身。
+      // sourcePath 指向 Social Harness 全局技能根下的目录项本身。
       const skillDir = dirname(skill.sourcePath ?? skill.path);
       const skillLeafName = basename(skillDir);
       // 只解析父目录，不解析叶子本身：
@@ -1208,7 +1224,7 @@ export function createSkillsService(options?: SkillsServiceOptions): ISkillsServ
       // 安全护栏：删除是 `rm -rf` 目录的破坏性操作，仅允许命中受控技能根。
       // 收集工作区各层级（沿 worktree 向上）的 .zcode/skills 与 .agents/skills，外加用户级两根。
       const allowedRootCandidates = await resolveAncestorWorkspaceRoots(params.workspacePath);
-      allowedRootCandidates.push(getUserZcodeSkillRoot());
+      allowedRootCandidates.push(getUserSocialHarnessSkillRoot());
       allowedRootCandidates.push(getUserAgentsSkillRoot());
 
       // 用 realpath 后的父目录与 realpath 后的根比较：父目录必须落在（或等于）某个受控根内。

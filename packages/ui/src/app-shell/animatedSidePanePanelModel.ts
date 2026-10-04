@@ -1,20 +1,13 @@
 const MIN_PREVIEW_PANE_HEAVY_CONTENT_VISIBLE_INLINE_SIZE_PX = 96;
 
-export type OpenTabLauncherItemId =
-  | "selection-side-conversation"
-  | "review"
-  | "terminal"
-  | "browser"
-  | "developer-tools";
+export type OpenTabLauncherItemId = "selection-side-conversation" | "browser" | "developer-tools";
 
 export function resolveOpenTabLauncherItemIds({
   developerToolsEnabled,
-  hasReviewTab,
   canOpenSelectionSideConversation = false,
   supportsEmbeddedBrowser = true,
 }: {
   developerToolsEnabled: boolean;
-  hasReviewTab: boolean;
   canOpenSelectionSideConversation?: boolean;
   supportsEmbeddedBrowser?: boolean;
 }): OpenTabLauncherItemId[] {
@@ -23,12 +16,6 @@ export function resolveOpenTabLauncherItemIds({
   if (canOpenSelectionSideConversation) {
     itemIds.push("selection-side-conversation");
   }
-
-  if (!hasReviewTab) {
-    itemIds.push("review");
-  }
-
-  itemIds.push("terminal");
 
   if (supportsEmbeddedBrowser) {
     itemIds.push("browser");

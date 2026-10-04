@@ -23,7 +23,7 @@ import {
   type ModelMessageContent,
   type ResumeWorkflowRunInput,
   type ResumeWorkflowRunOutput,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type {
   ToolEntry,
   ToolExecutionContext,

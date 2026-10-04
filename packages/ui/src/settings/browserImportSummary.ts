@@ -1,4 +1,4 @@
-import type { ChromeBrowserDataImportResult } from "@zcode/shared";
+import type { ChromeBrowserDataImportResult } from "@social-harness/shared";
 import type { useZCodeIntl } from "@/i18n/IntlProvider.js";
 
 export function formatImportSummary(

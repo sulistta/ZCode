@@ -3,9 +3,8 @@ import type {
   CommandAck,
   ConversationRow,
   ConversationRowTarget,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import type { AssistantPreviewCard } from "@/lib/assistantPreviewCards.js";
-import type { AssistantCodeCommentCard } from "@/lib/assistantCodeComment.js";
 import { extractPlanToolCallContent } from "@/lib/planToolCall.js";
 import { ConversationRowView } from "@/v4/ConversationRowView.js";
 import type {
@@ -34,8 +33,6 @@ interface ConversationTurnRowProps {
   assistantCopyText?: string;
   assistantPreviewCards?: AssistantPreviewCard[];
   assistantPreviewCardsAutoOpenKey?: string;
-  assistantCodeCommentCards?: AssistantCodeCommentCard[];
-  assistantCodeCommentProjectionEnabled?: boolean;
   reasoningContentVariant?: "default" | "nested";
   userInputStatus?: string;
 }
@@ -53,8 +50,6 @@ export function ConversationTurnRow({
   assistantCopyText,
   assistantPreviewCards,
   assistantPreviewCardsAutoOpenKey,
-  assistantCodeCommentCards,
-  assistantCodeCommentProjectionEnabled,
   reasoningContentVariant,
   userInputStatus,
 }: ConversationTurnRowProps) {
@@ -72,8 +67,6 @@ export function ConversationTurnRow({
       assistantCopyText={assistantCopyText}
       assistantPreviewCards={assistantPreviewCards}
       assistantPreviewCardsAutoOpenKey={assistantPreviewCardsAutoOpenKey}
-      assistantCodeCommentCards={assistantCodeCommentCards}
-      assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
       reasoningContentVariant={reasoningContentVariant}
       userInputStatus={userInputStatus}
     />

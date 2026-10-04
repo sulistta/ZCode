@@ -2,12 +2,11 @@ import type { MarkdownSelectionTarget } from "@/lib/conversationSelectionReferen
 /* eslint-disable max-lines -- PreviewPane 内容路由同时承载文本、图片、媒体、Office、PDF 和 PPTX 渲染。 */
 import type { BundledTheme } from "shiki";
 import { useMemo, type Ref, type SyntheticEvent, type UIEventHandler } from "react";
-import type { FileBinaryPreview, FileMediaPreview, FileTextSlice } from "@zcode/shared";
+import type { FileBinaryPreview, FileMediaPreview, FileTextSlice } from "@social-harness/shared";
 import { inferCodeLanguage } from "@/lib/codeViewer.js";
 import type { CodeViewerSource } from "@/lib/codeViewer.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import type { CodePreviewSettings } from "@/store/index.js";
-import type { CodeCommentLabels } from "@/components/ui/code-viewer.js";
 import { MarkdownPreviewContent } from "@/previewPaneMarkdownContent.js";
 import { CodeContent } from "@/previewPaneCodeContent.js";
 import { ImagePreviewContent, SvgPreviewContent } from "@/previewPaneImageContent.js";
@@ -18,13 +17,11 @@ import { PatchFallbackContent } from "@/previewPanePatchFallbackContent.js";
 import { DiffViewer } from "@/components/ui/diff-viewer.js";
 import type { PdfViewerLabels, PdfViewerSource } from "@/components/ui/pdf-viewer.js";
 import type { PptxPreviewViewerLabels } from "@/components/ui/pptx-preview-viewer.js";
-import type { CodeCommentPreview, CodeCommentRange } from "@/lib/codeCommentContext.js";
 import type { Theme } from "@/useTheme.js";
 import type { OfficeFilePreviewKind } from "@/lib/officeFilePreview.js";
 import { PreviewPaneOfficeContent } from "@/previewPaneOfficeContent.js";
 import type { PptxElementReferenceSource } from "@/lib/pptxElementReference.js";
 import type { MediaCodeViewerSource, PptxReferencePreviewNavigation } from "@/lib/codeViewer.js";
-import { resolveCodeReviewContentProjection } from "@/previewPaneCodeReview.js";
 
 interface PreviewPaneContentProps {
   source: CodeViewerSource;
@@ -62,16 +59,6 @@ interface PreviewPaneContentProps {
   markdownViewMode: "preview" | "code";
   svgViewMode: "preview" | "code";
   wrapLongLines: boolean;
-  codeComments: readonly CodeCommentPreview[];
-  enableCodeLineSelection?: boolean;
-  enableCodeGutterUtility?: boolean;
-  codeCommentLabels: CodeCommentLabels;
-  onSubmitCodeComment?: (params: {
-    range: CodeCommentRange;
-    selectedText: string;
-    comment: string;
-  }) => void;
-  onDeleteCodeComment?: (commentId: string) => void;
   onScroll?: UIEventHandler<HTMLDivElement>;
   scrollContainerRef?: Ref<HTMLDivElement>;
 }
@@ -122,12 +109,6 @@ export function PreviewPaneContent({
   markdownViewMode,
   svgViewMode,
   wrapLongLines,
-  codeComments,
-  enableCodeLineSelection = false,
-  enableCodeGutterUtility = false,
-  codeCommentLabels,
-  onSubmitCodeComment,
-  onDeleteCodeComment,
   onScroll,
   scrollContainerRef,
 }: PreviewPaneContentProps) {
@@ -226,12 +207,6 @@ export function PreviewPaneContent({
         codeTheme={codeTheme}
         theme={theme}
         wrapLongLines={wrapLongLines}
-        comments={codeComments}
-        enableLineSelection={enableCodeLineSelection}
-        enableGutterUtility={enableCodeGutterUtility}
-        labels={codeCommentLabels}
-        onSubmitCodeComment={onSubmitCodeComment}
-        onDeleteCodeComment={onDeleteCodeComment}
         onScroll={onScroll}
         scrollContainerRef={scrollContainerRef}
       />
@@ -404,13 +379,9 @@ export function PreviewPaneContent({
   }
 
   const fileLanguage = inferCodeLanguage(source.path, filePreview.content);
-  const codeReviewProjection =
-    source.type === "code-review"
-      ? resolveCodeReviewContentProjection(source, filePreview.content)
-      : null;
   const isMarkdownFile = fileLanguage === "markdown";
   const isSvgFile = isSvgPath(source.path);
-  if (source.type !== "code-review" && isMarkdownFile && markdownViewMode === "preview") {
+  if (isMarkdownFile && markdownViewMode === "preview") {
     return (
       <MarkdownPreviewContent
         selectionTarget={markdownSelectionTarget}
@@ -424,7 +395,7 @@ export function PreviewPaneContent({
     );
   }
 
-  if (source.type !== "code-review" && isSvgFile && svgViewMode === "preview") {
+  if (isSvgFile && svgViewMode === "preview") {
     return <SvgPreviewContent title={source.title} svgContent={filePreview.content} />;
   }
 
@@ -436,21 +407,6 @@ export function PreviewPaneContent({
       codeTheme={codeTheme}
       theme={theme}
       wrapLongLines={wrapLongLines}
-      comments={codeReviewProjection?.inlineComments ?? codeComments}
-      topComment={codeReviewProjection?.topComment}
-      topCommentShowRange={false}
-      topCommentNotice={
-        codeReviewProjection?.targetLineOutOfRange
-          ? intl.formatMessage({ id: "codeViewer.review.targetLineMissing" })
-          : undefined
-      }
-      focusedRange={codeReviewProjection?.focusedRange}
-      focusRequestId={source.type === "code-review" ? source.review.requestId : undefined}
-      enableLineSelection={source.type === "code-review" ? false : enableCodeLineSelection}
-      enableGutterUtility={source.type === "code-review" ? false : enableCodeGutterUtility}
-      labels={codeCommentLabels}
-      onSubmitCodeComment={source.type === "code-review" ? undefined : onSubmitCodeComment}
-      onDeleteCodeComment={source.type === "code-review" ? undefined : onDeleteCodeComment}
       onScroll={onScroll}
       scrollContainerRef={scrollContainerRef}
     />

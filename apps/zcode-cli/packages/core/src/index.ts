@@ -182,5 +182,5 @@ export type {
   LogEntry,
   SessionEvent,
   SessionEventSink,
-} from "@zcode/contracts";
-export { LogLevel, SessionEventType } from "@zcode/contracts";
+} from "@social-harness/contracts";
+export { LogLevel, SessionEventType } from "@social-harness/contracts";

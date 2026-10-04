@@ -28,6 +28,8 @@ export * from "./interfaces/model-catalog.port.js";
 export * from "./interfaces/automation.port.js";
 export * from "./interfaces/off-peak.port.js";
 export * from "./interfaces/mcp.port.js";
+export * from "./interfaces/social-project.port.js";
+export * from "./interfaces/social-agent.port.js";
 
 export * from "./interfaces/runtime-input-presentation.js";
 
@@ -98,9 +100,9 @@ export {
   MEDIA_BUDGET_CURRENT_IMAGE_TOO_LARGE_ERROR_CODE,
   MEDIA_BUDGET_CURRENT_VIDEO_TOO_LARGE_ERROR_CODE,
   VIDEO_INPUT_MAX_BYTES,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 
 export * from "./tracing/local-turn-preparation.js";
-export type { LocalTtftDetail } from "@zcode/shared";
+export type { LocalTtftDetail } from "@social-harness/shared";
 
 export * from "./interfaces/permission-full-access.js";

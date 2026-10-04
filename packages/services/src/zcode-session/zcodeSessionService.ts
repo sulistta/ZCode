@@ -6,7 +6,7 @@ import {
   createSessionTraceId,
   type ZCodeSessionStateSnapshot,
   type ZCodeWorkspaceTaskListChanged,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type {
   IZCodeSessionService,
   ZCodeSessionCreateParams,

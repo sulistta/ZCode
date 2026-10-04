@@ -1,4 +1,4 @@
-import type { FilePart } from "@zcode/contracts";
+import type { FilePart } from "@social-harness/contracts";
 import { createPartId } from "../deps.js";
 import type {
   MessageId,

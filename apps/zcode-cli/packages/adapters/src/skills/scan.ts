@@ -20,12 +20,12 @@
 // 文件接触点都要记得校验（文件级链接、跨盘符 relative 谓词、manifest 失败回退均成
 // 缺口）。收敛为单一规则：插件扫描一律不跟随符号链接——根自身、子目录候选、
 // SKILL.md 文件三个粒度全部拒绝链接（拒绝即无逃逸，无需判定链接指向何处）。
-// 用户级技能根（~/.zcode/skills 的 symlink 导入是受支持功能）保持默认跟随。
+// 全局技能根（Social Harness data-root/skills 的 symlink 导入是受支持功能）保持默认跟随。
 
 import { lstatSync, readdirSync, statSync } from "node:fs";
 import { lstat, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { SKILL_FILE_NAME, shouldWalkSkillDirectoryEntry } from "@zcode/shared";
+import { SKILL_FILE_NAME, shouldWalkSkillDirectoryEntry } from "@social-harness/shared";
 
 interface ScanSkillFilesOptions {
   /**

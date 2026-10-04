@@ -4,11 +4,11 @@ import type {
   WorkspaceHookReasonCode,
   WorkspaceHookSecurityRevision,
   WorkspaceHookTrustRecord,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import {
   workspaceHookPolicySchema,
   workspaceHookTrustRecordSchema,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import { evaluateWorkspaceHookEntry, trustKey } from "./workspace-hook-trust-evaluation.js";
 import {
   InMemoryWorkspaceHookPolicyProvider,

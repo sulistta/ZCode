@@ -1,20 +1,18 @@
 /* eslint-disable max-lines -- autoUpdater 需要集中维护 Electron 事件、菜单状态与 IPC 交互，过度拆分会让更新状态流更难追踪 */
-import type { ISettingService } from "@zcode/services";
+import type { ISettingService } from "@social-harness/services";
 import {
   DEFAULT_LOCALE,
-  DEFAULT_ZCODE_ENDPOINT_ORIGIN,
   desktopMenuMessageIds,
   formatDesktopMenuMessage,
   getDesktopMenuMessage,
   PlatformChannels,
-  resolveRuntimeZCodeEndpointOrigin,
-  ZCODE_VERSION,
+  SOCIAL_HARNESS_VERSION,
   type ElectronReleaseChannel,
   type Locale,
   type PostUpdateReleaseNotesPayload,
   type UpdateCheckResultPayload,
   type UpdateStatePayload,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { app, BrowserWindow, ipcMain, Menu } from "electron";
 import pkg, { CancellationToken } from "electron-updater";
 import semver from "semver";
@@ -24,12 +22,12 @@ const { autoUpdater } = pkg;
 
 export const CHECK_FOR_UPDATE_MENU_ID = "check-for-update";
 const AUTO_UPDATE_POLL_INTERVAL_MS = 60 * 60 * 1000;
-const UPDATE_FEED_URL_ENV = "ZCODE_UPDATE_FEED_URL";
-const UPDATE_FEED_URL_SWITCH = "--zcode-update-feed-url";
-const DEV_AUTO_UPDATE_ENV = "ZCODE_AUTO_UPDATE_DEV";
-const DEV_AUTO_UPDATE_SWITCH = "--zcode-auto-update-dev";
-const DEV_AUTO_UPDATE_VERSION_ENV = "ZCODE_AUTO_UPDATE_DEV_VERSION";
-const DEV_AUTO_UPDATE_VERSION_SWITCH = "--zcode-auto-update-dev-version";
+const UPDATE_FEED_URL_ENV = "SOCIAL_HARNESS_UPDATE_FEED_URL";
+const UPDATE_FEED_URL_SWITCH = "--social-harness-update-feed-url";
+const DEV_AUTO_UPDATE_ENV = "SOCIAL_HARNESS_AUTO_UPDATE_DEV";
+const DEV_AUTO_UPDATE_SWITCH = "--social-harness-auto-update-dev";
+const DEV_AUTO_UPDATE_VERSION_ENV = "SOCIAL_HARNESS_AUTO_UPDATE_DEV_VERSION";
+const DEV_AUTO_UPDATE_VERSION_SWITCH = "--social-harness-auto-update-dev-version";
 let readyUpdateVersion: string | null = null;
 let readyUpdateReleaseNotes: PostUpdateReleaseNotesPayload | null = null;
 let readyUpdateRestoredFromPendingReleaseNotes = false;
@@ -73,7 +71,7 @@ type UpdateDownloadedInfoLike = {
   path?: string | null;
   files?: Array<{ url?: string | null } | null> | null;
   packages?: Record<string, { path?: string | null } | null> | null;
-  zcodeReleaseChannel?: ElectronReleaseChannel | null;
+  socialHarnessReleaseChannel?: ElectronReleaseChannel | null;
   releaseName?: string | null;
   releaseNotes?: string | ReleaseNoteInfoLike[] | null;
   releaseDate?: string | Date | null;
@@ -114,8 +112,6 @@ interface InitAutoUpdaterOptions {
   settingService?: SettingServiceLike;
   locale?: Locale;
   updateFeedSource?: RuntimeUpdateFeedSource;
-  deviceMid?: string;
-  resolveEndpointOrigin?: () => string | Promise<string>;
 }
 
 let quitAndInstallInFlight = false;
@@ -167,7 +163,7 @@ function resolveDevAutoUpdateVersion(): string | null {
   const configuredVersion =
     process.env[DEV_AUTO_UPDATE_VERSION_ENV]?.trim() ||
     readCommandLineSwitchValue(DEV_AUTO_UPDATE_VERSION_SWITCH)?.trim() ||
-    ZCODE_VERSION;
+    SOCIAL_HARNESS_VERSION;
   const parsed = semver.parse(configuredVersion);
   if (!parsed) {
     logger.warn(`[auto-update] ignore invalid dev update version=${configuredVersion}`);
@@ -241,8 +237,9 @@ function getAutoUpdaterReleaseChannelForCurrentState(): ElectronReleaseChannel {
 function readUpdateInfoReleaseChannel(
   info: UpdateDownloadedInfoLike,
 ): ElectronReleaseChannel | null {
-  return info.zcodeReleaseChannel === "preview" || info.zcodeReleaseChannel === "stable"
-    ? info.zcodeReleaseChannel
+  return info.socialHarnessReleaseChannel === "preview" ||
+    info.socialHarnessReleaseChannel === "stable"
+    ? info.socialHarnessReleaseChannel
     : null;
 }
 
@@ -753,15 +750,14 @@ async function syncAutoUpdateCheckChannelFromSettings(
 
 function applyManifestUpdateProvider(options: InitAutoUpdaterOptions): void {
   const manifestUrl = options.updateFeedSource?.url.trim();
+  if (!manifestUrl) {
+    throw new Error("Social Harness update feed URL is required");
+  }
   autoUpdater.setFeedURL({
     provider: "custom",
     updateProvider: ManifestUpdateProvider,
-    endpointOrigin: DEFAULT_ZCODE_ENDPOINT_ORIGIN,
-    ...(manifestUrl ? { manifestUrl } : {}),
+    manifestUrl,
     releasePlatform: getElectronReleasePlatform(),
-    deviceMid: options.deviceMid,
-    resolveEndpointOrigin:
-      options.resolveEndpointOrigin ?? (() => resolveRuntimeZCodeEndpointOrigin(process.env)),
     resolveReleaseChannel: async () => {
       availableUpdateChannel = await resolveUpdateReleaseChannel(options.settingService);
       return availableUpdateChannel;
@@ -1466,7 +1462,18 @@ export async function initAutoUpdater(options: InitAutoUpdaterOptions = {}): Pro
       clearInterval(autoUpdatePollTimer);
       autoUpdatePollTimer = null;
     }
+    setAutoUpdaterMenuState({ kind: "idle", enabled: false });
     logger.info("[auto-update] disabled for this desktop product flavor");
+    return;
+  }
+  if (!options.updateFeedSource?.url.trim()) {
+    autoUpdaterDisabledForProductFlavor = true;
+    if (autoUpdatePollTimer) {
+      clearInterval(autoUpdatePollTimer);
+      autoUpdatePollTimer = null;
+    }
+    setAutoUpdaterMenuState({ kind: "idle", enabled: false });
+    logger.info("[auto-update] disabled: Social Harness update feed is not configured");
     return;
   }
   autoUpdaterDisabledForProductFlavor = false;

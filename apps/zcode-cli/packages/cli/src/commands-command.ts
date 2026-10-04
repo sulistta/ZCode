@@ -1,16 +1,16 @@
-import { formatJson } from "@zcode/core";
-import type { Logger } from "@zcode/contracts";
-import type { GlobalOptions, RunContext } from "@zcode/shared-types";
+import { formatJson } from "@social-harness/core";
+import type { Logger } from "@social-harness/contracts";
+import type { GlobalOptions, RunContext } from "@social-harness/shared-types";
 import type {
   inspectZCodeCustomCommand,
   InspectZCodeCustomCommandOptions,
   listZCodeCustomCommands,
   ListZCodeCustomCommandsOptions,
   ZCodeCustomCommandInspection,
-} from "@zcode/bootstrap";
+} from "@social-harness/bootstrap";
 import type { CliEnv } from "./env.js";
 
-type BootstrapModule = typeof import("@zcode/bootstrap");
+type BootstrapModule = typeof import("@social-harness/bootstrap");
 type CustomCommandListOutcome = Awaited<ReturnType<typeof listZCodeCustomCommands>>;
 type CustomCommandListItem = CustomCommandListOutcome["commands"][number];
 
@@ -27,7 +27,7 @@ interface CommandsCommandDependencies {
   logger?: Logger;
 }
 
-const COMMANDS_COMMAND_USAGE = "Usage: zcode commands [list|inspect <name>]";
+const COMMANDS_COMMAND_USAGE = "Usage: social-harness commands [list|inspect <name>]";
 
 export async function runCommandsCommand(
   ctx: RunContext,
@@ -108,13 +108,13 @@ async function runCommandsInspectCommand(
 
 async function resolveListCustomCommands(deps: CommandsCommandDependencies) {
   if (deps.listCustomCommands) return deps.listCustomCommands;
-  const bootstrap = deps.loadBootstrapModule ?? (() => import("@zcode/bootstrap"));
+  const bootstrap = deps.loadBootstrapModule ?? (() => import("@social-harness/bootstrap"));
   return (await bootstrap()).listZCodeCustomCommands;
 }
 
 async function resolveInspectCustomCommand(deps: CommandsCommandDependencies) {
   if (deps.inspectCustomCommand) return deps.inspectCustomCommand;
-  const bootstrap = deps.loadBootstrapModule ?? (() => import("@zcode/bootstrap"));
+  const bootstrap = deps.loadBootstrapModule ?? (() => import("@social-harness/bootstrap"));
   return (await bootstrap()).inspectZCodeCustomCommand;
 }
 

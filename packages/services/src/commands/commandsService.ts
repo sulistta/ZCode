@@ -4,8 +4,8 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
-  ZCODE_COMMAND_AGENT_SOURCE,
-  ZCODE_COMMAND_AGENT_SOURCES,
+  SOCIAL_HARNESS_COMMAND_AGENT_SOURCE,
+  SOCIAL_HARNESS_COMMAND_AGENT_SOURCES,
   type CommandAgentSource,
   type CommandCreateParams,
   type CommandDeleteParams,
@@ -18,11 +18,12 @@ import {
   type SettingsDirectorySource,
   type UserCommand,
   type ZCodeCommand,
-} from "@zcode/shared";
-import { DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS } from "@zcode/shared";
+} from "@social-harness/shared";
+import { DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS } from "@social-harness/shared";
 import type { ICommandsService } from "./commands.js";
 import { CommandFileParser, type CommandFileFormat } from "./commandFileParser.js";
 import { readInstalledPluginRoots } from "#src/plugins/installedPluginRoots.js";
+import { getSocialHarnessDataRootDir } from "#src/paths.js";
 
 function resolveUserHomeDir() {
   const envHome = process.env.HOME?.trim() || process.env.USERPROFILE?.trim();
@@ -40,19 +41,20 @@ interface CommandAgentSourceDescriptor {
   supportsArgumentHint: boolean;
 }
 
-const DEFAULT_COMMAND_AGENT_SOURCE: CommandAgentSource = ZCODE_COMMAND_AGENT_SOURCE;
-const COMMAND_AGENT_SOURCE_ORDER: readonly CommandAgentSource[] = ZCODE_COMMAND_AGENT_SOURCES;
+const DEFAULT_COMMAND_AGENT_SOURCE: CommandAgentSource = SOCIAL_HARNESS_COMMAND_AGENT_SOURCE;
+const COMMAND_AGENT_SOURCE_ORDER: readonly CommandAgentSource[] =
+  SOCIAL_HARNESS_COMMAND_AGENT_SOURCES;
 const ENABLE_OVERRIDE_KEY = "enable";
 const HOME_PREFIX = "~/";
-const ZCODE_OFFICIAL_PLUGIN_MARKETPLACE = "zcode-plugins-official";
-const ZCODE_INLINE_PLUGIN_MARKETPLACE = "inline";
-const ZCODE_PLUGIN_MANIFEST_PATH = join(".zcode-plugin", "plugin.json");
+const SOCIAL_HARNESS_OFFICIAL_PLUGIN_MARKETPLACE = "zcode-plugins-official";
+const SOCIAL_HARNESS_INLINE_PLUGIN_MARKETPLACE = "inline";
+const SOCIAL_HARNESS_PLUGIN_MANIFEST_PATH = join(".zcode-plugin", "plugin.json");
 const CLAUDE_PLUGIN_MANIFEST_PATH = join(".claude-plugin", "plugin.json");
 const CODEX_PLUGIN_MANIFEST_PATH = join(".codex-plugin", "plugin.json");
-const ZCODE_COMMAND_DESCRIPTOR: CommandAgentSourceDescriptor = {
+const SOCIAL_HARNESS_COMMAND_DESCRIPTOR: CommandAgentSourceDescriptor = {
   agentSource: "zcodeAgent",
   directorySource: "zcode",
-  userDirectorySegments: [".zcode", "commands"],
+  userDirectorySegments: ["commands"],
   workspaceDirectorySegments: [".zcode", "commands"],
   fileExtension: ".md",
   format: "markdown",
@@ -61,13 +63,13 @@ const ZCODE_COMMAND_DESCRIPTOR: CommandAgentSourceDescriptor = {
 };
 
 const COMMAND_AGENT_SOURCE_DESCRIPTORS: Record<CommandAgentSource, CommandAgentSourceDescriptor> = {
-  zcodeAgent: ZCODE_COMMAND_DESCRIPTOR,
+  zcodeAgent: SOCIAL_HARNESS_COMMAND_DESCRIPTOR,
 };
 
 const COMMAND_DIRECTORY_SOURCE_DESCRIPTORS: readonly CommandAgentSourceDescriptor[] = [
-  ZCODE_COMMAND_DESCRIPTOR,
+  SOCIAL_HARNESS_COMMAND_DESCRIPTOR,
   {
-    ...ZCODE_COMMAND_DESCRIPTOR,
+    ...SOCIAL_HARNESS_COMMAND_DESCRIPTOR,
     directorySource: "agents",
     userDirectorySegments: [".agents", "commands"],
     workspaceDirectorySegments: [".agents", "commands"],
@@ -82,11 +84,11 @@ function getCommandSourceDescriptor(
 
 function getUserCommandsRoot(agentSource?: CommandAgentSource): string {
   const descriptor = getCommandSourceDescriptor(agentSource);
-  return join(resolveUserHomeDir(), ...descriptor.userDirectorySegments);
+  return getUserCommandsRootForDescriptor(descriptor);
 }
 
 function getUserCliConfigPath(): string {
-  return join(resolveUserHomeDir(), ".zcode", "cli", "config.json");
+  return join(getSocialHarnessDataRootDir(), "cli", "config.json");
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -203,7 +205,7 @@ function readStorageDirFromConfig(config: Record<string, unknown>): string {
   const storage = isRecord(config.storage) ? config.storage : {};
   return typeof storage.dir === "string" && storage.dir.trim().length > 0
     ? storage.dir
-    : "~/.zcode";
+    : getSocialHarnessDataRootDir();
 }
 
 function readPluginConfigFromConfig(config: Record<string, unknown>): PluginConfigSummary {
@@ -256,7 +258,7 @@ function resolveInside(rootPath: string, rawPath: string): string | null {
 }
 
 async function scanOfficialPluginCacheRoots(pluginStorageRoot: string): Promise<string[]> {
-  const cacheRoot = join(pluginStorageRoot, "cache", ZCODE_OFFICIAL_PLUGIN_MARKETPLACE);
+  const cacheRoot = join(pluginStorageRoot, "cache", SOCIAL_HARNESS_OFFICIAL_PLUGIN_MARKETPLACE);
   let pluginEntries: string[] = [];
   try {
     pluginEntries = await readdir(cacheRoot);
@@ -316,7 +318,7 @@ async function readPluginManifest(rootPath: string): Promise<PluginManifestSumma
 
 async function findPluginManifestPath(rootPath: string): Promise<string | null> {
   for (const manifestPath of [
-    join(rootPath, ZCODE_PLUGIN_MANIFEST_PATH),
+    join(rootPath, SOCIAL_HARNESS_PLUGIN_MANIFEST_PATH),
     join(rootPath, CLAUDE_PLUGIN_MANIFEST_PATH),
     join(rootPath, CODEX_PLUGIN_MANIFEST_PATH),
   ]) {
@@ -359,12 +361,12 @@ async function resolvePluginCommandRootDescriptors(): Promise<PluginCommandRootD
   const candidates: PluginRootCandidate[] = [
     ...config.dirs.map((dir) => ({
       defaultEnabled: true,
-      marketplace: ZCODE_INLINE_PLUGIN_MARKETPLACE,
+      marketplace: SOCIAL_HARNESS_INLINE_PLUGIN_MARKETPLACE,
       rootPath: resolveConfigPath(dir),
     })),
     ...officialCacheRoots.map((rootPath) => ({
       defaultEnabled: false,
-      marketplace: ZCODE_OFFICIAL_PLUGIN_MARKETPLACE,
+      marketplace: SOCIAL_HARNESS_OFFICIAL_PLUGIN_MARKETPLACE,
       rootPath,
     })),
     ...installedRoots,
@@ -382,7 +384,7 @@ async function resolvePluginCommandRootDescriptors(): Promise<PluginCommandRootD
     // 官方 cache 时不经过 CLI resolve 的过滤，需要在这里同样跳过，否则被卸载的内置插件
     // 仍会从 cache 贡献命令。
     if (
-      candidate.marketplace === ZCODE_OFFICIAL_PLUGIN_MARKETPLACE &&
+      candidate.marketplace === SOCIAL_HARNESS_OFFICIAL_PLUGIN_MARKETPLACE &&
       config.suppressedBuiltins.includes(pluginId)
     ) {
       continue;
@@ -417,6 +419,9 @@ async function resolvePluginCommandRootDescriptors(): Promise<PluginCommandRootD
 }
 
 function getUserCommandsRootForDescriptor(descriptor: CommandAgentSourceDescriptor): string {
+  if (descriptor.directorySource === "zcode") {
+    return join(getSocialHarnessDataRootDir(), "commands");
+  }
   return join(resolveUserHomeDir(), ...descriptor.userDirectorySegments);
 }
 
@@ -527,7 +532,7 @@ export function createCommandsService(_options?: CommandsServiceOptions): IComma
     // 按每个目录交错读取 project/user 会让 user .zcode 抢在 workspace .agents 前面。
     for (const agentSource of agentSources) {
       const descriptors =
-        agentSource === ZCODE_COMMAND_AGENT_SOURCE
+        agentSource === SOCIAL_HARNESS_COMMAND_AGENT_SOURCE
           ? COMMAND_DIRECTORY_SOURCE_DESCRIPTORS
           : [getCommandSourceDescriptor(agentSource)];
 
@@ -555,7 +560,7 @@ export function createCommandsService(_options?: CommandsServiceOptions): IComma
 
     const dedupedUserCommands = dedupeCommandsByName(userCommands);
     const pluginCommands =
-      !params.agentSource || params.agentSource === ZCODE_COMMAND_AGENT_SOURCE
+      !params.agentSource || params.agentSource === SOCIAL_HARNESS_COMMAND_AGENT_SOURCE
         ? await discoverPluginCommands(enabledOverrides)
         : [];
 
@@ -834,7 +839,7 @@ async function discoverPluginCommandsRecursive(
       continue;
     }
 
-    if (!entry.toLowerCase().endsWith(ZCODE_COMMAND_DESCRIPTOR.fileExtension)) {
+    if (!entry.toLowerCase().endsWith(SOCIAL_HARNESS_COMMAND_DESCRIPTOR.fileExtension)) {
       continue;
     }
 
@@ -843,12 +848,12 @@ async function discoverPluginCommandsRecursive(
       const parsed = CommandFileParser.parseCommandFile(
         content,
         fullPath,
-        ZCODE_COMMAND_DESCRIPTOR.format,
+        SOCIAL_HARNESS_COMMAND_DESCRIPTOR.format,
       );
       if (!parsed) {
         continue;
       }
-      const name = getCommandName(rootDir, fullPath, ZCODE_COMMAND_DESCRIPTOR);
+      const name = getCommandName(rootDir, fullPath, SOCIAL_HARNESS_COMMAND_DESCRIPTOR);
       const commandKey = fullPath.replaceAll("\\", "/").toLowerCase();
       if (options.seenFilePaths.has(commandKey)) {
         continue;

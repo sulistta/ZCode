@@ -1,21 +1,19 @@
 /* eslint-disable max-lines -- 远端部署入口集中编排 server/node/agent/tool 资源，拆分需单独整理边界。 */
 import { join } from "node:path";
 import {
-  ZCODE_VERSION,
+  SOCIAL_HARNESS_VERSION,
   formatLogPrefix,
   normalizeRemoteResourcePackageSelection,
   type RemoteAssetInstallMode,
-  type RemoteResourcePackageId,
   type RemoteResourcePackageSelection,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type { IRemoteBackend, RemoteEnvironment } from "./backend.js";
 import { deployZCodeAgentRuntime } from "./zcodeAgentDeploy.js";
 import {
-  deployNodePtyPrebuilds,
   deployNodeRuntime,
   createRemoteComponentVersionResolver,
   logDeployRequired,
-} from "@zcode/server/remote/remoteAssetDeployDecision.js";
+} from "@social-harness/server/remote/remoteAssetDeployDecision.js";
 import {
   REMOTE_BASE,
   fileExists,
@@ -23,34 +21,34 @@ import {
   formatOptionalValues,
   type DeployLoggers,
   type RemoteAssetDeployOptions,
-} from "@zcode/server/remote/deployShared.js";
-import { quotePosixPathArg } from "@zcode/server/remote/posixShell.js";
-import { checkServerBundleRequiredMarkers } from "@zcode/server/remote/serverBundleDeployCheck.js";
-import { deployRuntimeTools } from "@zcode/server/remote/runtimeToolDeploy.js";
-import { REMOTE_AGENT_OFFICIAL_PLUGIN_REQUIRED_RELATIVE_PATHS } from "@zcode/server/remote/zcodeAgentOfficialPluginAssets.js";
+} from "@social-harness/server/remote/deployShared.js";
+import { quotePosixPathArg } from "@social-harness/server/remote/posixShell.js";
+import { checkServerBundleRequiredMarkers } from "@social-harness/server/remote/serverBundleDeployCheck.js";
+import { deployRuntimeTools } from "@social-harness/server/remote/runtimeToolDeploy.js";
+import { REMOTE_AGENT_OFFICIAL_PLUGIN_REQUIRED_RELATIVE_PATHS } from "@social-harness/server/remote/zcodeAgentOfficialPluginAssets.js";
 import {
   ensureRemoteReleaseDirFromCdn,
   selectRemoteAssetManifestComponents,
   type RemoteAssetManifestRef,
-} from "@zcode/server/remote/remoteAssetCache.js";
+} from "@social-harness/server/remote/remoteAssetCache.js";
 import {
   fetchRemoteDownloadManifest,
   LocalUploadAssetInstaller,
   RemoteDownloadAssetInstaller,
   type RemoteAssetInstaller,
   type RemoteManifestRef,
-} from "@zcode/server/remote/remoteAssetInstaller.js";
+} from "@social-harness/server/remote/remoteAssetInstaller.js";
 import {
   checkRemoteAssetComponentIdentity,
   createFreshRemoteAssetManifestRefResolver,
   hasRemoteAssetComponentRefreshPending,
   markRemoteAssetComponentRefreshPending,
   writeRemoteAssetComponentMeta,
-} from "@zcode/server/remote/remoteAssetLiveIdentity.js";
-import { detectRemoteAssetTools } from "@zcode/server/remote/remoteAssetPreflight.js";
-import { assertSupportedRemoteEnvironment } from "@zcode/server/remote/remotePlatformSupport.js";
-import { acquireRemoteDeployLock } from "@zcode/server/remote/remoteDeployLock.js";
-import type { RemoteAssetNetworkPort } from "@zcode/server/remote/remoteAssetNetwork.js";
+} from "@social-harness/server/remote/remoteAssetLiveIdentity.js";
+import { detectRemoteAssetTools } from "@social-harness/server/remote/remoteAssetPreflight.js";
+import { assertSupportedRemoteEnvironment } from "@social-harness/server/remote/remotePlatformSupport.js";
+import { acquireRemoteDeployLock } from "@social-harness/server/remote/remoteDeployLock.js";
+import type { RemoteAssetNetworkPort } from "@social-harness/server/remote/remoteAssetNetwork.js";
 
 const log = (...args: unknown[]) => console.log(formatLogPrefix("deploy", process.pid), ...args);
 const logWarn = (...args: unknown[]) =>
@@ -88,7 +86,7 @@ export interface DeployOptions {
 
 /**
  * Deploy the zcode server to the remote machine.
- * Uploads Node.js binary, server bundle, and node-pty prebuild.
+ * Uploads the Node.js runtime and server bundle.
  *
  * Returns true if a deploy was performed, false if skipped (version matches).
  */
@@ -100,8 +98,6 @@ export async function deployServer(
   const platformArch = `${env.platform}-${env.arch}`;
   assertSupportedRemoteEnvironment(env);
   const selectedResourcePackageIds = normalizeRemoteResourcePackageSelection();
-  const shouldDeployResourcePackage = (packageId: RemoteResourcePackageId): boolean =>
-    selectedResourcePackageIds.includes(packageId);
   const componentResolverOptions = {
     mockCdnDir: options?.mockCdnDir,
     remoteCdnBaseUrl: options?.remoteCdnBaseUrl,
@@ -127,7 +123,7 @@ export async function deployServer(
   const getRemoteManifestRef = (): Promise<RemoteManifestRef> => {
     remoteManifestPromise ??= fetchRemoteDownloadManifest(
       {
-        version: ZCODE_VERSION,
+        version: SOCIAL_HARNESS_VERSION,
         platformArch,
         remoteCdnBaseUrl: options?.remoteCdnBaseUrl,
         remoteCdnBaseUrls: options?.remoteCdnBaseUrls,
@@ -221,7 +217,7 @@ export async function deployServer(
     {
       ...assetDeployOptions,
       platformArch,
-      version: ZCODE_VERSION,
+      version: SOCIAL_HARNESS_VERSION,
       assetInstallMode: options?.assetInstallMode,
     },
     { log, logWarn },
@@ -267,7 +263,7 @@ export async function deployServer(
       await markRemoteAssetComponentRefreshPending(backend, {
         componentId: "glm",
         platformArch,
-        appVersion: ZCODE_VERSION,
+        appVersion: SOCIAL_HARNESS_VERSION,
       });
     }
 
@@ -276,19 +272,6 @@ export async function deployServer(
       log("skipped — remote version matches");
       // 主 server 版本相同只证明 node/zcode-server.cjs 可启动，不代表随包工具仍存在。
       // glm 内容跟随 app/server 版本刷新；但 wrapper/bundle 被清理或开发态 bundle 变化时仍要按实体检查修复。
-      if (shouldDeployResourcePackage("node-pty")) {
-        await deployNodePtyPrebuilds(
-          backend,
-          env,
-          {
-            ...assetDeployOptions,
-            platformArch,
-            onlyIfMissing: true,
-            installer,
-          },
-          { log, logWarn },
-        );
-      }
       await deployZCodeAgentRuntime(
         backend,
         env,
@@ -351,22 +334,6 @@ export async function deployServer(
       });
     }
     log("server install done");
-
-    if (shouldDeployResourcePackage("node-pty")) {
-      await deployNodePtyPrebuilds(
-        backend,
-        env,
-        {
-          ...assetDeployOptions,
-          platformArch,
-          force: Boolean(options?.force),
-          onlyIfMissing: false,
-          installer,
-          expectedVersion: await getExpectedComponentVersion("node-pty"),
-        },
-        { log, logWarn },
-      );
-    }
 
     log("all uploads complete");
 
@@ -513,11 +480,11 @@ async function checkServerDeployDecision(
       `${quotePosixPathArg(nodePath)} ${quotePosixPathArg(serverPath)} --version`,
     );
     const version = (await collectStdout(stream)).trim();
-    log("remote version:", JSON.stringify(version), "local:", ZCODE_VERSION);
-    if (version !== ZCODE_VERSION) {
+    log("remote version:", JSON.stringify(version), "local:", SOCIAL_HARNESS_VERSION);
+    if (version !== SOCIAL_HARNESS_VERSION) {
       return {
         shouldDeploy: true,
-        reason: `remote server version mismatch remote=${version} expected=${ZCODE_VERSION}`,
+        reason: `remote server version mismatch remote=${version} expected=${SOCIAL_HARNESS_VERSION}`,
         appVersionChanged: true,
       };
     }
@@ -620,7 +587,7 @@ function resolveMockCdnReleaseDir(mockCdnDir?: string): string | null {
     return null;
   }
 
-  return join(mockCdnDir, "releases", ZCODE_VERSION);
+  return join(mockCdnDir, "releases", SOCIAL_HARNESS_VERSION);
 }
 
 async function resolveReleaseDir(
@@ -669,7 +636,7 @@ async function resolveReleaseDir(
       remoteCdnBaseUrl: options?.remoteCdnBaseUrl,
       remoteCdnBaseUrls: options?.remoteCdnBaseUrls,
       remoteCacheDir: options?.remoteCacheDir,
-      version: ZCODE_VERSION,
+      version: SOCIAL_HARNESS_VERSION,
       platformArch,
       componentIds,
       manifestRef,
@@ -722,14 +689,8 @@ function resolveRequiredMockReleasePaths(
       case "node-runtime":
         requiredPaths.add(`node/${platformArch}/node`);
         break;
-      case "node-pty":
-        requiredPaths.add(`node-pty/${platformArch}/pty.node`);
-        if (platformArch.startsWith("darwin-")) {
-          requiredPaths.add(`node-pty/${platformArch}/spawn-helper`);
-        }
-        break;
       case "glm":
-        requiredPaths.add(`glm/${platformArch}/zcode.cjs`);
+        requiredPaths.add(`glm/${platformArch}/social-harness.cjs`);
         for (const relativePath of REMOTE_AGENT_OFFICIAL_PLUGIN_REQUIRED_RELATIVE_PATHS) {
           requiredPaths.add(`glm/${platformArch}/packages/${relativePath}`);
         }

@@ -1,6 +1,6 @@
-# @zcode/prompt-trajectory
+# @social-harness/prompt-trajectory
 
-OpenAI protocol trajectory recorder for inspecting zcode-cli prompt assembly.
+OpenAI protocol trajectory recorder for inspecting the Social Harness headless Agent prompt assembly.
 
 This tool lives under `tools/` so it is available in the pnpm workspace but stays out of
 the production CLI and SEA packaging path.
@@ -8,22 +8,22 @@ the production CLI and SEA packaging path.
 ## Commands
 
 ```bash
-pnpm --filter @zcode/bootstrap^... build
-pnpm --filter @zcode/bootstrap build
+pnpm --filter @social-harness/bootstrap^... build
+pnpm --filter @social-harness/bootstrap build
 
-pnpm --filter @zcode/prompt-trajectory record -- \
+pnpm --filter @social-harness/prompt-trajectory record -- \
   --fixture /path/to/recording.json \
-  --out /tmp/zcode-prompt-trajectory/basic-live
+  --out /tmp/social-harness-prompt-trajectory/basic-live
 
-pnpm --filter @zcode/prompt-trajectory record:prompt -- \
+pnpm --filter @social-harness/prompt-trajectory record:prompt -- \
   --prompt "Say hello in one short sentence."
 
-pnpm --filter @zcode/prompt-trajectory derive -- \
-  --out /tmp/zcode-prompt-trajectory/basic-live
+pnpm --filter @social-harness/prompt-trajectory derive -- \
+  --out /tmp/social-harness-prompt-trajectory/basic-live
 
-pnpm --filter @zcode/prompt-trajectory model-io -- \
-  --input ~/.zcode/cli/debug/model-io-<session>.jsonl \
-  --out /tmp/zcode-prompt-trajectory/model-io-session
+pnpm --filter @social-harness/prompt-trajectory model-io -- \
+  --input ~/.social-harness/v1/cli/debug/model-io-<session>.jsonl \
+  --out /tmp/social-harness-prompt-trajectory/model-io-session
 ```
 
 `record` writes `/out/trajectory.jsonl` while proxying provider requests, then
@@ -39,7 +39,7 @@ it does not alter the derived trajectories. Without this option, no reference
 copy is written. Unrecognized options are rejected before recording or derivation.
 
 When `--model`, `--upstream-base-url`, and API-key flags are omitted, the recorder
-uses the same zcode model config resolution as the CLI. The upstream request is
+uses the same Social Harness model config resolution as the CLI. The upstream request is
 still proxied through the recorder; only the model provider `baseURL` is replaced
 with the local proxy URL at runtime.
 
@@ -62,7 +62,7 @@ shape.
 
 ## Model-IO Converter
 
-`model-io` reads a real ZCode `model-io-*.jsonl` file and turns the main
+`model-io` reads a real Social Harness `model-io-*.jsonl` file and turns the main
 conversation into a reusable Anthropic trajectory:
 
 ```text

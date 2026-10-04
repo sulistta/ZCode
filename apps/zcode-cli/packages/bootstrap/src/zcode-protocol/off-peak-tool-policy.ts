@@ -1,4 +1,4 @@
-import { zcodeWorkspaceUpdateOffPeakToolPolicyParamsSchema } from "@zcode/shared";
+import { zcodeWorkspaceUpdateOffPeakToolPolicyParamsSchema } from "@social-harness/shared";
 import { parseParams, type ZCodeProtocolAgentServerContext } from "./server-types.js";
 
 /**

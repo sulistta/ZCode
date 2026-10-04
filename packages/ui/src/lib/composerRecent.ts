@@ -1,6 +1,9 @@
-import { modelSelectionSchema, type ModelSelection } from "@zcode/shared/model-selection";
-import { submissionModeSchema, type SubmissionMode } from "@zcode/shared/zcode-protocol-v4";
-import type { ModelSelectionView } from "@zcode/services";
+import { modelSelectionSchema, type ModelSelection } from "@social-harness/shared/model-selection";
+import {
+  submissionModeSchema,
+  type SubmissionMode,
+} from "@social-harness/shared/zcode-protocol-v4";
+import type { ModelSelectionView } from "@social-harness/services";
 import { logger } from "@/logger.js";
 
 // 沿用旧 key，读取时兼容只保存 ModelSelection 的历史记录。

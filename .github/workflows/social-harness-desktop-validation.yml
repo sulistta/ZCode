@@ -1,0 +1,310 @@
+name: Social Harness desktop validation
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/social-harness-desktop-validation.yml
+      - apps/zcode-cli/**
+      - packages/client/**
+      - packages/desktop/**
+      - packages/opencut-core/**
+      - packages/rpc/**
+      - packages/server/**
+      - packages/services/**
+      - packages/shared/**
+      - packages/social-auth-bridge/**
+      - packages/ui/**
+      - packages/web/**
+      - scripts/**
+      - specs/social-harness*.md
+      - third-party/**
+      - mise.toml
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: social-harness-desktop-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-checks:
+    name: Static checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.14.0
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            apps/zcode-cli/pnpm-lock.yaml
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install internal headless Agent workspace dependencies
+        run: pnpm --dir apps/zcode-cli install --frozen-lockfile
+
+      - name: Test product identity and third-party review scope
+        run: node --import tsx --test scripts/social-harness-product-identity.test.mjs scripts/third-party-review-scope.test.mjs
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test user-owned Instagram bridge and provisioning
+        run: |
+          pnpm --filter @social-harness/social-auth-bridge test
+          node --import tsx --test packages/services/test/instagramConvex*.test.ts packages/services/test/instagramMediaReader.test.ts packages/services/test/socialPublishingService.test.ts packages/services/test/socialPublishingConnectionRestart.test.ts packages/services/test/socialInstagramPublicationWorkflow.test.ts packages/desktop/test/desktopInstagramCredentialVault.test.ts
+
+      - name: Typecheck internal headless Agent
+        run: pnpm --dir apps/zcode-cli typecheck
+
+      - name: Test conversational media preparation and isolation
+        run: |
+          node --import tsx --test packages/services/test/socialAgentService.test.ts packages/services/test/socialProjectService.test.ts packages/services/test/socialMediaYouTubeJobs.test.ts
+          pnpm --dir apps/zcode-cli exec node --import tsx --test packages/core/test/tool/handlers/social-agent.test.ts packages/core/test/runtime/helpers/tool-allowlist.test.ts packages/core/test/context/social-account-guidance.test.ts
+
+      - name: Test localized internal CLI help
+        run: pnpm --filter @social-harness/i18n test
+
+      - name: Lint localized internal CLI help
+        run: pnpm --filter @social-harness/i18n lint
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Check formatting
+        run: pnpm fmt:check
+
+      - name: Check changed architecture boundaries
+        run: pnpm architecture:check --changed
+
+  native-desktop-e2e:
+    name: Electron E2E (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      SOCIAL_HARNESS_SKIP_REMOTE_ASSETS: "1"
+      SOCIAL_HARNESS_E2E_NO_SANDBOX: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.14.0
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            apps/zcode-cli/pnpm-lock.yaml
+
+      - name: Resolve native runtime cache path
+        id: target
+        shell: bash
+        run: node -e 'console.log(`key=${process.platform}-${process.arch}`)' >> "$GITHUB_OUTPUT"
+
+      - name: Restore verified local runtime assets
+        uses: actions/cache@v4
+        with:
+          path: packages/desktop/bundled-tools/${{ steps.target.outputs.key }}
+          key: social-harness-runtime-${{ steps.target.outputs.key }}-${{ hashFiles('pnpm-lock.yaml', 'apps/zcode-cli/pnpm-lock.yaml', 'scripts/social-media-tools-config.mjs', 'scripts/native-search-tools-config.mjs', 'packages/desktop/scripts/prepare-ffmpeg-runtime.mjs', 'packages/desktop/scripts/prepare-social-media-tools.mjs', 'packages/desktop/scripts/prepare-whisper-runtime.mjs') }}
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install internal headless Agent workspace dependencies
+        run: pnpm --dir apps/zcode-cli install --frozen-lockfile
+
+      - name: Prepare native runtime assets
+        run: pnpm prepare:desktop-runtime
+
+      - name: Install Linux packaging and Xvfb tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends xvfb rpm xz-utils zstd libarchive-tools
+
+      - name: Verify bundled Convex provisioner with embedded Node
+        run: pnpm --filter @social-harness/desktop test:convex-runtime
+
+      - name: Run Instagram assistant Electron E2E
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum pnpm --filter @social-harness/desktop test:instagram-setup-e2e
+
+      - name: Run Instagram assistant Electron E2E
+        if: runner.os != 'Linux'
+        run: pnpm --filter @social-harness/desktop test:instagram-setup-e2e
+
+      - name: Run Social Harness account Electron E2E
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum pnpm --filter @social-harness/desktop test:social-harness-e2e
+
+      - name: Run Social Harness account Electron E2E
+        if: runner.os != 'Linux'
+        run: pnpm --filter @social-harness/desktop test:social-harness-e2e
+
+      - name: Build native Preview installer
+        shell: bash
+        env:
+          SOCIAL_HARNESS_ENV: production
+          SOCIAL_HARNESS_PREVIEW_IDENTITY: "1"
+          SOCIAL_HARNESS_PACKAGE_MAINTAINER_EMAIL: ci@social-harness.invalid
+          SOCIAL_HARNESS_PACKAGE_HOMEPAGE: https://social-harness.invalid
+        run: |
+          case "$RUNNER_OS" in
+            Linux) target_os=linux ;;
+            Windows) target_os=win ;;
+            macOS) target_os=mac ;;
+            *) echo "Unsupported runner OS: $RUNNER_OS" >&2; exit 1 ;;
+          esac
+          target_arch="$(node -p 'process.arch')"
+          pnpm build:bootstrap
+          pnpm bundle:desktop -- --os "$target_os" --arch "$target_arch" --skip-prepare --skip-build
+
+      - name: Prepare Linux AppImage smoke target
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          artifact="$(find packages/desktop/dist -maxdepth 1 -type f -name '*.AppImage' -print -quit)"
+          test -n "$artifact"
+          chmod +x "$artifact"
+          printf 'SOCIAL_HARNESS_PACKAGED_EXECUTABLE=%s/%s\n' "$GITHUB_WORKSPACE" "$artifact" >> "$GITHUB_ENV"
+
+      - name: Install Windows Preview package into a temporary directory
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem -Path "packages/desktop/dist" -Filter "*.exe" -File | Select-Object -First 1
+          if (-not $installer) { throw "Preview NSIS installer was not generated" }
+          $installRoot = Join-Path $env:RUNNER_TEMP "social-harness-preview"
+          $process = Start-Process -FilePath $installer.FullName -ArgumentList @("/S", "/D=$installRoot") -PassThru -Wait
+          if ($process.ExitCode -ne 0) { throw "Preview installer exited with code $($process.ExitCode)" }
+          $executable = Get-ChildItem -Path $installRoot -Filter "Social Harness Preview.exe" -File -Recurse | Select-Object -First 1
+          if (-not $executable) { throw "Installed Preview executable was not found under $installRoot" }
+          $entry = "SOCIAL_HARNESS_PACKAGED_EXECUTABLE=$($executable.FullName)`n"
+          [IO.File]::AppendAllText($env:GITHUB_ENV, $entry, [Text.UTF8Encoding]::new($false))
+
+      - name: Install macOS Preview package into a temporary directory
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact="$(find packages/desktop/dist -maxdepth 1 -type f -name '*.dmg' -print -quit)"
+          test -n "$artifact"
+          mount_dir="$RUNNER_TEMP/social-harness-preview-dmg"
+          install_root="$RUNNER_TEMP/social-harness-preview"
+          mkdir -p "$mount_dir" "$install_root"
+          hdiutil attach -quiet -nobrowse -readonly -mountpoint "$mount_dir" "$artifact"
+          app_source="$(find "$mount_dir" -maxdepth 2 -type d -name 'Social Harness Preview.app' -print -quit)"
+          test -n "$app_source"
+          app_target="$install_root/Social Harness Preview.app"
+          ditto "$app_source" "$app_target"
+          hdiutil detach -quiet "$mount_dir"
+          xattr -cr "$app_target"
+          executable="$app_target/Contents/MacOS/Social Harness Preview"
+          test -x "$executable"
+          printf 'SOCIAL_HARNESS_PACKAGED_EXECUTABLE=%s\n' "$executable" >> "$GITHUB_ENV"
+
+      - name: Verify packaged Convex provisioner with embedded Node
+        run: pnpm --filter @social-harness/desktop test:convex-runtime
+
+      - name: Run installed Preview package smoke
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum pnpm --filter @social-harness/desktop test:packaged-preview-smoke
+
+      - name: Run installed Preview package smoke
+        if: runner.os != 'Linux'
+        run: pnpm --filter @social-harness/desktop test:packaged-preview-smoke
+
+  social-auth-bridge-container-smoke:
+    name: Social Auth Bridge container smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Compose configuration
+        working-directory: packages/social-auth-bridge
+        run: |
+          cp .env.example .env
+          docker compose --env-file .env.example config --no-env-resolution --quiet
+
+      - name: Build and smoke-test the bridge image
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_tag="social-harness-bridge-smoke:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          container_name="social-harness-bridge-smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          volume_name="${container_name}-data"
+          cleanup() {
+            docker rm --force "$container_name" >/dev/null 2>&1 || true
+            docker volume rm "$volume_name" >/dev/null 2>&1 || true
+            docker image rm "$image_tag" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker build --file packages/social-auth-bridge/Dockerfile --tag "$image_tag" .
+          docker volume create "$volume_name" >/dev/null
+          docker run --detach \
+            --name "$container_name" \
+            --publish 127.0.0.1:18080:8080 \
+            --mount "type=volume,source=$volume_name,target=/var/lib/social-auth-bridge" \
+            --env PORT=8080 \
+            --env SOCIAL_AUTH_BRIDGE_DATA_DIR=/var/lib/social-auth-bridge \
+            --env SOCIAL_AUTH_BRIDGE_INSTAGRAM_APP_ID=100000000000000 \
+            --env SOCIAL_AUTH_BRIDGE_INSTAGRAM_APP_SECRET=dummy-local-smoke-secret \
+            --env SOCIAL_AUTH_BRIDGE_PUBLIC_BASE_URL=https://bridge-smoke.invalid \
+            "$image_tag" >/dev/null
+
+          for attempt in $(seq 1 60); do
+            if [ "$(docker inspect --format '{{.State.Running}}' "$container_name")" != true ]; then
+              docker logs "$container_name"
+              exit 1
+            fi
+            if response="$(curl --silent --show-error --fail --max-time 2 http://127.0.0.1:18080/healthz 2>/dev/null)"; then
+              test "$response" = '{"status":"ok"}'
+              break
+            fi
+            if [ "$attempt" -eq 60 ]; then
+              docker logs "$container_name"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          test "$(docker exec "$container_name" id -u)" = 1000
+          docker exec "$container_name" node -e 'const status = require("node:fs").readFileSync("/proc/1/status", "utf8"); if (status.match(/^Uid:\s+(\d+)/m)?.[1] !== "1000") process.exit(1);'
+          docker exec "$container_name" node -e 'const fs = require("node:fs"); const path = "/var/lib/social-auth-bridge"; fs.accessSync(path, fs.constants.W_OK); fs.writeFileSync(`${path}/.container-smoke-marker`, "mounted-volume");'
+          docker restart "$container_name" >/dev/null
+          for attempt in $(seq 1 30); do
+            if response="$(curl --silent --show-error --fail --max-time 2 http://127.0.0.1:18080/healthz 2>/dev/null)"; then
+              test "$response" = '{"status":"ok"}'
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              docker logs "$container_name"
+              exit 1
+            fi
+            sleep 1
+          done
+          docker exec "$container_name" node -e 'const fs = require("node:fs"); const marker = "/var/lib/social-auth-bridge/.container-smoke-marker"; if (fs.readFileSync(marker, "utf8") !== "mounted-volume") process.exit(1);'

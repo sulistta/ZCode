@@ -1,14 +1,14 @@
 import { basename, join } from "node:path";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 
-import type { ApiClient, FeedbackDeviceInfo } from "@zcode/shared";
+import type { ApiClient, FeedbackDeviceInfo } from "@social-harness/shared";
 import {
   buildRuntimeZCodeApiUrl,
-  ZCODE_BUILD_TIME,
-  ZCODE_COMMIT,
-  ZCODE_VERSION,
-} from "@zcode/shared";
-import { Emitter } from "@zcode/rpc";
+  SOCIAL_HARNESS_BUILD_TIME,
+  SOCIAL_HARNESS_COMMIT,
+  SOCIAL_HARNESS_VERSION,
+} from "@social-harness/shared";
+import { Emitter } from "@social-harness/rpc";
 import { arch, platform, release, type as osType } from "node:os";
 
 import type { ICredentialService } from "../credential/credential.js";
@@ -19,7 +19,7 @@ import { cleanupLogArchive, prepareCompactLogArchive } from "./compactLogArchive
 import { getFeedbackAttachmentDir } from "../paths.js";
 import { FeedbackLocalTicketStore } from "#src/feedback/feedbackLocalTicketStore.js";
 
-const ZCODE_JWT_TOKEN_KEY = "zcodejwttoken";
+const SOCIAL_HARNESS_JWT_TOKEN_KEY = "zcodejwttoken";
 
 export interface CreateFeedbackServiceOptions {
   credentialService: ICredentialService;
@@ -39,16 +39,16 @@ export interface CreateFeedbackServiceOptions {
 function resolveApiBaseUrl(explicit?: string): string {
   return (
     explicit?.trim() ||
-    process.env.ZCODE_FEEDBACK_API_BASE?.trim() ||
+    process.env.SOCIAL_HARNESS_FEEDBACK_API_BASE?.trim() ||
     buildRuntimeZCodeApiUrl(process.env, "/api/v1")
   );
 }
 
 function buildDeviceSnapshot(): FeedbackDeviceInfo {
   return {
-    appVersion: ZCODE_VERSION,
-    buildCommitId: ZCODE_COMMIT,
-    buildTime: ZCODE_BUILD_TIME,
+    appVersion: SOCIAL_HARNESS_VERSION,
+    buildCommitId: SOCIAL_HARNESS_COMMIT,
+    buildTime: SOCIAL_HARNESS_BUILD_TIME,
     nodeVersion: process.version,
     osType: osType(),
     osPlatform: platform(),
@@ -74,7 +74,9 @@ export function createFeedbackService(options: CreateFeedbackServiceOptions): IF
   }
 
   async function getZcodeJwtToken(): Promise<string | undefined> {
-    return (await options.credentialService.load(ZCODE_JWT_TOKEN_KEY))?.trim() || undefined;
+    return (
+      (await options.credentialService.load(SOCIAL_HARNESS_JWT_TOKEN_KEY))?.trim() || undefined
+    );
   }
 
   async function hasZcodeJwtToken(): Promise<boolean> {

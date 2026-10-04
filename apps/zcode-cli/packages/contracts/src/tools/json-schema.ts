@@ -21,11 +21,11 @@ export const TOOL_JSON_SCHEMA_VERSION = "https://json-schema.org/draft/2020-12/s
  * and provider-facing function parameters cannot drift.
  */
 export function toToolJsonSchema(schema: ZodTypeAny): JsonSchema {
-  const jsonSchema = zodToJsonSchema(schema, {
+  const jsonSchema = Reflect.apply(zodToJsonSchema, undefined, [schema, {
     $refStrategy: "none",
     effectStrategy: "input",
     target: "jsonSchema7",
-  }) as JsonSchema;
+  }]) as JsonSchema;
 
   normalizeToolJsonSchema(jsonSchema);
   jsonSchema.$schema = TOOL_JSON_SCHEMA_VERSION;

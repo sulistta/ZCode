@@ -18,7 +18,7 @@ import type {
   TraceContext,
   WorkflowEvent,
   WorkflowRunListItem,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 
 export class ExpertWorkflowRuntime {
   private readonly ctx: ExpertWorkflowRuntimeContext;

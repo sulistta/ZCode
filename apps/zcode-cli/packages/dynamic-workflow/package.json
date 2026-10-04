@@ -1,5 +1,5 @@
 {
-  "name": "@zcode/dynamic-workflow",
+  "name": "@social-harness/dynamic-workflow",
   "version": "0.1.0",
   "private": true,
   "type": "module",

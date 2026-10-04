@@ -108,12 +108,18 @@ if (command === "check") {
     process.exit(1);
   }
   await readVerifiedNotices(ROOT, { requireComplete: process.argv.includes("--strict") });
-  const reviewRequired =
-    JSON.parse(await readFile(path.join(ROOT, "third-party/inventory.json"), "utf8"))
-      .reviewRequired ?? [];
+  const inventory = JSON.parse(
+    await readFile(path.join(ROOT, "third-party/inventory.json"), "utf8"),
+  );
+  const reviewRequired = inventory.reviewRequired ?? [];
+  const developmentReviewRequired = inventory.developmentReviewRequired ?? [];
   if (reviewRequired.length)
     console.warn(
       `待补齐/核验材料 ${reviewRequired.length} 项；发布前运行 node scripts/licenses.mjs check --strict，不得将基础检查通过视为合规完成。`,
+    );
+  if (developmentReviewRequired.length)
+    console.warn(
+      `另有 ${developmentReviewRequired.length} 项材料待核验，仅属于开发依赖，不进入当前生产声明或严格发布门禁。`,
     );
   const n = installed.size;
   console.log(

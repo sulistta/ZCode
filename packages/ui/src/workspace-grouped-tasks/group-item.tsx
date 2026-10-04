@@ -2,12 +2,12 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import type { ZCodeGroupedTaskViewNode, ZCodeTaskGroupColor } from "@zcode/services";
+import type { ZCodeGroupedTaskViewNode, ZCodeTaskGroupColor } from "@social-harness/services";
 import {
   CRON_DEFAULT_GROUP_ID,
   OFF_PEAK_DEFAULT_GROUP_ID,
   type ZCodeTaskMeta,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { ChevronDownIcon, ChevronRightIcon, MessageCirclePlus } from "lucide-react";
 import { cn } from "@/components/lib/utils.js";
 import { Button } from "@/components/ui/button.js";
@@ -60,7 +60,6 @@ export function GroupItem({
   getTaskWorkspaceLabel,
   onSelectTask,
   onCloseTask,
-  onOpenFileTree,
   onCreateTask,
   hasDraftTask,
   draftTaskActive,
@@ -92,7 +91,6 @@ export function GroupItem({
   getTaskWorkspaceLabel: (task: ZCodeTaskMeta) => string;
   onSelectTask: (workspacePath: string, taskId: string, workspaceIdentity?: string) => void;
   onCloseTask: (task: ZCodeTaskMeta) => void;
-  onOpenFileTree?: (task: ZCodeTaskMeta) => void;
   onCreateTask: () => void;
   hasDraftTask?: boolean;
   draftTaskActive?: boolean;
@@ -701,7 +699,6 @@ export function GroupItem({
                     activeTaskId={activeTaskId}
                     onSelectTask={onSelectTask}
                     onCloseTask={onCloseTask}
-                    onOpenFileTree={onOpenFileTree}
                     onMoveTaskToGroup={onMoveTaskToGroup}
                     onMoveTaskToTop={onMoveTaskToTop}
                     onStartRenameTask={onStartRenameTask}
@@ -728,7 +725,6 @@ export function GroupItem({
                       activeTaskId={activeTaskId}
                       onSelectTask={onSelectTask}
                       onCloseTask={onCloseTask}
-                      onOpenFileTree={onOpenFileTree}
                       onMoveTaskToGroup={onMoveTaskToGroup}
                       onMoveTaskToTop={onMoveTaskToTop}
                       onStartRenameTask={onStartRenameTask}

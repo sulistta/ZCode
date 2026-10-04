@@ -14,7 +14,7 @@ import {
   ChannelServer,
   LoggingChannelServer,
   type ISocket,
-} from "@zcode/rpc";
+} from "@social-harness/rpc";
 import {
   ServiceCollection,
   IZCodeAgentService,
@@ -22,19 +22,18 @@ import {
   IFileService,
   IGitService,
   ISystemService,
-  ITerminalService,
   IProviderProvisioningTargetService,
-} from "@zcode/services";
+} from "@social-harness/services";
 import {
   formatLogPrefix,
   formatZodError,
   remoteTargetSchema,
   SERVER_REMOTE_PROTOCOL_VERSION,
-  ZCODE_RPC_HOST_CAPABILITY_HEADER,
-  ZCODE_VERSION,
+  SOCIAL_HARNESS_RPC_HOST_CAPABILITY_HEADER,
+  SOCIAL_HARNESS_VERSION,
   type ServerRemoteInfo,
   type ServerRemoteWorkspaceInfo,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { connectRemote, createRemoteBackend, type RemoteConnection } from "./remote/index.js";
 import { createHostCapabilityStore } from "./hostCapability.js";
 
@@ -146,7 +145,10 @@ function readTrimmedEnv(name: string): string | undefined {
 
 function resolveServerId(options: HttpServerOptions): string {
   return (
-    options.serverId?.trim() || readTrimmedEnv("ZCODE_SERVER_ID") || hostname() || "zcode-server"
+    options.serverId?.trim() ||
+    readTrimmedEnv("SOCIAL_HARNESS_SERVER_ID") ||
+    hostname() ||
+    "zcode-server"
   );
 }
 
@@ -154,7 +156,7 @@ function resolveServerWorkspaces(options: HttpServerOptions): ServerRemoteWorksp
   if (options.workspaces) {
     return options.workspaces;
   }
-  const workspacePath = readTrimmedEnv("ZCODE_SERVER_WORKSPACE") || process.cwd();
+  const workspacePath = readTrimmedEnv("SOCIAL_HARNESS_SERVER_WORKSPACE") || process.cwd();
   return [
     {
       path: workspacePath,
@@ -166,12 +168,12 @@ function resolveServerWorkspaces(options: HttpServerOptions): ServerRemoteWorksp
 function createServerInfo(options: HttpServerOptions): ServerRemoteInfo {
   return {
     serverId: resolveServerId(options),
-    ...(options.name?.trim() || readTrimmedEnv("ZCODE_SERVER_NAME")
-      ? { name: options.name?.trim() || readTrimmedEnv("ZCODE_SERVER_NAME") }
+    ...(options.name?.trim() || readTrimmedEnv("SOCIAL_HARNESS_SERVER_NAME")
+      ? { name: options.name?.trim() || readTrimmedEnv("SOCIAL_HARNESS_SERVER_NAME") }
       : {}),
-    version: ZCODE_VERSION,
+    version: SOCIAL_HARNESS_VERSION,
     protocolVersion: SERVER_REMOTE_PROTOCOL_VERSION,
-    authRequired: options.authRequired ?? Boolean(readTrimmedEnv("ZCODE_SERVER_TOKEN")),
+    authRequired: options.authRequired ?? Boolean(readTrimmedEnv("SOCIAL_HARNESS_SERVER_TOKEN")),
     workspaces: resolveServerWorkspaces(options),
     capabilities: {
       desktopContinuous: true,
@@ -334,7 +336,7 @@ export function createHttpServer(
     },
   }));
   app.use("/ws/host", async (c, next) => {
-    const capability = c.req.header(ZCODE_RPC_HOST_CAPABILITY_HEADER);
+    const capability = c.req.header(SOCIAL_HARNESS_RPC_HOST_CAPABILITY_HEADER);
     if (!hostCapabilities.consume(capability)) {
       return c.json({ error: "Invalid or expired host capability" }, 401);
     }
@@ -387,8 +389,7 @@ export function createHttpServer(
           const remoteServices = new ServiceCollection()
             .register(IFileService, connection.services.fileService)
             .register(IGitService, connection.services.gitService)
-            .register(ISystemService, connection.services.systemService)
-            .register(ITerminalService, connection.services.terminalService);
+            .register(ISystemService, connection.services.systemService);
 
           setupChannelServer(ws.raw as WebSocket, remoteServices, "web-remote-replayable");
         },

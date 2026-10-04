@@ -1,5 +1,5 @@
-import type { TuiSubmitPromptResult } from "@zcode/tui";
-import { parseModelPickerValue, type ModelSelection } from "@zcode/shared/model-selection";
+import type { CommandCenterSubmitPromptResult } from "../contracts.js";
+import { parseModelPickerValue, type ModelSelection } from "@social-harness/shared/model-selection";
 import { listAppEffortOptions } from "../effort-options.js";
 import { rememberCurrentModelSelection } from "../model-selection.js";
 import type { CommandCenterDeps, CommandCenterModelOption } from "../types.js";
@@ -8,7 +8,7 @@ export async function handleModelCommand(
   args: string,
   deps: CommandCenterDeps,
   selectedRef?: ModelSelection,
-): Promise<TuiSubmitPromptResult> {
+): Promise<CommandCenterSubmitPromptResult> {
   const app = await deps.getApp();
   const current = app.getModel?.();
   const options = app.listModels ? await app.listModels() : undefined;
@@ -33,7 +33,7 @@ export async function handleModelCommand(
   }
 
   try {
-    const selection = resolveTuiModelSelection(args, options, selectedRef);
+    const selection = resolveModelSelection(args, options, selectedRef);
     const result = await app.setModel(selection);
     const persistenceWarning = await rememberCurrentModelSelection(app, deps);
     const effortOptions = await listAppEffortOptions(app);
@@ -59,7 +59,7 @@ export async function handleModelCommand(
 }
 
 /** A deliberate new selection uses the catalog default; restored selections never pass here. */
-function resolveTuiModelSelection(
+function resolveModelSelection(
   args: string,
   options: readonly CommandCenterModelOption[],
   selectedRef?: ModelSelection,

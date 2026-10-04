@@ -5,7 +5,7 @@ import type {
   ZCodePluginInfo,
   ZCodePluginMarketplaceSummary,
   ZCodePluginStoreListing,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   sortPluginStoreEntries,
   compareDocumentPluginPriority,
@@ -14,15 +14,15 @@ import {
   isPublicStoreMarketplaceId,
   resolveLocalizedText,
   resolvePluginDisplayName,
-  ZCODE_OFFICIAL_PLUGIN_MARKETPLACE_ID,
-} from "@zcode/shared";
+  SOCIAL_HARNESS_OFFICIAL_PLUGIN_MARKETPLACE_ID,
+} from "@social-harness/shared";
 import { pluginSearchMatches } from "@/settings/pluginSearch.js";
 
 export {
   formatCanonicalPluginName,
   resolveLocalizedText,
   resolvePluginDisplayName,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 
 export { isTrustedImageUrl } from "@/lib/trustedImageUrl.js";
 export { isPublicStoreMarketplaceId };
@@ -140,7 +140,7 @@ export {
   FALLBACK_PLUGIN_STORE_CATEGORY as FALLBACK_CATEGORY,
   PLUGIN_STORE_CATEGORY_ORDER as KNOWN_CATEGORY_ORDER,
   resolvePluginStoreCategory as resolveStoreCategory,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 
 interface StoreCategoryGroup {
   category: string;
@@ -154,7 +154,9 @@ export interface PersonalMarketplaceGroup {
   items: StorePluginItem[];
 }
 
-const OFFICIAL_MARKETPLACE_ORDER: readonly string[] = [ZCODE_OFFICIAL_PLUGIN_MARKETPLACE_ID];
+const OFFICIAL_MARKETPLACE_ORDER: readonly string[] = [
+  SOCIAL_HARNESS_OFFICIAL_PLUGIN_MARKETPLACE_ID,
+];
 
 /**
  * 市场源管理排序：官方源固定置顶；自定义源按最近刷新时间倒序，未刷新过的沉底。

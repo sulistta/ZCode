@@ -1,14 +1,17 @@
-/* path 规则集中维护：旧 task 快照与 provider 配置路径仍在这里收口。 */
+/* Product data paths are centralized here; the legacy ZCode root is exposed read-only for migration guards. */
 import { lstatSync } from "node:fs";
 import { cp } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { basename, join, win32 } from "node:path";
+import { basename, isAbsolute, join, relative, resolve, sep, win32 } from "node:path";
 import { homedir } from "node:os";
-import { DATA_BASE_DIR_FORBIDDEN_WINDOWS_INSTALL_DIR_ERROR_CODE } from "@zcode/shared";
+import {
+  DATA_BASE_DIR_FORBIDDEN_WINDOWS_INSTALL_DIR_ERROR_CODE,
+  socialAccountIdSchema,
+} from "@social-harness/shared";
 
 let _dataBaseDir: string | null = null;
-export const ZCODE_WINDOWS_APP_INSTALL_DIR_ENV = "ZCODE_WINDOWS_APP_INSTALL_DIR";
-const envDataBaseDir = process.env.ZCODE_DATA_BASE_DIR?.trim() || null;
+export const SOCIAL_HARNESS_WINDOWS_APP_INSTALL_DIR_ENV = "SOCIAL_HARNESS_WINDOWS_APP_INSTALL_DIR";
+const envDataBaseDir = process.env.SOCIAL_HARNESS_DATA_BASE_DIR?.trim() || null;
 const defaultDataBaseDir = process.env.HOME?.trim() || homedir();
 
 interface DataBaseDirTargetValidationOptions {
@@ -30,7 +33,7 @@ export function setDataBaseDir(dir: string | null): void {
   _dataBaseDir = dir?.trim() || null;
 }
 
-/** Get the current base directory. Priority: setDataBaseDir() > env ZCODE_DATA_BASE_DIR > homedir(). */
+/** Get the current base directory. Priority: setDataBaseDir() > Social Harness env > homedir(). */
 export function getDataBaseDir(): string {
   if (_dataBaseDir) return _dataBaseDir;
   if (envDataBaseDir) return envDataBaseDir;
@@ -39,19 +42,54 @@ export function getDataBaseDir(): string {
   return defaultDataBaseDir;
 }
 
-/** {dataBaseDir}/.zcode */
+/** Legacy ZCode data root. Social Harness runtime paths must use getSocialHarnessDataRootDir(). */
 export function getZCodeDataRootDir(): string {
   return join(getDataBaseDir(), ".zcode");
 }
 
-/** 非项目对话共享的真实工作目录；默认 ~/.zcode/workspace/default。 */
-export function getConversationWorkspaceDir(): string {
-  return join(getZCodeDataRootDir(), "workspace", "default");
+/** Social Harness v1 data root; intentionally separate from the legacy ZCode directory. */
+export function getSocialHarnessDataRootDir(): string {
+  return join(getDataBaseDir(), ".social-harness", "v1");
 }
 
-/** {dataBaseDir}/.zcode/v2 */
+/** Non-project conversation workspace under the new Social Harness data root. */
+export function getConversationWorkspaceDir(): string {
+  return join(getSocialHarnessDataRootDir(), "workspace", "default");
+}
+
+/** Account-specific conversation cwd; account ID validation prevents path traversal. */
+export function getSocialAccountConversationWorkspacePath(accountId: string): string {
+  return join(
+    getSocialAccountConversationWorkspaceRootDir(),
+    socialAccountIdSchema.parse(accountId),
+  );
+}
+
+export function getSocialAccountConversationWorkspaceRootDir(): string {
+  return join(getSocialHarnessDataRootDir(), "social-accounts", "workspaces");
+}
+
+/** Used by the Host to reject a generic workspace request that targets account conversation data. */
+export function isSocialAccountConversationWorkspacePath(workspacePath: string): boolean {
+  const path = workspacePath.trim();
+  if (!path) return false;
+  const root = resolve(getSocialAccountConversationWorkspaceRootDir());
+  const target = resolve(path);
+  const relativePath = relative(root, target);
+  return (
+    relativePath === "" ||
+    (!isAbsolute(relativePath) && relativePath !== ".." && !relativePath.startsWith(`..${sep}`))
+  );
+}
+
+/** Social Harness application configuration directory. */
 export function getAppConfigDir(): string {
-  return join(getZCodeDataRootDir(), "v2");
+  return join(getSocialHarnessDataRootDir(), "config");
+}
+
+/** Minimal home-level pointer used before Desktop can open the selected data root. */
+export function getDataBaseDirBootstrapFilePath(homeDir: string): string {
+  return join(homeDir, ".social-harness", "v1", "config", "data-base-dir.json");
 }
 
 function readEnvValue(env: Record<string, string | undefined>, key: string): string | undefined {
@@ -112,7 +150,7 @@ function collectWindowsForbiddenAppInstallDirs(
   const localAppData = readEnvValue(env, "LOCALAPPDATA");
   const candidates = [
     options.appInstallDir,
-    readEnvValue(env, ZCODE_WINDOWS_APP_INSTALL_DIR_ENV),
+    readEnvValue(env, SOCIAL_HARNESS_WINDOWS_APP_INSTALL_DIR_ENV),
     programFiles ? win32.join(programFiles, "ZCode") : null,
     programFilesX86 ? win32.join(programFilesX86, "ZCode") : null,
     programW6432 ? win32.join(programW6432, "ZCode") : null,
@@ -159,15 +197,15 @@ export function validateDataBaseDirTarget(
 }
 
 export function getExportLogStageDir(): string {
-  return join(getZCodeDataRootDir(), "export-log-stage");
+  return join(getSocialHarnessDataRootDir(), "export-log-stage");
 }
 
 export function getExportLogDir(): string {
-  return join(getZCodeDataRootDir(), "export-log");
+  return join(getSocialHarnessDataRootDir(), "export-log");
 }
 
 export function getFeedbackRootDir(): string {
-  return join(getZCodeDataRootDir(), "feedback");
+  return join(getSocialHarnessDataRootDir(), "feedback");
 }
 
 export function getFeedbackAttachmentDir(): string {
@@ -179,10 +217,10 @@ export function getFeedbackLogArchiveDir(): string {
 }
 
 export function getGitCheckpointIndexRootDir(): string {
-  return join(getZCodeDataRootDir(), "git-checkpoint-index");
+  return join(getSocialHarnessDataRootDir(), "git-checkpoint-index");
 }
 
-/** ~/.zcode/v2/tasks-index.sqlite */
+/** Social Harness Host task index database. */
 export function getTasksIndexDatabasePath(): string {
   return join(getAppConfigDir(), "tasks-index.sqlite");
 }
@@ -192,7 +230,7 @@ function getWorkspaceKey(workspacePath: string, workspaceIdentity?: string): str
   return workspaceIdentity?.trim() || workspacePath;
 }
 
-/** 与 ZCode session 持久化一致：使用 workspaceKey 的 SHA-256 前 12 位 */
+/** Use workspaceIdentity when present to isolate remote and account-scoped sessions. */
 export function getWorkspaceHash(workspacePath: string, workspaceIdentity?: string): string {
   return createHash("sha256")
     .update(getWorkspaceKey(workspacePath, workspaceIdentity))
@@ -200,12 +238,12 @@ export function getWorkspaceHash(workspacePath: string, workspaceIdentity?: stri
     .slice(0, 12);
 }
 
-/** ~/.zcode/v2/sessions/{workspaceHash} */
+/** Social Harness workspace session directory. */
 function getTaskSessionDir(workspacePath: string, workspaceIdentity?: string): string {
   return join(getAppConfigDir(), "sessions", getWorkspaceHash(workspacePath, workspaceIdentity));
 }
 
-/** ~/.zcode/v2/sessions/{workspaceHash}/{taskId}.json */
+/** Social Harness task snapshot path. */
 export function getLegacyTaskSessionSnapshotPath(
   workspacePath: string,
   taskId: string,
@@ -214,7 +252,7 @@ export function getLegacyTaskSessionSnapshotPath(
   return join(getTaskSessionDir(workspacePath, workspaceIdentity), `${taskId}.json`);
 }
 
-/** ~/.zcode/v2/sessions/{workspaceHash}/{taskId}.deleted.json */
+/** Social Harness deleted-task marker path. */
 export function getLegacyDeletedTaskSessionSnapshotPath(
   workspacePath: string,
   taskId: string,
@@ -224,22 +262,26 @@ export function getLegacyDeletedTaskSessionSnapshotPath(
 }
 
 /**
- * Copy the .zcode/v2 data directory from one base dir to another.
- * Excludes setting.json and its transient atomic-write siblings — bootstrap
- * state must only live at the default homedir location.
+ * Copy Social Harness-owned state to another base directory. Settings are
+ * written separately at the destination, and their bootstrap pointer stays
+ * anchored to the user's default home.
  */
 export async function copyDataDirectory(oldBaseDir: string, newBaseDir: string): Promise<void> {
-  const oldDir = join(oldBaseDir, ".zcode", "v2");
-  const newDir = join(newBaseDir, ".zcode", "v2");
+  const oldDir = join(oldBaseDir, ".social-harness", "v1");
+  const newDir = join(newBaseDir, ".social-harness", "v1");
   await cp(oldDir, newDir, {
     recursive: true,
     force: false,
     filter: (source) => {
       const sourceName = basename(source);
-      if (sourceName === "setting.json" || sourceName.startsWith("setting.json.")) {
-        // setting.json.lock 和 setting.json.*.tmp 由原子写入短暂创建/删除，
-        // 复制过程中扫描到已消失的 lock 会触发 ENOENT，并让数据目录迁移失败。
-        // 这些文件都属于 bootstrap 写入中间态，不能迁移到新数据根。
+      if (
+        sourceName === "setting.json" ||
+        sourceName.startsWith("setting.json.") ||
+        sourceName === "data-base-dir.json" ||
+        sourceName.startsWith("data-base-dir.json.")
+      ) {
+        // 设置与 bootstrap pointer 由迁移事务分别写入目标；原子写入 lock/tmp
+        // 可能在扫描过程中消失，不能随通用数据树复制。
         return false;
       }
       // Windows 非提权环境下 fs.cp 无法复制符号链接（EPERM）。

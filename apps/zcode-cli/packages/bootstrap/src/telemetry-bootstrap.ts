@@ -1,9 +1,9 @@
-import { getCapturedZCodeAgentTelemetryEnv } from "@zcode/shared";
+import { getCapturedZCodeAgentTelemetryEnv } from "@social-harness/shared";
 import {
   prepareModelTelemetryEnv,
   shutdownPreparedModelTelemetry,
   type PrepareModelTelemetryOptions,
-} from "@zcode/telemetry";
+} from "@social-harness/telemetry";
 
 /**
  * 官方 CLI 异步入口在创建同步 App 之前调用；只把准备出的 device MID 放回业务 env，
@@ -18,10 +18,10 @@ export async function prepareZCodeTelemetryEnv(
     ...env,
   }, {
     ...options,
-    productVersion: options.productVersion ?? env.ZCODE_APP_VERSION,
+    productVersion: options.productVersion ?? env.SOCIAL_HARNESS_APP_VERSION,
   });
-  const deviceMid = prepared.ZCODE_TELEMETRY_DEVICE_MID;
-  return deviceMid ? { ...env, ZCODE_TELEMETRY_DEVICE_MID: deviceMid } : env;
+  const deviceMid = prepared.SOCIAL_HARNESS_TELEMETRY_DEVICE_MID;
+  return deviceMid ? { ...env, SOCIAL_HARNESS_TELEMETRY_DEVICE_MID: deviceMid } : env;
 }
 
 /**

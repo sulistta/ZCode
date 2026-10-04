@@ -1,7 +1,7 @@
-import { updateUiLocaleInFileConfig, type ConfigResult } from "@zcode/adapters/config";
-import type { AgentRuntime } from "@zcode/core";
-import { resolveLocale } from "@zcode/i18n";
-import { normalizeModelSelection, type ModelSelection } from "@zcode/provider";
+import { updateUiLocaleInFileConfig, type ConfigResult } from "@social-harness/adapters/config";
+import type { AgentRuntime } from "@social-harness/core";
+import { resolveLocale } from "@social-harness/i18n";
+import { normalizeModelSelection, type ModelSelection } from "@social-harness/provider";
 import {
   SESSION_ENTRY_MODEL_SELECTION,
   traceContextToLogContext,
@@ -22,7 +22,7 @@ import {
   type TurnInputIntentMetadata,
   type UiLocale,
   type UiThemePreference,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import { listMcpServerStatuses } from "../mcp-config.js";
 import { loadSessionTranscriptFromStore } from "../session-transcript.js";
 import { createSubagentObservation } from "./subagent-observation.js";
@@ -212,7 +212,7 @@ export function createSessionFacade(deps: CreateSessionFacadeDeps): SessionFacad
           traceContext: deps.traceContext,
         });
       }
-      // TUI 和协议客户端可能在重连或恢复后仍缓存旧 goal。
+      // 客户端可能在重连或恢复后仍缓存旧 goal。
       // 即使 session store 已经是空，也要把显式 clear 投影成 target:null，
       // 让客户端不能只因为“No goal to clear.”这条文本而继续保留旧面板。
       await deps.runtime.recordTargetChanged({

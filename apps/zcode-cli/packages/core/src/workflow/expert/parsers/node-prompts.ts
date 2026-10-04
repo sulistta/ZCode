@@ -2,7 +2,7 @@ import {
   WorkflowNodePromptUpdateSchema,
   WorkflowNodePromptUpdateSetSchema,
   type WorkflowNodePromptUpdate,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import {
   isRecord,
   parsePlannerJson,

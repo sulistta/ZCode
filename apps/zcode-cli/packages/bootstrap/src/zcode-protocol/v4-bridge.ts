@@ -14,8 +14,8 @@ import {
   parseRemoteWorkspaceIdentity,
   type ZCodeSessionContextUsage,
   type ZCodeWorkspaceRef,
-} from "@zcode/shared";
-import { createExternalTurnFaultError } from "@zcode/core";
+} from "@social-harness/shared";
+import { createExternalTurnFaultError } from "@social-harness/core";
 import {
   V4_NOTIFICATIONS,
   conversationInputIntentSchema,
@@ -25,7 +25,7 @@ import {
   type V4ConversationFileChangesResult,
   type V4ConversationFileRewindPreviewResult,
   type SessionSummary,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import { V4CommandExecutor } from "../zcode-protocol-v4/commands/executor.js";
 import { V4QueuePromotionLeaseUnavailableError } from "../zcode-protocol-v4/commands/handlers/queue.js";
 import { V4CapabilityUnsupportedError } from "../zcode-protocol-v4/commands/handlers/interaction-background.js";
@@ -65,7 +65,7 @@ import {
   SessionEventType,
   createEventId,
   createSessionId,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type {
   CollaborationMode,
   DynamicWorkflowRunProgressPayload,
@@ -80,7 +80,7 @@ import type {
   TraceId,
   TurnId,
   WorkspaceId,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import { HYDRATION_TRACE_ID } from "../zcode-protocol-v4/projection-state.js";
 import { resolveWorkspaceRefFromId } from "./mapper.js";
 import { buildLiveWorkspaceConfigStateV4 } from "./v4-workspace-config.js";
@@ -1104,6 +1104,7 @@ export function createConversationV4Gateway(
     // 语义决策（draft persistence / firstInput 走原生 prompt turn）在原生 handler。
     createSessionRecord: async ({
       workspaceId,
+      workspacePath,
       mcpServers,
       offPeakToolEnabled,
       dynamicWorkflowEnabled,
@@ -1118,7 +1119,7 @@ export function createConversationV4Gateway(
       // shared parser 统一兼容 WSL legacy 与显式 user identity；非远程格式继续按
       // 本地 workspacePath 处理。
       const created = await createSessionRecordForV4(context, {
-        workspace: resolveWorkspaceRefFromId(workspaceId),
+        workspace: resolveWorkspaceRefFromId(workspaceId, workspacePath),
         // 一律 deferred（draft 不进 sqlite）；提升时机归原生 prompt-turn。
         persistence: "deferred",
         // MCP 是 runtime 创建期配置；v4 createSession 必须与 legacy

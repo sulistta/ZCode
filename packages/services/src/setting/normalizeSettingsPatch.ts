@@ -1,4 +1,4 @@
-import type { AppSettings } from "@zcode/shared";
+import type { AppSettings } from "@social-harness/shared";
 
 export function normalizeSettingsPatch(patch: Partial<AppSettings>): Partial<AppSettings> {
   const normalizedPatch = { ...patch };
@@ -11,17 +11,6 @@ export function normalizeSettingsPatch(patch: Partial<AppSettings>): Partial<App
     // locale 现在只表示已解析后的实际语言，localePreference 才表示用户偏好。
     // 兼容旧调用只写 locale 的路径，把它视为用户显式选择固定语言，避免下一次启动又回到 system。
     normalizedPatch.localePreference = normalizedPatch.locale;
-  }
-
-  if (
-    "terminalFontFamily" in normalizedPatch &&
-    typeof normalizedPatch.terminalFontFamily === "string"
-  ) {
-    // 终端字体覆盖需要支持清空后回到系统 profile 自动探测。
-    // RPC 传输会吞掉 undefined，这里把空串归一成 undefined，避免旧字体一直残留。
-    const trimmedTerminalFontFamily = normalizedPatch.terminalFontFamily.trim();
-    normalizedPatch.terminalFontFamily =
-      trimmedTerminalFontFamily.length > 0 ? trimmedTerminalFontFamily : undefined;
   }
 
   if ("integratedTerminalShell" in normalizedPatch) {
@@ -66,16 +55,6 @@ export function normalizeSettingsPatch(patch: Partial<AppSettings>): Partial<App
     const trimmedHttpProxyCaCertPath = normalizedPatch.httpProxyCaCertPath.trim();
     normalizedPatch.httpProxyCaCertPath =
       trimmedHttpProxyCaCertPath.length > 0 ? trimmedHttpProxyCaCertPath : undefined;
-  }
-
-  if (
-    "zcodeEndpointOrigin" in normalizedPatch &&
-    typeof normalizedPatch.zcodeEndpointOrigin === "string"
-  ) {
-    // 非生产 endpoint override 需要支持 Reset 清空；RPC/JSON 对 undefined 不稳定时，用空串也能回到默认生产域。
-    const trimmedZCodeEndpointOrigin = normalizedPatch.zcodeEndpointOrigin.trim();
-    normalizedPatch.zcodeEndpointOrigin =
-      trimmedZCodeEndpointOrigin.length > 0 ? trimmedZCodeEndpointOrigin : undefined;
   }
 
   if (

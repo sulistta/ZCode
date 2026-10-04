@@ -1,7 +1,7 @@
 /* eslint-disable max-lines -- ZCode task wrapper service 接口集中承载 app/runtime API，拆散会让替换阶段更难追踪。 */
-import type { Event } from "@zcode/rpc";
-import { ServiceChannels } from "@zcode/shared";
-import type { CommandPayloadMap } from "@zcode/shared/zcode-protocol-v4";
+import type { Event } from "@social-harness/rpc";
+import { ServiceChannels } from "@social-harness/shared";
+import type { CommandPayloadMap } from "@social-harness/shared/zcode-protocol-v4";
 import { createServiceDescriptor } from "#src/descriptors.js";
 import type {
   ZCodeImportSessionsResult,
@@ -33,7 +33,7 @@ import type {
   ZCodePermissionResponse,
   ModelSelection,
   ZCodeBackgroundTurnAttribution,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type {
   SessionMessageDeliveryResult,
   SessionMessageSendRequested,
@@ -589,7 +589,7 @@ export interface IZCodeTaskService {
   }>;
 
   /**
-   * 读取 task 对应的模型调用轨迹（来自 ~/.zcode/cli/{debug,rollout} 的 model-io JSONL）。
+   * 读取 task 对应的模型调用轨迹（来自 Social Harness cli/{debug,rollout} 的 model-io JSONL）。
    * taskId 即 ZCode Agent 的 sessionId，按 sessionId 匹配 model-io 记录。
    */
   getModelTrajectory(params: {

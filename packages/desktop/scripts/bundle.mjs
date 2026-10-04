@@ -12,6 +12,7 @@ import process from "node:process";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { collectRuntimeModuleClosureEntries } from "./runtime-dependency-closure.mjs";
+import { isConvexProvisionerReady } from "./convex-provisioner-assets.mjs";
 import { resolveDesktopProductIdentity } from "./desktop-product-identity.mjs";
 import {
   findDesktopNativePackageViolations,
@@ -41,7 +42,7 @@ const runtimeModuleLookupRoots = [
 const pnpmCommand = "pnpm";
 const DEFAULT_TARGET_OS = "mac";
 const DEFAULT_TARGET_ARCH = "arm64";
-const desktopDistDir = process.env.ZCODE_DESKTOP_DIST_DIR || "dist";
+const desktopDistDir = process.env.SOCIAL_HARNESS_DESKTOP_DIST_DIR || "dist";
 const desktopDistRoot = resolve(desktopRoot, desktopDistDir);
 const desktopProductIdentity = resolveDesktopProductIdentity(process.env);
 
@@ -147,7 +148,7 @@ export function resolveElectronMirror(env = process.env) {
 
 export function createElectronRuntimeMirrorEnv(mirror) {
   return {
-    ZCODE_ELECTRON_RUNTIME_MIRROR: mirror,
+    SOCIAL_HARNESS_ELECTRON_RUNTIME_MIRROR: mirror,
     // @electron/get 的 Electron runtime 环境变量是全局读取的。
     // 如果传给 electron-builder 主进程，会覆盖 dmg-builder 等 generic artifact 的 mirrorOptions。
     ELECTRON_MIRROR: "",
@@ -158,7 +159,7 @@ export function createElectronRuntimeMirrorEnv(mirror) {
 }
 
 function resolveDefaultElectronBuilderBinariesMirror(env = process.env) {
-  return env.ZCODE_DEPS_BASE_URL?.trim() || env.INTRANET_MACHINE_HOST?.trim()
+  return env.SOCIAL_HARNESS_DEPS_BASE_URL?.trim() || env.INTRANET_MACHINE_HOST?.trim()
     ? `${resolveIntranetDepsBaseUrl(env)}/electron-builder-binaries/`
     : NPMMIRROR_ELECTRON_BUILDER_BINARIES_MIRROR;
 }
@@ -257,8 +258,8 @@ function printHelp() {
   -h, --help                   查看帮助
 
 环境变量:
-  ZCODE_TARGET_OS              与 --os 等价
-  ZCODE_TARGET_ARCH            与 --arch 等价
+  SOCIAL_HARNESS_TARGET_OS              与 --os 等价
+  SOCIAL_HARNESS_TARGET_ARCH            与 --arch 等价
 `);
 }
 
@@ -280,10 +281,10 @@ function normalizeArch(rawArch) {
 
 function parseArgs(argv) {
   const options = {
-    os: process.env.ZCODE_TARGET_OS ?? null,
-    arch: process.env.ZCODE_TARGET_ARCH ?? null,
-    skipPrepare: process.env.ZCODE_SKIP_PREPARE === "1",
-    skipBuild: process.env.ZCODE_SKIP_BUILD === "1",
+    os: process.env.SOCIAL_HARNESS_TARGET_OS ?? null,
+    arch: process.env.SOCIAL_HARNESS_TARGET_ARCH ?? null,
+    skipPrepare: process.env.SOCIAL_HARNESS_SKIP_PREPARE === "1",
+    skipBuild: process.env.SOCIAL_HARNESS_SKIP_BUILD === "1",
     dryRun: false,
     positionals: [],
   };
@@ -635,7 +636,7 @@ function resolveAppAsarPath(os, arch) {
   throw new Error(`不支持的目标操作系统: ${os}`);
 }
 
-function verifyPackagedRuntimeDependencies(os, arch) {
+async function verifyPackagedRuntimeDependencies(os, arch) {
   const appAsarPath = resolveAppAsarPath(os, arch);
   if (!existsSync(appAsarPath)) {
     throw new Error(`打包产物缺少 app.asar: ${appAsarPath}`);
@@ -654,6 +655,15 @@ function verifyPackagedRuntimeDependencies(os, arch) {
   const asarEntries = asarEntriesWithPackState.map((entry) => entry.path);
 
   const targetPlatformKey = `${os === "mac" ? "darwin" : os === "win" ? "win32" : os}-${arch}`;
+  const targetOs = os === "mac" ? "darwin" : os === "win" ? "win32" : os;
+  if (
+    !(await isConvexProvisionerReady(
+      join(dirname(appAsarPath), "convex-provisioner"),
+      resolve(workspaceRoot, "packages/social-auth-bridge/src/adapters/convex"),
+      { os: targetOs, arch, key: targetPlatformKey },
+    ))
+  )
+    throw new Error("Packaged Convex CLI/backend assets are incomplete or stale");
   const nativePackageViolations = findDesktopNativePackageViolations(
     asarEntriesWithPackState,
     targetPlatformKey,
@@ -713,8 +723,8 @@ async function main() {
   console.log(`[bundle] skipPrepare=${skipPrepare} skipBuild=${skipBuild}`);
 
   const buildEnv = {
-    ZCODE_TARGET_OS: os,
-    ZCODE_TARGET_ARCH: arch,
+    SOCIAL_HARNESS_TARGET_OS: os,
+    SOCIAL_HARNESS_TARGET_ARCH: arch,
     ...createElectronRuntimeMirrorEnv(resolveElectronMirror()),
     ...createElectronBuilderBinariesMirrorEnv(resolveElectronBuilderBinariesMirror()),
   };
@@ -736,7 +746,7 @@ async function main() {
     runElectronBuilderWithRetry(buildArgs, buildEnv),
   );
 
-  runTimedSync("bundle:verify-runtime-dependencies", () =>
+  await runTimedAsync("bundle:verify-runtime-dependencies", () =>
     verifyPackagedRuntimeDependencies(os, arch),
   );
 

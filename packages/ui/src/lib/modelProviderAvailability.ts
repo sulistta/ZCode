@@ -1,4 +1,4 @@
-import type { ModelSelectionView } from "@zcode/services";
+import type { ModelSelectionView } from "@social-harness/services";
 
 interface ProviderAvailabilityState {
   readonly source: "registry";

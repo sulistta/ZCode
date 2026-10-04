@@ -1,5 +1,6 @@
-import type { IServiceAccessor } from "@zcode/services";
-import { Event, ProxyChannel, type IChannel } from "@zcode/rpc";
+import type { IServiceAccessor } from "@social-harness/services";
+import { Event, ProxyChannel, type IChannel } from "@social-harness/rpc";
+import { parseSocialAccountWorkspaceIdentity } from "@social-harness/shared";
 import { useMemo } from "react";
 import { useOptionalServices, useServices } from "@/hooks/useServices.js";
 import {
@@ -79,8 +80,11 @@ function resolveBaseWorkspaceServices(
 }
 
 function hasRemoteWorkspaceMetadata(tab: WorkspaceServiceTargetTab | null | undefined): boolean {
+  const identity = tab?.workspaceIdentity?.trim();
   return Boolean(
-    tab?.workspaceIdentity?.trim() || tab?.remoteSessionId?.trim() || tab?.remoteTarget,
+    (identity && parseSocialAccountWorkspaceIdentity(identity) === null) ||
+    tab?.remoteSessionId?.trim() ||
+    tab?.remoteTarget,
   );
 }
 
@@ -93,7 +97,11 @@ function resolveWorkspaceServiceIsRemoteTarget(params: {
   activeTab?: WorkspaceServiceTargetTab | null;
   workspaceTabs?: readonly WorkspaceServiceTargetTab[];
 }): boolean {
-  if (params.workspaceIdentity?.trim() || params.preferredRemoteSessionId?.trim()) {
+  const identity = params.workspaceIdentity?.trim();
+  if (
+    (identity && parseSocialAccountWorkspaceIdentity(identity) === null) ||
+    params.preferredRemoteSessionId?.trim()
+  ) {
     return true;
   }
 
@@ -103,7 +111,8 @@ function resolveWorkspaceServiceIsRemoteTarget(params: {
   }
 
   if (params.activeWorkspacePath === params.workspacePath) {
-    if (params.activeWorkspaceIdentity?.trim()) {
+    const activeIdentity = params.activeWorkspaceIdentity?.trim();
+    if (activeIdentity && parseSocialAccountWorkspaceIdentity(activeIdentity) === null) {
       return true;
     }
 

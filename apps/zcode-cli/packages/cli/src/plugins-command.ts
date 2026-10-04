@@ -1,6 +1,6 @@
-import { formatJson } from "@zcode/core";
-import type { GlobalOptions, RunContext } from "@zcode/shared-types";
-import type { SetZCodePluginEnabledResult, ZCodePluginInstallData } from "@zcode/bootstrap";
+import { formatJson } from "@social-harness/core";
+import type { GlobalOptions, RunContext } from "@social-harness/shared-types";
+import type { SetZCodePluginEnabledResult, ZCodePluginInstallData } from "@social-harness/bootstrap";
 import {
   formatAvailablePluginJson,
   formatDiagnosticJson,
@@ -38,7 +38,7 @@ export type {
   PluginsCommandOverrides,
 } from "./plugins-command-shared.js";
 
-const PLUGINS_COMMAND_USAGE = `Usage: zcode plugins <command> [options]
+const PLUGINS_COMMAND_USAGE = `Usage: social-harness plugins <command> [options]
 
 Commands:
   list [--json] [--available]                  List installed plugins; --available also lists the marketplace catalog
@@ -55,7 +55,7 @@ Commands:
   marketplace remove <name>                    Remove a configured marketplace
   marketplace update [name]                    Refresh one marketplace, or all when omitted
 
-Scopes: user (default), project. \`zcode plugin\` is an alias of \`zcode plugins\`.`;
+Scopes: user (default), project. \`social-harness plugin\` is an alias of \`social-harness plugins\`.`;
 
 export async function runPluginsCommand(
   ctx: RunContext,
@@ -204,7 +204,7 @@ async function runPluginsUpdateCommand(
   ctx.stdout.write(
     version && version === result.previousVersion
       ? `Plugin ${pluginId} is already up to date (${version}).\n`
-      : `Updated plugin ${pluginId} from ${result.previousVersion || "unknown"} to ${version || "unknown"}. Restart zcode to apply.\n`,
+      : `Updated plugin ${pluginId} from ${result.previousVersion || "unknown"} to ${version || "unknown"}. Restart social-harness to apply.\n`,
   );
   writeWarnings(ctx, result.diagnostics);
   return 0;

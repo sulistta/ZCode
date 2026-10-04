@@ -1,7 +1,7 @@
 import { memo, useMemo } from "react";
 import { ActivityIcon, BotIcon, SquareTerminalIcon, Workflow } from "lucide-react";
-import { TID_V4_COMPOSER_BACKGROUND_WORK_TRIGGER } from "@zcode/shared";
-import type { BackgroundWorkSummary } from "@zcode/shared/zcode-protocol-v4";
+import { TID_V4_COMPOSER_BACKGROUND_WORK_TRIGGER } from "@social-harness/shared";
+import type { BackgroundWorkSummary } from "@social-harness/shared/zcode-protocol-v4";
 import { Button } from "@/components/ui/button.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";

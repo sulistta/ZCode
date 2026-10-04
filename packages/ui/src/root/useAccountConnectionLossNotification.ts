@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { IServiceAccessor } from "@zcode/services";
+import type { IServiceAccessor } from "@social-harness/services";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { toast, dismissToast } from "@/components/ui/toast.js";
 import {

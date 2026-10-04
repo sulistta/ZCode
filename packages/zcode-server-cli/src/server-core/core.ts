@@ -3,16 +3,16 @@ import {
   disposeServiceResourcesAndWait,
   materializeZCodeBuiltinProviderConfig,
   getAppConfigDir,
-  ZCODE_BUILTIN_PROVIDER_CONFIG_FILE_ENV,
-} from "@zcode/services/node";
-import { IZCodeAgentService } from "@zcode/services";
-import { ZCODE_VERSION } from "@zcode/shared";
+  SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_FILE_ENV,
+} from "@social-harness/services/node";
+import { IZCodeAgentService } from "@social-harness/services";
+import { SOCIAL_HARNESS_VERSION } from "@social-harness/shared";
 import { createCoreHttpServer } from "./http.js";
 import { installParentDisconnectHandler } from "./parentDisconnect.js";
 import { resolveCoreServerId } from "./serverIdentity.js";
 import { createTaskActivityTracker } from "./taskActivityTracker.js";
 
-declare const __ZCODE_BUILTIN_PROVIDER_CONFIG_JSON__: string | undefined;
+declare const __SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_JSON__: string | undefined;
 
 export async function runServerCore(generation: number): Promise<void> {
   let shutdown: ((reason: string) => Promise<void>) | undefined;
@@ -23,18 +23,18 @@ export async function runServerCore(generation: number): Promise<void> {
     else parentDisconnected = true;
   });
   const explicitZCodeBuiltinProviderConfigFilePath =
-    process.env[ZCODE_BUILTIN_PROVIDER_CONFIG_FILE_ENV]?.trim();
+    process.env[SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_FILE_ENV]?.trim();
   const zcodeBuiltinProviderConfigFilePath = explicitZCodeBuiltinProviderConfigFilePath
     ? explicitZCodeBuiltinProviderConfigFilePath
-    : typeof __ZCODE_BUILTIN_PROVIDER_CONFIG_JSON__ === "string"
+    : typeof __SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_JSON__ === "string"
       ? await materializeZCodeBuiltinProviderConfig({
           environmentConfigRoot: getAppConfigDir(),
-          content: __ZCODE_BUILTIN_PROVIDER_CONFIG_JSON__,
+          content: __SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_JSON__,
         })
       : undefined;
   if (!zcodeBuiltinProviderConfigFilePath) {
     throw new Error(
-      `当前构建未嵌入 ZCode Built-in Provider Config，且未设置 ${ZCODE_BUILTIN_PROVIDER_CONFIG_FILE_ENV}`,
+      `当前构建未嵌入 ZCode Built-in Provider Config，且未设置 ${SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_FILE_ENV}`,
     );
   }
   const services = createLocalServices({
@@ -60,7 +60,7 @@ export async function runServerCore(generation: number): Promise<void> {
     type: "ready",
     host: http.host,
     port: http.port,
-    version: ZCODE_VERSION,
+    version: SOCIAL_HARNESS_VERSION,
     generation,
   });
   let shutdownStarted = false;

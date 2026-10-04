@@ -14,8 +14,8 @@ import type {
   UsageEntitlementSnapshot,
   UsageStatsRequest,
   UsageStatsSnapshot,
-} from "@zcode/shared";
-import { isCodingPlanModelProviderId } from "@zcode/shared";
+} from "@social-harness/shared";
+import { isCodingPlanModelProviderId } from "@social-harness/shared";
 import type { ICredentialService } from "../credential/credential.js";
 import type { IAccountRequestAuthService } from "../model-provider/accountRequestAuthService.js";
 import type { IZCodeAgentService } from "../zcode-agent/zcodeAgent.js";

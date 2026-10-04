@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import type { ZCodeSavedWorkflowRun } from "@zcode/shared";
+import type { ZCodeSavedWorkflowRun } from "@social-harness/shared";
 import type {
   SavedWorkflowsOpenArtifactParams,
   SavedWorkflowsOpenRunParams,

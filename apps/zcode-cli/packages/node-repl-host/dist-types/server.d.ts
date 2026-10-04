@@ -1,6 +1,6 @@
 import { Server } from "@modelcontextprotocol/server";
-import { type NodeReplRequestMeta, type NodeReplRunResult } from "@zcode/core/repl";
-import { type ComputerUseRuntime } from "@zcode/zcode-cua";
+import { type NodeReplRequestMeta, type NodeReplRunResult } from "@social-harness/core/repl";
+import { type ComputerUseRuntime } from "@social-harness/zcode-cua";
 import { type NodeReplCuaBrokerConnection } from "./cua-bridge.js";
 import { installNodeReplProcessGuards, installNodeReplShutdownTriggers } from "./process-lifecycle.js";
 export declare const NODE_REPL_MCP_PROCESS_TITLE = "zcode-node-repl-mcp";

@@ -5,13 +5,13 @@ import type {
   OAuthProviderId,
   OAuthSessionCallbackResult,
   UserInfo,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   DesktopCommandIds,
   resolveProviderFamilyDomainFromOAuthProvider,
-  ZCODE_JWT_INVALID_BROADCAST_CHANNEL,
-} from "@zcode/shared";
-import type { IServiceAccessor } from "@zcode/services";
+  SOCIAL_HARNESS_JWT_INVALID_BROADCAST_CHANNEL,
+} from "@social-harness/shared";
+import type { IServiceAccessor } from "@social-harness/services";
 import { useAlertDialog } from "@/hooks/useAlertDialog.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { reportAppTelemetryEvent, resolveProviderTelemetryLabel } from "@/lib/appTelemetry.js";
@@ -203,7 +203,7 @@ export function useRootOAuthEffects({
   useEffect(() => {
     let disposed = false;
     const disposable = services.broadcastService.onMessage((message) => {
-      if (message.channel !== ZCODE_JWT_INVALID_BROADCAST_CHANNEL || disposed) {
+      if (message.channel !== SOCIAL_HARNESS_JWT_INVALID_BROADCAST_CHANNEL || disposed) {
         return;
       }
       void (async () => {

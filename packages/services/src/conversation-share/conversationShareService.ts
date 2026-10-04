@@ -13,7 +13,7 @@ import type {
   ConversationShareContinuation,
   ConversationShareRecord,
   Locale,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   decodeConversationShareRows,
   buildConversationPreviewArtifactCandidates,
@@ -22,14 +22,14 @@ import {
   type ConversationPreviewArtifactCandidate,
   localizeConversationShareUrl,
   resolveRuntimeZCodeEndpointOrigin,
-} from "@zcode/shared";
-import type { ConversationRow } from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared";
+import type { ConversationRow } from "@social-harness/shared/zcode-protocol-v4";
 import {
   PROTOCOL_V4_LIMITS,
-  ZCODE_ATTACHMENT_FAULT_CODES,
+  SOCIAL_HARNESS_ATTACHMENT_FAULT_CODES,
   readZCodeAttachmentFaultCode,
-} from "@zcode/shared/zcode-protocol-v4";
-import { Emitter } from "@zcode/rpc";
+} from "@social-harness/shared/zcode-protocol-v4";
+import { Emitter } from "@social-harness/rpc";
 
 import type { IZCodeAgentService } from "../zcode-agent/zcodeAgent.js";
 import type { IZCodeSessionService } from "#src/zcode-session/zcodeSession.js";
@@ -518,8 +518,8 @@ function isDefiniteMissingAttachment(error: unknown): boolean {
   const faultCode = readZCodeAttachmentFaultCode(error);
   if (faultCode) {
     return (
-      faultCode === ZCODE_ATTACHMENT_FAULT_CODES.shareStatNotFound ||
-      faultCode === ZCODE_ATTACHMENT_FAULT_CODES.statNotFile
+      faultCode === SOCIAL_HARNESS_ATTACHMENT_FAULT_CODES.shareStatNotFound ||
+      faultCode === SOCIAL_HARNESS_ATTACHMENT_FAULT_CODES.statNotFile
     );
   }
   const message = error instanceof Error ? error.message : String(error);
@@ -530,10 +530,10 @@ function isAttachmentAuthorizationError(error: unknown): boolean {
   const faultCode = readZCodeAttachmentFaultCode(error);
   if (faultCode) {
     return (
-      faultCode === ZCODE_ATTACHMENT_FAULT_CODES.shareStatNotAuthorized ||
-      faultCode === ZCODE_ATTACHMENT_FAULT_CODES.shareReadNotAuthorized ||
-      faultCode === ZCODE_ATTACHMENT_FAULT_CODES.shareStatConnectionUntrusted ||
-      faultCode === ZCODE_ATTACHMENT_FAULT_CODES.shareReadConnectionUntrusted
+      faultCode === SOCIAL_HARNESS_ATTACHMENT_FAULT_CODES.shareStatNotAuthorized ||
+      faultCode === SOCIAL_HARNESS_ATTACHMENT_FAULT_CODES.shareReadNotAuthorized ||
+      faultCode === SOCIAL_HARNESS_ATTACHMENT_FAULT_CODES.shareStatConnectionUntrusted ||
+      faultCode === SOCIAL_HARNESS_ATTACHMENT_FAULT_CODES.shareReadConnectionUntrusted
     );
   }
   const message = error instanceof Error ? error.message : String(error);
@@ -544,8 +544,8 @@ function isAttachmentAuthorizationError(error: unknown): boolean {
 function isAttachmentTooLargeError(error: unknown): boolean {
   const faultCode = readZCodeAttachmentFaultCode(error);
   return (
-    faultCode === ZCODE_ATTACHMENT_FAULT_CODES.shareStatTooLarge ||
-    faultCode === ZCODE_ATTACHMENT_FAULT_CODES.previewTooLarge
+    faultCode === SOCIAL_HARNESS_ATTACHMENT_FAULT_CODES.shareStatTooLarge ||
+    faultCode === SOCIAL_HARNESS_ATTACHMENT_FAULT_CODES.previewTooLarge
   );
 }
 
@@ -721,10 +721,10 @@ export class ConversationShareService implements IConversationShareService {
     // 兜底写死生产站 https://zcode.z.ai/cn/share，于是测试环境（API base 走
     // 配置的 ZCode origin）导入后回链仍指向生产站，点分割线打开的是另一个环境的分享。
     // 改用与 API base 同一个环境解析器（buildRuntimeZCodeApiUrl 也走它），保证同环境。
-    // 优先级不变：显式 option > ZCODE_CONVERSATION_SHARE_WEB_URL > 按环境推导。
+    // 优先级不变：显式 option > SOCIAL_HARNESS_CONVERSATION_SHARE_WEB_URL > 按环境推导。
     this.shareWebUrl = (
       options.shareWebUrl ??
-      process.env.ZCODE_CONVERSATION_SHARE_WEB_URL ??
+      process.env.SOCIAL_HARNESS_CONVERSATION_SHARE_WEB_URL ??
       `${resolveRuntimeZCodeEndpointOrigin(process.env)}/cn/share`
     ).replace(/\/+$/u, "");
     this.importIndexPath = join(this.conversationWorkspaceRoot, ".zcode-share-imports.json");

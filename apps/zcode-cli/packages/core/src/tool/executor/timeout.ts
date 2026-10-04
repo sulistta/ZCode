@@ -3,7 +3,7 @@ import {
   SessionEventType,
   createCoreError,
   type SessionEvent,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { ToolExecutionContext, ToolEntry, ToolExecutionModelContext } from "../types.js";
 import { isRecord } from "./utils.js";
 

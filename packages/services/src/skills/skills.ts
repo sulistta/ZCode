@@ -1,5 +1,5 @@
-import type { ZCodeProvider, SkillsPromptContext, SkillsListResult } from "@zcode/shared";
-import { ServiceChannels } from "@zcode/shared";
+import type { ZCodeProvider, SkillsPromptContext, SkillsListResult } from "@social-harness/shared";
+import { ServiceChannels } from "@social-harness/shared";
 import { createServiceDescriptor } from "../descriptors.js";
 
 export interface ISkillsService {

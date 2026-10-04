@@ -16,7 +16,7 @@ import {
   type ListWorkflowRunsInput,
   type ListWorkflowRunsOutput,
   type ModelMessageContent,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { ToolEntry, ToolHandler } from "../types.js";
 import {
   WORKFLOW_RUN_INTROSPECTION_STEERING,

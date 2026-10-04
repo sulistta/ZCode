@@ -4,7 +4,7 @@ import {
   type ImageCompressionStrategy,
   type ImagePrepareForModelRequest,
   type ImagePrepareForModelResult,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import {
   detectImageMediaType,
   jimpOutputMediaType,

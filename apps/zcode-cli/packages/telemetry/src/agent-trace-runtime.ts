@@ -41,7 +41,7 @@ import type {
   TelemetryIdentitySnapshot,
   ToolExecutionSpanWriter,
   ToolTraceStart,
-} from "@zcode/contracts/telemetry";
+} from "@social-harness/contracts/telemetry";
 import {
   activeWriterContext,
   BaseSpanWriter,

@@ -1,4 +1,4 @@
-import type { TuiSubmitPromptResult } from "@zcode/tui";
+import type { CommandCenterSubmitPromptResult } from "../contracts.js";
 import type {
   CommandCenterDeps,
   CommandCenterSkill,
@@ -7,7 +7,7 @@ import type {
 
 export async function handleSkillListCommand(
   deps: CommandCenterDeps,
-): Promise<TuiSubmitPromptResult> {
+): Promise<CommandCenterSubmitPromptResult> {
   if (!deps.listSkills) {
     return {
       mode: deps.getMode?.(),

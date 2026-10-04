@@ -72,10 +72,15 @@ import type {
 
 /** RPC 服务频道名。与 ServiceDescriptor.channelName 对应。 */
 export const ServiceChannels = {
+  SocialAccount: "social-account",
+  SocialMedia: "social-media",
+  SocialMediaPreview: "social-media-preview",
+  SocialProject: "social-project",
+  SocialPublishing: "social-publishing",
+  SocialInstagramSetup: "social-instagram-setup",
   File: "file",
   MediaPreview: "media-preview",
   System: "system",
-  Terminal: "terminal",
   /** Git 服务 */
   Git: "git",
   /** Git checkpoint 服务 */
@@ -162,7 +167,7 @@ export const PlatformChannels = {
   SelectFile: "zcode:select-file",
   /** 打开系统多文件选择框 */
   SelectFiles: "zcode:select-files",
-  /** Renderer → Main：写入宿主 ~/.zcode 临时文本附件 */
+  /** Renderer → Main：写入宿主 Social Harness 临时文本附件 */
   CreateTempTextAttachment: "zcode:create-temp-text-attachment",
   /** Renderer → Main：通过原生另存为对话框保存文件 */
   SaveFile: "zcode:save-file",
@@ -234,12 +239,6 @@ export const PlatformChannels = {
   BrowserViewSuspend: "zcode:browser-view-suspend",
   /** Main → Renderer：为 suspended shell 重新挂载 guest。 */
   BrowserViewRestore: "zcode:browser-view-restore",
-  /** Main → Renderer：菜单触发新建任务 */
-  NewTask: "zcode:new-task",
-  /** Main → Renderer：菜单触发打开工作区 */
-  OpenWorkspace: "zcode:open-workspace",
-  /** Main → Renderer：deep link 直接打开指定本地工作区目录 */
-  OpenWorkspacePath: "zcode:open-workspace-path",
   /** Main → Renderer：打开内置反馈对话框 */
   OpenFeedbackDialog: "zcode:open-feedback-dialog",
   /** Main → Renderer：打开我的工单面板 */
@@ -301,10 +300,6 @@ export const PlatformChannels = {
   OAuthRegisterState: "zcode:oauth-register-state",
   /** Main → Renderer：转发 deep link URL */
   OAuthCallback: "zcode:oauth-callback",
-  /** Main → Renderer：转发支付 deep link URL */
-  PaymentCallback: "zcode:payment-callback",
-  /** Main → Renderer：外部分享页请求导入 share code。 */
-  ShareImport: "zcode:share-import",
   /** Renderer → Main：OAuth 回调已处理完成，可继续后置启动流程 */
   OAuthCallbackHandled: "zcode:oauth-callback-handled",
   /** Renderer → Main：renderer 已就绪，可接收缓存的 deep link */
@@ -336,7 +331,7 @@ export const PlatformChannels = {
   TaskNotificationSound: "zcode:task-notification-sound",
   /** Main → Preload：用户点击了系统通知，携带 taskId 让 renderer 跳转到对应任务 */
   TaskNotificationClick: "zcode:task-notification-click",
-  /** Renderer → Main：导出日志（打包 ~/.zcode/v2 及外部 agent 日志为 zip 并在 Finder 中显示） */
+  /** Renderer → Main：导出日志（打包 Social Harness 及外部 Agent 日志为 zip 并在系统文件浏览器中显示） */
   ExportLogs: "zcode:export-logs",
   /** Renderer → Main：截取当前窗口作为反馈附件 */
   CaptureWindowScreenshot: "zcode:capture-window-screenshot",
@@ -493,9 +488,9 @@ export const InternalChannels = {
 } as const;
 
 /** @deprecated `/ws` 已忽略该头；保留常量仅供旧客户端兼容。 */
-export const ZCODE_RPC_CLIENT_MODE_HEADER = "x-zcode-rpc-client-mode";
+export const SOCIAL_HARNESS_RPC_CLIENT_MODE_HEADER = "x-zcode-rpc-client-mode";
 /** desktop 先经受保护 HTTP endpoint 申请，再在 `/ws/host` 握手时一次性消费。 */
-export const ZCODE_RPC_HOST_CAPABILITY_HEADER = "x-zcode-rpc-host-capability";
+export const SOCIAL_HARNESS_RPC_HOST_CAPABILITY_HEADER = "x-zcode-rpc-host-capability";
 
 // ============================================================================
 // 进程间消息类型 —— main ↔ host process 之间的 postMessage
@@ -546,6 +541,10 @@ export const HostMessageTypes = {
   BrowserExecuteResult: "browser-execute-result",
   /** main → host：本地视频 canonical path 授权结果 */
   LocalMediaPreviewPathAuthorizeResult: "local-media-preview-path-authorize-result",
+  /** main → host：返回本地媒体的短期 opaque 播放 capability */
+  LocalMediaPreviewUrlCreateResult: "local-media-preview-url-create-result",
+  /** Main → Host：OS-secure Instagram credential operation result. */
+  InstagramCredentialResult: "instagram-credential-result",
   /** Main → Host：全局前台 ZCode 窗口派生的 producer focus fact。 */
   CuaPipFocusChanged: "cua-pip-focus-changed",
   /** main → host：要求 Host 现读本地 Source，并同步指定 Remote Environment。 */
@@ -637,6 +636,10 @@ export const HostResponseTypes = {
   BrowserExecuteRequest: "browser-execute-request",
   /** host → main：请求授权 Agent 已精确校验的本地视频路径 */
   LocalMediaPreviewPathAuthorizeRequest: "local-media-preview-path-authorize-request",
+  /** host → main：为 Host 已验证的托管媒体文件签发短期 opaque 播放 URL */
+  LocalMediaPreviewUrlCreateRequest: "local-media-preview-url-create-request",
+  /** Host → Main：OS-secure Instagram credential operation request. */
+  InstagramCredentialRequest: "instagram-credential-request",
   /** host → main：RPC 网络遥测批次（channel.command 成功率/耗时） */
   NetworkTelemetryBatch: "network-telemetry-batch",
   /** host → main：本地 Provisioning Source 成功持久化。 */
@@ -694,10 +697,6 @@ export interface PlatformChannelMap {
   [PlatformChannels.ActivateOrSetWorkspace]: {
     request: string;
     response: { activated: boolean };
-  };
-  [PlatformChannels.OpenWorkspacePath]: {
-    request: string;
-    response: void;
   };
   [PlatformChannels.ConnectRemote]: {
     request: ConnectRemoteRequest;
@@ -881,14 +880,6 @@ export interface PlatformChannelMap {
   };
   [PlatformChannels.OAuthCallback]: {
     request: string;
-    response: void;
-  };
-  [PlatformChannels.PaymentCallback]: {
-    request: string;
-    response: void;
-  };
-  [PlatformChannels.ShareImport]: {
-    request: { shareCode: string };
     response: void;
   };
   [PlatformChannels.OAuthCallbackHandled]: {

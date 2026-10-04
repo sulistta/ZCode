@@ -10,7 +10,7 @@ import {
 import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
-import type { RuntimeConfigPatch, UiLocale } from "@zcode/contracts";
+import type { RuntimeConfigPatch, UiLocale } from "@social-harness/contracts";
 import { z } from "zod";
 import {
   CANONICAL_CUA_PLUGIN_ID,
@@ -24,6 +24,7 @@ import {
 interface FileConfigOptions {
   baseDir?: string;
   configFileName?: string;
+  env?: Record<string, string | undefined>;
 }
 
 export interface LoadedConfig {
@@ -59,7 +60,11 @@ export interface PluginRemovePatchResult {
 }
 
 const DEFAULT_CONFIG_FILE = "config.json";
-const DEFAULT_BASE_DIR = "~/.zcode/cli";
+
+function resolveDefaultBaseDir(env: Record<string, string | undefined> = process.env): string {
+  const dataBaseDir = env.SOCIAL_HARNESS_DATA_BASE_DIR?.trim() || homedir();
+  return join(dataBaseDir, ".social-harness", "v1", "cli");
+}
 
 /**
  * Resolve path with ~ expansion
@@ -78,7 +83,7 @@ export function loadFileConfig(filePath?: string, options: FileConfigOptions = {
   const resolvedPath = filePath
     ? resolvePath(filePath)
     : join(
-        resolvePath(options.baseDir ?? DEFAULT_BASE_DIR),
+        resolvePath(options.baseDir ?? resolveDefaultBaseDir(options.env)),
         options.configFileName ?? DEFAULT_CONFIG_FILE,
       );
 
@@ -440,15 +445,15 @@ export async function removeSuppressedBuiltinInFileConfig(
 /**
  * Get default config file path
  */
-export function getDefaultConfigPath(): string {
-  return join(resolvePath(DEFAULT_BASE_DIR), DEFAULT_CONFIG_FILE);
+export function getDefaultConfigPath(env: Record<string, string | undefined> = process.env): string {
+  return join(resolveDefaultBaseDir(env), DEFAULT_CONFIG_FILE);
 }
 
 /**
  * Check if config file exists at default location
  */
-export function hasDefaultConfigFile(): boolean {
-  return existsSync(getDefaultConfigPath());
+export function hasDefaultConfigFile(env: Record<string, string | undefined> = process.env): boolean {
+  return existsSync(getDefaultConfigPath(env));
 }
 
 async function readJsonConfigFile(filePath: string): Promise<Record<string, unknown>> {

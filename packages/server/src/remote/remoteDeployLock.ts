@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { posix } from "node:path";
-import type { IRemoteBackend, StdioStream } from "@zcode/server/remote/backend.js";
-import { REMOTE_BASE } from "@zcode/server/remote/deployShared.js";
-import { quotePosixPathArg, quotePosixShellArg } from "@zcode/server/remote/posixShell.js";
+import type { IRemoteBackend, StdioStream } from "@social-harness/server/remote/backend.js";
+import { REMOTE_BASE } from "@social-harness/server/remote/deployShared.js";
+import { quotePosixPathArg, quotePosixShellArg } from "@social-harness/server/remote/posixShell.js";
 
 const DEPLOY_LOCK_HEARTBEAT_SECONDS = 30;
 const DEPLOY_LOCK_STALE_SECONDS = 600;

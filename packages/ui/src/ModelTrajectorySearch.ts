@@ -1,5 +1,8 @@
 import { createContext } from "react";
-import type { ZCodeModelTrajectoryMessage, ZCodeModelTrajectoryRecord } from "@zcode/services";
+import type {
+  ZCodeModelTrajectoryMessage,
+  ZCodeModelTrajectoryRecord,
+} from "@social-harness/services";
 import {
   trajectoryToolCallInputs,
   trajectoryToolMetadata,

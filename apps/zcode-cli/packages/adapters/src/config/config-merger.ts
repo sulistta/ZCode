@@ -5,8 +5,8 @@ import type {
   HookMatcherConfig,
   PluginOptionValues,
   RuntimeConfigPatch,
-} from "@zcode/contracts";
-import { ConfigScope, ConfigScopePriority } from "@zcode/contracts";
+} from "@social-harness/contracts";
+import { ConfigScope, ConfigScopePriority } from "@social-harness/contracts";
 
 type PluginOptions = Record<string, PluginOptionValues>;
 

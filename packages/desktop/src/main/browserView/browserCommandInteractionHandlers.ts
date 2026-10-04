@@ -1,5 +1,5 @@
-import type { BrowserCommand, BrowserCommandResult } from "@zcode/shared";
-import { browserSnapshotElementSchema } from "@zcode/shared";
+import type { BrowserCommand, BrowserCommandResult } from "@social-harness/shared";
+import { browserSnapshotElementSchema } from "@social-harness/shared";
 import {
   dispatchClickAt,
   dispatchDrag,

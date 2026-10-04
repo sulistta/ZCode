@@ -4,7 +4,7 @@ import {
   zcodeProtocolNotifications,
   zcodeProviderRuntimeHeadersResponseSchema,
   type ZCodeWorkspaceRef,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type { ZCodeAppOptions } from "../app/types.js";
 import {
   ProtocolRequestError,

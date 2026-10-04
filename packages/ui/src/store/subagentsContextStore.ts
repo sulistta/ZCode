@@ -1,11 +1,11 @@
 import { create } from "zustand";
-import type { ISubagentsService } from "@zcode/services";
+import type { ISubagentsService } from "@social-harness/services";
 import {
   normalizeAgentProviderToZCodeAgent,
   type AgentSummary,
   type AgentsCapability,
   type ZCodeProvider,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { logger } from "@/logger.js";
 
 interface SubagentsContextSnapshot {

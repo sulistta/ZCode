@@ -9,7 +9,7 @@ import type {
   SessionTaskLinkRecord,
   WorkflowAgentOptions,
   WorkflowScriptMeta,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import { decodeJson } from "../json.js";
 
 export interface WorkflowDefinitionRow {

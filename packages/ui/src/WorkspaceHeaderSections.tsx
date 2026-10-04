@@ -7,12 +7,12 @@ import {
   TID_WORKSPACE_TITLE,
   type RemoteTarget,
   type ZCodeTaskMeta,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { useMemo, useRef, useState } from "react";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { cn } from "@/components/lib/utils.js";
 import { Button } from "@/components/ui/button.js";
-import { Cloud, Ellipsis, Folder, GitBranch, LoaderIcon } from "lucide-react";
+import { Cloud, Ellipsis, Folder, LoaderIcon } from "lucide-react";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { useGlobalTaskList } from "@/hooks/useGlobalTaskList.js";
 import { useBaseWorkspaceServices, useWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
@@ -35,7 +35,6 @@ import { toast } from "@/components/ui/toast.js";
 import { useFeedbackStore } from "@/feedback/feedbackStore.js";
 import { useModelTrajectoryStore } from "@/store/modelTrajectoryStore.js";
 import { buildTaskFeedbackDescription } from "@/lib/taskFeedbackDraft.js";
-import { resolveGitBranchTriggerLabel } from "@/git-branch-switcher/display.js";
 import type {
   WorkspaceHeaderState,
   WorkspaceHeaderTitleSectionProps,
@@ -80,14 +79,11 @@ export function WorkspaceHeaderTitleSection({
   localWorkspacePath,
   projectName,
   activeTaskTitle,
-  activeTaskChangeSummary: _activeTaskChangeSummary,
   activeTaskId,
   activeTraceId: _activeTraceId,
   activeSessionId,
   activeTaskProvider,
   resolvedActiveTaskMeta,
-  gitSummary,
-  gitDirtyFileCount: _gitDirtyFileCount,
   sessionLogPath: _sessionLogPath,
   nativeSessionLogProvider: _nativeSessionLogProvider,
   nativeSessionLogPath: _nativeSessionLogPath,
@@ -95,11 +91,9 @@ export function WorkspaceHeaderTitleSection({
   nativeSessionLogLoading: _nativeSessionLogLoading,
   reloadSessionPending,
   workspaceHeaderState,
-  onRefreshGit: _onRefreshGit,
   isMacDesktop: _isMacDesktop,
   isMacFullscreen: _isMacFullscreen,
   isWindowsDesktop: _isWindowsDesktop,
-  selectedEditor: _selectedEditor,
   simplifyForNarrowRemote = false,
   compact = false,
 }: WorkspaceHeaderTitleSectionProps) {
@@ -190,14 +184,6 @@ export function WorkspaceHeaderTitleSection({
   const workspaceContextLabel = showRemoteWorkspaceHostLabel
     ? `${workspaceDisplayLabel} @ ${remoteWorkspaceHostLabel}`
     : workspaceDisplayLabel;
-  const workspaceBranchLabel = gitSummary.isRepository
-    ? resolveGitBranchTriggerLabel({
-        headRefType: gitSummary.headRefType,
-        currentBranchName: gitSummary.branchName,
-        detachedLabel: intl.formatMessage({ id: "git.head.detached" }),
-        fallbackLabel: intl.formatMessage({ id: "git.branchSwitcher.label" }),
-      })
-    : null;
   const isRemoteWorkspace = Boolean(
     remoteWorkspaceHostLabel || workspaceIdentity?.trim() || remoteSessionId,
   );
@@ -438,14 +424,6 @@ export function WorkspaceHeaderTitleSection({
                   task={activeTaskMeta?.taskId === activeTaskId ? activeTaskMeta : null}
                 />
               ) : null}
-              {workspaceBranchLabel ? (
-                <span className="flex min-w-0 items-center gap-2 border-t border-border/50 pt-3 font-normal">
-                  <GitBranch className="size-4 shrink-0" />
-                  <span className="min-w-0 break-words [overflow-wrap:anywhere]">
-                    {workspaceBranchLabel}
-                  </span>
-                </span>
-              ) : null}
             </span>
           }
         >
@@ -454,7 +432,7 @@ export function WorkspaceHeaderTitleSection({
             variant="ghost"
             size={compact ? "icon-sm" : "icon-md"}
             data-testid={TID_WORKSPACE_PATH}
-            aria-label={[workspaceContextLabel, workspaceBranchLabel].filter(Boolean).join(" · ")}
+            aria-label={workspaceContextLabel}
             onClick={() => setWorkspaceContextOpen(true)}
           >
             {isRemoteWorkspace ? (
@@ -475,20 +453,6 @@ export function WorkspaceHeaderTitleSection({
         title={activeTaskTitle}
       >
         <span className="min-w-0 truncate">{activeTaskTitle}</span>
-        {/* {activeTaskChangeSummary ? (
-          <>
-            {activeTaskChangeSummary.added > 0 ? (
-              <span className="text-diff-added">
-                +{activeTaskChangeSummary.added}
-              </span>
-            ) : null}
-            {activeTaskChangeSummary.removed > 0 ? (
-              <span className="text-diff-removed">
-                -{activeTaskChangeSummary.removed}
-              </span>
-            ) : null}
-          </>
-        ) : null} */}
       </h1>
       <div className="flex min-w-0 shrink-0 items-center gap-1">
         {!isDraftNewTask ? (

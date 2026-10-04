@@ -1,15 +1,9 @@
-import type {
-  IntegratedTerminalShellOption,
-  IntranetProbeRequest,
-  IntranetProbeResult,
-  SystemInfo,
-} from "@zcode/shared";
-import { ServiceChannels } from "@zcode/shared";
+import type { IntranetProbeRequest, IntranetProbeResult, SystemInfo } from "@social-harness/shared";
+import { ServiceChannels } from "@social-harness/shared";
 import { createServiceDescriptor } from "../descriptors.js";
 
 export interface ISystemService {
   info(): Promise<SystemInfo>;
-  listIntegratedTerminalShells(): Promise<IntegratedTerminalShellOption[]>;
   probeIntranet(request: IntranetProbeRequest): Promise<IntranetProbeResult>;
 }
 

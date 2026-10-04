@@ -3,9 +3,7 @@ import type { Ref, UIEventHandler } from "react";
 import { cn } from "@/components/lib/utils.js";
 import { MermaidBlock } from "@/components/ai-elements/mermaid-block.js";
 import { CodeViewer } from "@/components/ui/code-viewer.js";
-import type { CodeCommentLabels } from "@/components/ui/code-viewer.js";
 import type { CodePreviewSettings } from "@/store/index.js";
-import type { CodeCommentPreview, CodeCommentRange } from "@/lib/codeCommentContext.js";
 import { isMermaidLanguage } from "@/lib/mermaidLanguage.js";
 import type { Theme } from "@/useTheme.js";
 
@@ -18,21 +16,6 @@ interface CodeContentProps {
   theme?: Theme;
   wrapLongLines: boolean;
   firstLineNumber?: number;
-  comments?: readonly CodeCommentPreview[];
-  topComment?: CodeCommentPreview | null;
-  topCommentShowRange?: boolean;
-  topCommentNotice?: string;
-  focusedRange?: CodeCommentRange | null;
-  focusRequestId?: string;
-  enableLineSelection?: boolean;
-  enableGutterUtility?: boolean;
-  labels?: Partial<CodeCommentLabels>;
-  onSubmitCodeComment?: (params: {
-    range: CodeCommentRange;
-    selectedText: string;
-    comment: string;
-  }) => void;
-  onDeleteCodeComment?: (commentId: string) => void;
   onScroll?: UIEventHandler<HTMLDivElement>;
   scrollContainerRef?: Ref<HTMLDivElement>;
   className?: string;
@@ -46,17 +29,6 @@ export function CodeContent({
   theme,
   wrapLongLines,
   firstLineNumber,
-  comments,
-  topComment,
-  topCommentShowRange,
-  topCommentNotice,
-  focusedRange,
-  focusRequestId,
-  enableLineSelection = false,
-  enableGutterUtility = false,
-  labels,
-  onSubmitCodeComment,
-  onDeleteCodeComment,
   onScroll,
   scrollContainerRef,
   className,
@@ -86,17 +58,6 @@ export function CodeContent({
       wrapLongLines={wrapLongLines}
       fontSizePx={codePreviewSettings.fontSizePx}
       firstLineNumber={firstLineNumber}
-      comments={comments}
-      topComment={topComment}
-      topCommentShowRange={topCommentShowRange}
-      topCommentNotice={topCommentNotice}
-      focusedRange={focusedRange}
-      focusRequestId={focusRequestId}
-      enableLineSelection={enableLineSelection}
-      enableGutterUtility={enableGutterUtility}
-      labels={labels}
-      onSubmitCodeComment={onSubmitCodeComment}
-      onDeleteCodeComment={onDeleteCodeComment}
       onScroll={onScroll}
       scrollContainerRef={scrollContainerRef}
       className={className}

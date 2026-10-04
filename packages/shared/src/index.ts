@@ -10,7 +10,6 @@ export type {
   AppSettings,
   ElectronReleaseChannel,
   IntegratedTerminalShellDialect,
-  IntegratedTerminalShellOption,
   IntegratedTerminalShellSelection,
   Locale,
   LocalePreference,
@@ -28,7 +27,11 @@ export type {
 } from "./protocol.js";
 export type { WorkspacePurpose } from "./workspacePurpose.js";
 export { DEFAULT_LOCALE } from "./protocol.js";
-export { ZCODE_VERSION, ZCODE_COMMIT, ZCODE_BUILD_TIME } from "./version.js";
+export {
+  SOCIAL_HARNESS_VERSION,
+  SOCIAL_HARNESS_COMMIT,
+  SOCIAL_HARNESS_BUILD_TIME,
+} from "./version.js";
 export type { HelloMessage, HelloAckMessage } from "./handshake.js";
 export type { ArmsRumEnv, ZCodeEnv, ZCodeProductFlavor } from "./env.js";
 export type { RemoteAssetInstallMode } from "./remoteAssetInstallMode.js";
@@ -60,14 +63,14 @@ export {
   serializeShortcutBinding,
 } from "./shortcutCommands.js";
 export {
-  ZCODE_ENV,
-  ZCODE_PRODUCT_FLAVOR,
-  ZCODE_APP_VERSION_ENV,
-  ZCODE_BUILD_COMMIT_ID_ENV,
-  RUNTIME_ZCODE_DEBUG,
-  ZCODE_TELEMETRY_REPORT_ENDPOINT,
-  ZCODE_ARMS_RUM_ENDPOINT,
-  ZCODE_TELEMETRY_ENABLED,
+  SOCIAL_HARNESS_ENV,
+  SOCIAL_HARNESS_PRODUCT_FLAVOR,
+  SOCIAL_HARNESS_APP_VERSION_ENV,
+  SOCIAL_HARNESS_BUILD_COMMIT_ID_ENV,
+  RUNTIME_SOCIAL_HARNESS_DEBUG,
+  SOCIAL_HARNESS_TELEMETRY_REPORT_ENDPOINT,
+  SOCIAL_HARNESS_ARMS_RUM_ENDPOINT,
+  SOCIAL_HARNESS_TELEMETRY_ENABLED,
   mapZCodeEnvToArmsRumEnv,
   normalizeZCodeEnv,
   normalizeZCodeProductFlavor,
@@ -80,6 +83,8 @@ export * from "./validation.js";
 export * from "./api.js";
 export * from "./zcode-protocol/index.js";
 export * from "./account-provider-state.js";
+export * from "./social-publishing.js";
+export * from "./social-convex.js";
 // re-home：旧协议承重面的幸存文件（消费者继续走 barrel，零感知）
 export * from "./zcode-protocol-legacy-types.js";
 export * from "./zcode-task-types-core.js";
@@ -135,6 +140,7 @@ export {
   LOCAL_MEDIA_PREVIEW_SCHEME,
   DesktopCommandIds,
   buildLocalMediaPreviewUrl,
+  buildLocalMediaPreviewCapabilityUrl,
   createOpenInEditorRemoteTarget,
 } from "./platform.js";
 export type {
@@ -277,7 +283,6 @@ export * from "./settings-sync.js";
 export * from "./uuid.js";
 export * from "./usage-stats.js";
 export * from "./coding-plan-subscription.js";
-export * from "./forceUpdate.js";
 export * from "./intranetProbe.js";
 export * from "./intranetDefaults.js";
 export * from "./hooks.js";
@@ -304,3 +309,8 @@ export * from "./clientConfig.js";
 export * from "./pluginStoreOrdering.js";
 export * from "./session-debug.js";
 export { redactFeedbackText } from "./feedbackPrivacy.js";
+export * from "./social-account.js";
+export * from "./social-agent.js";
+export * from "./social-agent-production.js";
+export * from "./social-media.js";
+export * from "./social-project.js";

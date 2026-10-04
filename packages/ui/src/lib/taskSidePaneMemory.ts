@@ -1,4 +1,3 @@
-import type { GitChangeSourceId } from "@zcode/shared";
 import {
   normalizeWorkspaceSidePaneState,
   type WorkspaceSidePaneState,
@@ -9,7 +8,6 @@ interface TaskSidePaneMemoryState {
   isSidePaneCollapsed: boolean;
   /** 对话级展开/收起偏好；tabs 本身仍按 workspace 复用。 */
   sidePaneCollapsedByOwner: Record<string, boolean>;
-  activeGitSourceId: GitChangeSourceId;
   browserUrls: Record<string, string>;
   /** @deprecated 旧版单浏览器 tab 的 URL，保留用于读取历史内存状态。 */
   browserUrl: string | null;
@@ -19,7 +17,6 @@ const DEFAULT_TASK_SIDE_PANE_MEMORY_STATE: TaskSidePaneMemoryState = {
   sidePaneState: null,
   isSidePaneCollapsed: true,
   sidePaneCollapsedByOwner: {},
-  activeGitSourceId: "unstaged",
   browserUrls: {},
   browserUrl: null,
 };

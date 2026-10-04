@@ -8,9 +8,13 @@ import {
   useRef,
 } from "react";
 import type { ReactNode } from "react";
-import type { Locale, LocalePreference } from "@zcode/shared";
-import { DEFAULT_LOCALE } from "@zcode/shared";
-import type { BroadcastMessage, IBroadcastService, ISettingService } from "@zcode/services";
+import type { Locale, LocalePreference } from "@social-harness/shared";
+import { DEFAULT_LOCALE } from "@social-harness/shared";
+import type {
+  BroadcastMessage,
+  IBroadcastService,
+  ISettingService,
+} from "@social-harness/services";
 import {
   readNavigatorLanguage,
   readSafeLocalStorage,

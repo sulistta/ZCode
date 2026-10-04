@@ -1,4 +1,4 @@
-import type { UiLocale, SupportedLocale } from "@zcode/contracts";
+import type { UiLocale, SupportedLocale } from "@social-harness/contracts";
 import { enUS } from "./locales/en-US.js";
 import { zhCN } from "./locales/zh-CN.js";
 import {
@@ -20,7 +20,7 @@ export {
   resolveLocale,
 };
 export type { LocaleDetectionInput } from "./locale.js";
-export type { CliCopy, TuiCopy, UiLocale, SupportedLocale, ZCodeCopy } from "./types.js";
+export type { CliCopy, CommandCenterCopy, UiLocale, SupportedLocale, ZCodeCopy } from "./types.js";
 
 const CATALOGS: Record<SupportedLocale, ZCodeCopy> = {
   "en-US": enUS,

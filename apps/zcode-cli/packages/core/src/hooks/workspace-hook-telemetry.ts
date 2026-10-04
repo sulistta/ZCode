@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { Logger, WorkspaceHookReasonCode } from "@zcode/contracts";
+import type { Logger, WorkspaceHookReasonCode } from "@social-harness/contracts";
 
 export type WorkspaceHookTelemetryEvent =
   | "workspace_hook.feature_disabled"

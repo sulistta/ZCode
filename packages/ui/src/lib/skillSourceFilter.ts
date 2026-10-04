@@ -1,13 +1,19 @@
-import type { ZCodeProvider } from "@zcode/shared";
+import type { ZCodeProvider } from "@social-harness/shared";
 
 type SkillSourceType = "glm" | "unknown";
 
 function resolveSkillSourceType(skillPath: string): SkillSourceType {
   const normalized = skillPath.replaceAll("\\", "/").toLowerCase();
-  if (normalized.includes("/.zcode/skills/")) {
+  if (
+    normalized.includes("/.social-harness/v1/skills/") ||
+    normalized.includes("/.zcode/skills/")
+  ) {
     return "glm";
   }
-  if (normalized.includes("/.zcode/cli/plugins/cache/")) {
+  if (
+    normalized.includes("/.social-harness/v1/cli/plugins/cache/") ||
+    normalized.includes("/.zcode/cli/plugins/cache/")
+  ) {
     return "glm";
   }
   return "unknown";

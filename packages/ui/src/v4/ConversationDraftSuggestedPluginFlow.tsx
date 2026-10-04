@@ -1,7 +1,7 @@
 import {
-  ZCODE_OFFICIAL_PLUGIN_MARKETPLACE_ID,
+  SOCIAL_HARNESS_OFFICIAL_PLUGIN_MARKETPLACE_ID,
   type ZCodePluginsResolveSuggestedReferenceResult,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 
 export interface DraftSuggestedPluginFlow {
   anchorItemId: string;
@@ -44,7 +44,7 @@ export function resolveDraftSuggestedPluginFlowStage(
   const { status } = result;
   if (
     (status === "ready" || status === "disabled" || status === "missing") &&
-    (result.marketplace !== ZCODE_OFFICIAL_PLUGIN_MARKETPLACE_ID ||
+    (result.marketplace !== SOCIAL_HARNESS_OFFICIAL_PLUGIN_MARKETPLACE_ID ||
       result.sourceTrust !== "official" ||
       !result.pluginName)
   ) {

@@ -3,19 +3,19 @@
    返回行 + 内联保持电脑运行开关 + Settings/History tab + 标题输入 + 大 composer 盒
    （textarea + 工具条：项目/权限｜模型/推理档位）。权限四档默认 build，模型走白名单。 */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ModelSelectionView } from "@zcode/services";
-import { completeNewModelSelection } from "@zcode/provider";
+import type { ModelSelectionView } from "@social-harness/services";
+import { completeNewModelSelection } from "@social-harness/provider";
 import { FolderOpen } from "lucide-react";
 import {
   TID_OFFPEAK_EDIT_SUBMIT,
   TID_OFFPEAK_EDIT_VIEW,
   TID_OFFPEAK_FORM_INSTRUCTIONS,
   TID_OFFPEAK_FORM_TITLE,
-  ZCODE_AGENT_PROVIDER,
+  SOCIAL_HARNESS_AGENT_PROVIDER,
   type ZCodeConfigOption,
   type ZCodeOffPeakTask,
   type ModelSelection,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { Button } from "@/components/ui/button.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { Input } from "@/components/ui/input.js";
@@ -618,7 +618,7 @@ export function OffPeakEditView({
                       复用 ConfigSelect，避免两处样式再次分叉。 */}
                   <ConfigSelect
                     option={modeOption}
-                    provider={ZCODE_AGENT_PROVIDER}
+                    provider={SOCIAL_HARNESS_AGENT_PROVIDER}
                     onValueChange={setMode}
                     disabled={readOnly}
                     tooltipTitle={intl.formatMessage({
@@ -666,7 +666,7 @@ export function OffPeakEditView({
                     <ThoughtLevelCycleControl
                       intl={intl}
                       option={thoughtLevelOption}
-                      provider={ZCODE_AGENT_PROVIDER}
+                      provider={SOCIAL_HARNESS_AGENT_PROVIDER}
                       disabled={readOnly}
                       triggerRef={thoughtTriggerRef}
                       triggerClassName={AUTOMATION_INSTRUCTIONS_TOOLBAR_TRIGGER_CLASSNAME}

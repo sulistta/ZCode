@@ -19,7 +19,7 @@ import {
   type ModelMessageContent,
   type ResolveWorkflowQuestionInput,
   type ResolveWorkflowQuestionOutput,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type {
   ToolEntry,
   ToolExecutionContext,

@@ -1,8 +1,7 @@
 @import "tailwindcss" source(".");
 @import "tw-animate-css";
 @import "tailwind-scrollbar-hide/v4";
-@import "shadcn/tailwind.css";
-@import "@xterm/xterm/css/xterm.css";
+@import "./shadcn-tailwind.css";
 @import "katex/dist/katex.min.css";
 @source "../../../node_modules/streamdown/dist/*.js"; /* 显式扫描 streamdown 的运行时类名 */
 
@@ -29,12 +28,12 @@
  * @custom-variant 把 Radix 的 data-state、data-orientation 统一映射过来。
  * 之前仓库只引了 tailwindcss，本地编译就只会匹配裸 data-active 属性，
  * 导致 Tabs、Separator、ScrollArea、ButtonGroup 等一批组件样式“类名在、效果不在”。
- * 这里按官方 registry 的接法补上 shadcn/tailwind.css 和 tw-animate-css，
+ * 这里使用从 shadcn@4.1.1 固定并随仓库维护的变体 CSS，以及 tw-animate-css，
  * 让这批组件一次性恢复和上游一致的编译语义与动画工具类。
  */
 
 /*
- * styles.css 是从 @zcode/ui 包里被 web/desktop 间接引入的，Tailwind v4 在这种工作区场景下
+ * styles.css 是从 @social-harness/ui 包里被 web/desktop 间接引入的，Tailwind v4 在这种工作区场景下
  * 仅靠 source(".") 不能稳定把 UI 包里的 TSX 组件都加入扫描，像 Select 这类新组件用到的
  * bg-popover、shadow-md、overflow-x-hidden 等 utility 会直接缺席，页面就只剩下一部分“碰巧命中”的通用类。
  * 这里显式补一条 @source，让 Tailwind 始终扫描 UI 包源码，避免下拉框、菜单这类组件渲染成半残状态。
@@ -159,7 +158,7 @@ body {
   --color-background-alt: color-mix(in oklab, var(--color-neutral-100) 60%, transparent);
   --color-background-win-alt: var(--color-neutral-200);
   --color-brand: var(--color-sky-400);
-  --color-icon-blue: var(--color-terminal-bright-blue);
+  --color-icon-blue: var(--color-sky-500);
   --color-trajectory-user: #2563eb;
   --color-trajectory-assistant: #0f766e;
   --color-trajectory-reasoning: #7c3aed;
@@ -196,29 +195,7 @@ body {
   --color-input-border: var(--color-border);
   --color-input-border-hover: var(--color-border-hover);
   --color-input-border-focused: var(--color-brand);
-  --color-terminal-bg: var(--color-neutral-50);
-  --color-terminal-fg: var(--color-neutral-950);
-  --color-terminal-cursor: var(--color-neutral-950);
-  --color-terminal-cursor-accent: var(--color-neutral-50);
-  --color-terminal-selection: color-mix(in oklab, var(--color-sky-500) 32%, transparent);
-  --color-terminal-selection-inactive: color-mix(in oklab, var(--color-sky-500) 22%, transparent);
-  --color-terminal-black: var(--color-neutral-700);
-  --color-terminal-red: var(--color-red-500);
-  --color-terminal-green: var(--color-green-500);
-  --color-terminal-yellow: var(--color-yellow-500);
-  --color-terminal-blue: var(--color-sky-500);
-  --color-terminal-magenta: var(--color-fuchsia-500);
-  --color-terminal-cyan: var(--color-cyan-500);
-  --color-terminal-white: var(--color-neutral-500);
-  --color-terminal-bright-black: var(--color-neutral-500);
-  --color-terminal-bright-red: var(--color-red-500);
-  --color-terminal-bright-green: var(--color-green-500);
-  --color-terminal-bright-yellow: var(--color-yellow-500);
-  --color-terminal-bright-blue: var(--color-sky-500);
-  --color-terminal-bright-magenta: var(--color-fuchsia-500);
-  --color-terminal-bright-cyan: var(--color-cyan-500);
-  --color-terminal-bright-white: var(--color-neutral-950);
-  /* 应用用量图表使用独立色板，避免复用终端 ANSI 色造成红黄绿高饱和堆叠。 */
+  /* 应用用量图表使用独立色板，避免高饱和颜色堆叠。 */
   --color-usage-chart-1: var(--color-sky-600);
   --color-usage-chart-2: var(--color-teal-600);
   --color-usage-chart-3: var(--color-violet-600);
@@ -312,6 +289,7 @@ body {
   --color-background-alt: color-mix(in oklab, var(--color-neutral-800) 60%, transparent);
   --color-background-win-alt: var(--color-neutral-800);
   --color-brand: var(--color-sky-500);
+  --color-icon-blue: var(--color-sky-600);
   --color-trajectory-user: #60a5fa;
   --color-trajectory-assistant: #2dd4bf;
   --color-trajectory-reasoning: #a78bfa;
@@ -344,32 +322,6 @@ body {
   --color-input-border: var(--color-border);
   --color-input-border-hover: var(--color-border-hover);
   --color-input-border-focused: var(--color-brand);
-  --color-terminal-bg: var(--color-neutral-950);
-  --color-terminal-fg: var(--color-neutral-50);
-  --color-terminal-cursor: var(--color-neutral-50);
-  --color-terminal-cursor-accent: var(--color-neutral-950);
-  --color-terminal-selection: color-mix(in oklab, var(--color-sky-500) 26%, transparent);
-  --color-terminal-selection-inactive: color-mix(
-    in oklab,
-    var(--color-neutral-50) 16%,
-    transparent
-  );
-  --color-terminal-black: var(--color-neutral-800);
-  --color-terminal-red: var(--color-red-600);
-  --color-terminal-green: var(--color-green-600);
-  --color-terminal-yellow: var(--color-yellow-600);
-  --color-terminal-blue: var(--color-sky-600);
-  --color-terminal-magenta: var(--color-fuchsia-600);
-  --color-terminal-cyan: var(--color-cyan-600);
-  --color-terminal-white: var(--color-neutral-200);
-  --color-terminal-bright-black: var(--color-neutral-500);
-  --color-terminal-bright-red: var(--color-red-600);
-  --color-terminal-bright-green: var(--color-green-600);
-  --color-terminal-bright-yellow: var(--color-yellow-600);
-  --color-terminal-bright-blue: var(--color-sky-600);
-  --color-terminal-bright-magenta: var(--color-fuchsia-600);
-  --color-terminal-bright-cyan: var(--color-cyan-600);
-  --color-terminal-bright-white: var(--color-neutral-50);
   --color-usage-chart-1: var(--color-sky-500);
   --color-usage-chart-2: var(--color-teal-400);
   --color-usage-chart-3: var(--color-violet-400);
@@ -465,6 +417,7 @@ body {
   --color-background-win-alt: #ececee;
   --color-background-alt: color-mix(in oklab, var(--color-background) 70%, transparent);
   --color-brand: #000000;
+  --color-icon-blue: #0066dd;
   --color-trajectory-user: #2563eb;
   --color-trajectory-assistant: #0f766e;
   --color-trajectory-reasoning: #7c3aed;
@@ -497,28 +450,6 @@ body {
   --color-input-border: var(--color-border);
   --color-input-border-hover: var(--color-border-hover);
   --color-input-border-focused: var(--color-border-hover);
-  --color-terminal-bg: var(--color-background);
-  --color-terminal-fg: var(--color-foreground);
-  --color-terminal-cursor: #0d0d0d;
-  --color-terminal-cursor-accent: var(--color-background);
-  --color-terminal-selection: rgba(11, 127, 255, 0.22);
-  --color-terminal-selection-inactive: rgba(13, 13, 13, 0.1);
-  --color-terminal-black: #5c5c5c;
-  --color-terminal-red: #e03131;
-  --color-terminal-green: #1e8a3e;
-  --color-terminal-yellow: #e07b00;
-  --color-terminal-blue: #0b7fff;
-  --color-terminal-magenta: #9e77ed;
-  --color-terminal-cyan: #0aa7a7;
-  --color-terminal-white: #adadad;
-  --color-terminal-bright-black: #888888;
-  --color-terminal-bright-red: #e03131;
-  --color-terminal-bright-green: #1e8a3e;
-  --color-terminal-bright-yellow: #e07b00;
-  --color-terminal-bright-blue: #0066dd;
-  --color-terminal-bright-magenta: #9e77ed;
-  --color-terminal-bright-cyan: #0aa7a7;
-  --color-terminal-bright-white: #0d0d0d;
   --color-usage-chart-1: #0b7fff;
   --color-usage-chart-2: #1e8a3e;
   --color-usage-chart-3: #9e77ed;
@@ -610,6 +541,7 @@ body {
   --color-background-win-alt: #2b2b2b;
   --color-background-alt: color-mix(in oklab, var(--color-background-win-alt) 60%, transparent);
   --color-brand: #ffffff;
+  --color-icon-blue: #80beff;
   --color-trajectory-user: #60a5fa;
   --color-trajectory-assistant: #2dd4bf;
   --color-trajectory-reasoning: #a78bfa;
@@ -642,28 +574,6 @@ body {
   --color-input-border: var(--color-border);
   --color-input-border-hover: var(--color-border-hover);
   --color-input-border-focused: var(--color-border-hover);
-  --color-terminal-bg: var(--color-background);
-  --color-terminal-fg: var(--color-foreground);
-  --color-terminal-cursor: #f8f8f8;
-  --color-terminal-cursor-accent: #161616;
-  --color-terminal-selection: rgba(64, 153, 255, 0.28);
-  --color-terminal-selection-inactive: rgba(255, 255, 255, 0.1);
-  --color-terminal-black: #363636;
-  --color-terminal-red: #ff5c5c;
-  --color-terminal-green: #46bf72;
-  --color-terminal-yellow: #ff8a30;
-  --color-terminal-blue: #4099ff;
-  --color-terminal-magenta: #7b5ce5;
-  --color-terminal-cyan: #42c8c8;
-  --color-terminal-white: #adadad;
-  --color-terminal-bright-black: #747474;
-  --color-terminal-bright-red: #ff9999;
-  --color-terminal-bright-green: #87d9a4;
-  --color-terminal-bright-yellow: #ffb26b;
-  --color-terminal-bright-blue: #80beff;
-  --color-terminal-bright-magenta: #a888f2;
-  --color-terminal-bright-cyan: #8ee5e5;
-  --color-terminal-bright-white: #f8f8f8;
   --color-usage-chart-1: #4099ff;
   --color-usage-chart-2: #46bf72;
   --color-usage-chart-3: #7b5ce5;
@@ -779,20 +689,6 @@ body {
 
 *::-webkit-scrollbar-corner {
   background: transparent;
-}
-
-/*
- * xterm 自己的 viewport 会吃到全局滚动条样式，在终端右侧露出一条独立滚动条。
- * 终端滚动仍交给 xterm 内部处理，这里只隐藏原生滚动条，避免终端面板出现额外视觉噪音。
- */
-.terminal-xterm-shell .xterm-viewport {
-  scrollbar-width: none;
-}
-
-.terminal-xterm-shell .xterm-viewport::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
 }
 
 /*

@@ -6,12 +6,12 @@ import { randomUUID } from "node:crypto";
 import { homedir, uptime } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
-import type { WorkspaceHookTrustRecord, WorkspaceHookTrustStoreFile } from "@zcode/contracts";
+import type { WorkspaceHookTrustRecord, WorkspaceHookTrustStoreFile } from "@social-harness/contracts";
 import {
   WORKSPACE_HOOK_TRUST_STORE_SCHEMA_VERSION,
   workspaceHookTrustRecordSchema,
   workspaceHookTrustStoreFileSchema,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 
 const DEFAULT_LOCK_TIMEOUT_MS = 5_000;
 const DEFAULT_STALE_LOCK_MS = 30_000;
@@ -124,6 +124,7 @@ export interface WorkspaceHookTrustStoreRevokeOptions {
 
 export interface WorkspaceHookTrustStorePathOptions {
   homeDir?: string;
+  dataBaseDir?: string;
   userConfigPath?: string;
 }
 
@@ -131,13 +132,20 @@ export async function resolveWorkspaceHookTrustStorePath(
   options: WorkspaceHookTrustStorePathOptions = {},
 ): Promise<string> {
   const home = resolve(options.homeDir ?? homedir());
+  const dataBaseDir = resolve(
+    options.dataBaseDir?.trim() || process.env.SOCIAL_HARNESS_DATA_BASE_DIR?.trim() || home,
+  );
   const userConfigPath = resolve(
-    options.userConfigPath ?? join(home, ".zcode", "cli", "config.json"),
+    options.userConfigPath ??
+      join(dataBaseDir, ".social-harness", "v1", "cli", "config.json"),
   );
   const config = await readUserConfig(userConfigPath);
   const storage = isRecord(config.storage) ? config.storage : {};
   const configured = typeof storage.dir === "string" ? storage.dir.trim() : "";
-  const storageRoot = configured ? resolveTrustedUserPath(configured, home) : join(home, ".zcode");
+  const storageRoot =
+    configured
+      ? resolveTrustedUserPath(configured, dataBaseDir)
+      : join(dataBaseDir, ".social-harness", "v1");
   return join(storageRoot, SECURITY_DIRECTORY, TRUST_STORE_FILE);
 }
 

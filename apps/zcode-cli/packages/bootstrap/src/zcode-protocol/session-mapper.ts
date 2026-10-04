@@ -1,6 +1,6 @@
 import {
-  ZCODE_PROTOCOL_NAME,
-  ZCODE_PROTOCOL_VERSION,
+  SOCIAL_HARNESS_PROTOCOL_NAME,
+  SOCIAL_HARNESS_PROTOCOL_VERSION,
   getZCodeGoalActiveIterationCount,
   zcodeApiRetryFromModelNetworkStatusPayload,
   zcodeApiRetryFromStreamRecoveryPayload,
@@ -24,7 +24,7 @@ import {
   type ZCodeSessionTodoGroup,
   type ZCodeWorkspaceRef,
   isMainAgentToolProjectionSource,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   EventReducer,
   SessionEventType,
@@ -41,7 +41,7 @@ import {
   type SessionProjection,
   type TodoItem,
   type ToolState,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { ZCodeApp } from "../app/types.js";
 import { mapMessageWithParts } from "./message-mapper.js";
 import { formatProtocolModelSelection, optionalModelSelectionFromString } from "./model-mapper.js";
@@ -101,8 +101,8 @@ export async function buildSessionSnapshot(input: {
     messages,
     projection: mapSessionProjection(projection),
     protocol: {
-      name: ZCODE_PROTOCOL_NAME,
-      version: ZCODE_PROTOCOL_VERSION,
+      name: SOCIAL_HARNESS_PROTOCOL_NAME,
+      version: SOCIAL_HARNESS_PROTOCOL_VERSION,
     },
     runtime: mapRuntimeState({
       activeTurn,

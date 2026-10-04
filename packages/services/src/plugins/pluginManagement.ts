@@ -7,7 +7,7 @@
 // 插件能力面自身的协议演进，不在会话 v4 词表范围内）。
 // 注意与既有 IPluginsService（已 retired 的 marketplace pluginStore 通道）区分：
 // 那套接口按 pluginName+marketplace 寻址且方法语义过时，不复用避免签名冲突。
-import type { Event } from "@zcode/rpc";
+import type { Event } from "@social-harness/rpc";
 import type {
   ZCodePluginOperationProgressNotification,
   ZCodePluginsConfigureResult,
@@ -22,8 +22,8 @@ import type {
   ZCodePluginsSetEnabledResult,
   ZCodePluginsUninstallResult,
   ZCodePluginsValidateResult,
-} from "@zcode/shared";
-import { ServiceChannels } from "@zcode/shared";
+} from "@social-harness/shared";
+import { ServiceChannels } from "@social-harness/shared";
 import { createServiceDescriptor } from "../descriptors.js";
 import type {
   ZCodeAgentAddPluginMarketplaceParams,
@@ -56,7 +56,7 @@ export interface IPluginManagementService {
   ): Promise<ZCodePluginsReferenceCatalogResult>;
   resolveSuggestedPluginReference(
     params: ZCodeAgentResolveSuggestedPluginReferenceParams,
-  ): Promise<import("@zcode/shared").ZCodePluginsResolveSuggestedReferenceResult>;
+  ): Promise<import("@social-harness/shared").ZCodePluginsResolveSuggestedReferenceResult>;
   onDynamicPluginOperationProgress(
     operationId: string,
   ): Event<ZCodePluginOperationProgressNotification>;

@@ -10,14 +10,14 @@ import {
   TID_V4_ROW,
   testId,
   type ZCodeApiRetryStatus,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type {
   ApiRetryState,
   AttachmentRef,
   CommandAck,
   ConversationRowTarget,
   WorkflowNotificationMeta,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import { ChatLoading } from "@/components/ai-elements/chat-loading.js";
 import { ChatApiRetryStatus } from "@/chat-input-toolbar/display.js";
 import { cn } from "@/components/lib/utils.js";
@@ -43,12 +43,6 @@ import {
 } from "@/ToolCallBlocks/renderers/offpeak-create.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import type { AssistantPreviewCard } from "@/lib/assistantPreviewCards.js";
-import { useAssistantCodeCommentFeatureEnabled } from "@/AssistantCodeCommentFeatureProvider.js";
-import {
-  buildAssistantCodeCommentCards,
-  projectAssistantCodeComments,
-  type AssistantCodeCommentCard,
-} from "@/lib/assistantCodeComment.js";
 import { useAssistantPreviewCardsForAssistantTextRow } from "@/v4/useAssistantPreviewCardsForRow.js";
 import { shouldShowTurnChatLoading } from "@/v4/chatLoadingVisibility.js";
 import {
@@ -209,12 +203,7 @@ function ConversationToolGroupRow({
 }) {
   const renderAssistantMessage = useCallback(
     (event: Extract<ConversationCuaGroupEvent, { kind: "assistantMessage" }>) => (
-      <ConversationTurnRow
-        row={event.row}
-        context={context}
-        hideAssistantActions
-        assistantCodeCommentProjectionEnabled={false}
-      />
+      <ConversationTurnRow row={event.row} context={context} hideAssistantActions />
     ),
     [context],
   );
@@ -270,12 +259,7 @@ function ConversationCuaGroupRow({
 }) {
   const renderAssistantMessage = useCallback(
     (event: Extract<(typeof item.events)[number], { kind: "assistantMessage" }>) => (
-      <ConversationTurnRow
-        row={event.row}
-        context={context}
-        hideAssistantActions
-        assistantCodeCommentProjectionEnabled={false}
-      />
+      <ConversationTurnRow row={event.row} context={context} hideAssistantActions />
     ),
     [context],
   );
@@ -321,14 +305,12 @@ function ConversationAssistantWorkItems({
   rows,
   context,
   stageTailIsRunning = false,
-  assistantCodeCommentProjectionEnabled = false,
   historyContainer,
 }: {
   rows: readonly AssistantWorkRow[];
   context: ConversationRowRenderContext;
   stageTailIsRunning?: boolean;
   /** running turn 的正文可能暂时落在 history renderer，仍需隐藏特化协议原文。 */
-  assistantCodeCommentProjectionEnabled?: boolean;
   historyContainer?: {
     chunkKey: string;
     open: boolean;
@@ -386,7 +368,6 @@ function ConversationAssistantWorkItems({
             row={item.row}
             context={context}
             hideAssistantActions={item.row.kind === "assistantText"}
-            assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
           />
         ) : item.kind === "agentToolCall" ? (
           <ConversationAgentToolCallRow key={item.key} item={item} context={context} />
@@ -619,8 +600,6 @@ function ConversationWorkSegmentFlow({
   assistantCopyText,
   assistantPreviewCards,
   assistantPreviewCardsAutoOpenKey,
-  assistantCodeCommentCards,
-  assistantCodeCommentProjectionEnabled,
   canForkLatestAssistant,
   canRetryLatestAssistant,
   shareSelectionToggle,
@@ -635,8 +614,6 @@ function ConversationWorkSegmentFlow({
   assistantCopyText?: string;
   assistantPreviewCards: AssistantPreviewCard[];
   assistantPreviewCardsAutoOpenKey?: string;
-  assistantCodeCommentCards: AssistantCodeCommentCard[];
-  assistantCodeCommentProjectionEnabled: boolean;
   canForkLatestAssistant: boolean;
   canRetryLatestAssistant: boolean;
   shareSelectionToggle?: ReactNode;
@@ -719,7 +696,6 @@ function ConversationWorkSegmentFlow({
               rows={item.rows}
               context={context}
               stageTailIsRunning={stageTailIsRunning}
-              assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
               historyContainer={{ chunkKey, open }}
             />
           );
@@ -737,8 +713,6 @@ function ConversationWorkSegmentFlow({
               assistantPreviewCardsAutoOpenKey={
                 item.latest ? assistantPreviewCardsAutoOpenKey : undefined
               }
-              assistantCodeCommentCards={item.latest ? assistantCodeCommentCards : undefined}
-              assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
             />
           );
         } else {
@@ -747,7 +721,6 @@ function ConversationWorkSegmentFlow({
               rows={item.rows}
               context={context}
               stageTailIsRunning={stageTailIsRunning}
-              assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
             />
           );
         }
@@ -775,8 +748,6 @@ function ConversationTurnFlow({
   onEdit,
   editWorkspaceRewindAvailability,
   assistantCopyText,
-  assistantCodeCommentCards,
-  assistantCodeCommentProjectionEnabled,
   assistantPreviewCardsAutoOpenKey,
   shareSelectionToggle,
   shareSelectionRowId,
@@ -789,8 +760,6 @@ function ConversationTurnFlow({
   onEdit?: ConversationTurnGroupProps["onEdit"];
   editWorkspaceRewindAvailability: EditWorkspaceRewindAvailability;
   assistantCopyText?: string;
-  assistantCodeCommentCards: AssistantCodeCommentCard[];
-  assistantCodeCommentProjectionEnabled: boolean;
   assistantPreviewCardsAutoOpenKey?: string;
   shareSelectionToggle?: ReactNode;
   shareSelectionRowId?: number;
@@ -824,7 +793,6 @@ function ConversationTurnFlow({
           rows={unit.assistantWorkRows}
           context={context}
           stageTailIsRunning={unit.isRunning}
-          assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
         />
         <TurnChatLoadingSlot apiRetry={apiRetry} eligible={showLoading} />
       </div>
@@ -883,8 +851,6 @@ function ConversationTurnFlow({
           assistantCopyText={assistantCopyText}
           assistantPreviewCards={assistantPreviewCards}
           assistantPreviewCardsAutoOpenKey={assistantPreviewCardsAutoOpenKey}
-          assistantCodeCommentCards={assistantCodeCommentCards}
-          assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
           canForkLatestAssistant={canForkLatestAssistant}
           canRetryLatestAssistant={canRetryLatestAssistant}
           shareSelectionToggle={shareSelectionToggle}
@@ -948,8 +914,6 @@ function ConversationBackgroundResultWork({
   onRetry,
   title,
   assistantCopyText,
-  assistantCodeCommentCards,
-  assistantCodeCommentProjectionEnabled,
   assistantPreviewCardsAutoOpenKey,
 }: {
   unit: ConversationTurnRenderUnit;
@@ -959,8 +923,6 @@ function ConversationBackgroundResultWork({
   onRetry?: (target: ConversationRowTarget) => void;
   title: string;
   assistantCopyText?: string;
-  assistantCodeCommentCards: AssistantCodeCommentCard[];
-  assistantCodeCommentProjectionEnabled: boolean;
   assistantPreviewCardsAutoOpenKey?: string;
 }) {
   const hasHistory = unit.assistantHistoryRows.length > 0;
@@ -1064,11 +1026,7 @@ function ConversationBackgroundResultWork({
       )}
       {hasHistory ? (
         <div className="flex flex-col gap-2">
-          <ConversationAssistantWorkItems
-            rows={unit.assistantHistoryRows}
-            context={context}
-            assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
-          />
+          <ConversationAssistantWorkItems rows={unit.assistantHistoryRows} context={context} />
         </div>
       ) : null}
       {latestAssistantTextRow ? (
@@ -1082,16 +1040,10 @@ function ConversationBackgroundResultWork({
           assistantCopyText={assistantCopyText}
           assistantPreviewCards={assistantPreviewCards}
           assistantPreviewCardsAutoOpenKey={assistantPreviewCardsAutoOpenKey}
-          assistantCodeCommentCards={assistantCodeCommentCards}
-          assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
         />
       ) : null}
       {hasFollowing ? (
-        <ConversationAssistantWorkItems
-          rows={unit.assistantFollowingRows}
-          context={context}
-          assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
-        />
+        <ConversationAssistantWorkItems rows={unit.assistantFollowingRows} context={context} />
       ) : null}
       <TurnChatLoadingSlot apiRetry={apiRetry} eligible={showLoading} />
     </div>
@@ -1126,45 +1078,11 @@ function ConversationTurnGroupImpl({
   );
   const latestAssistantTextRow = unit.latestAssistantTextRow;
   const assistantPreviewPptxAutoOpenTarget = context.assistantPreviewPptxAutoOpenTarget;
-  const codeCommentCardsEnabled = useAssistantCodeCommentFeatureEnabled();
-  const assistantCodeCommentProjectionEnabled =
-    codeCommentCardsEnabled &&
-    (unit.isRunning ||
-      latestAssistantTextRow?.state === "complete" ||
-      latestAssistantTextRow?.state === "interrupted");
   const assistantRawCopyText = useMemo(
     () => resolveAssistantCopyText(unit),
     [unit.assistantTextRows, unit.assistantWorkRows, unit.latestAssistantTextRow],
   );
-  const assistantCopyText = useMemo(
-    () =>
-      assistantCodeCommentProjectionEnabled && assistantRawCopyText !== undefined
-        ? projectAssistantCodeComments(assistantRawCopyText, {
-            streaming: unit.isRunning,
-          }).visibleText
-        : assistantRawCopyText,
-    [assistantRawCopyText, assistantCodeCommentProjectionEnabled, unit.isRunning],
-  );
-  const assistantCodeCommentCards = useMemo(
-    () =>
-      codeCommentCardsEnabled &&
-      assistantRawCopyText !== undefined &&
-      // 卡片与 zcode-file-citation 的预览卡片保持一致：流式期间只投影正文，
-      // 只有终态 row 才生成卡片，避免运行中卡片先出现又因模型续写而回滚。
-      (latestAssistantTextRow?.state === "complete" ||
-        latestAssistantTextRow?.state === "interrupted")
-        ? buildAssistantCodeCommentCards(assistantRawCopyText, context.workspacePath, 50, {
-            homePath: context.workspaceHomePath,
-          })
-        : [],
-    [
-      assistantRawCopyText,
-      codeCommentCardsEnabled,
-      context.workspaceHomePath,
-      context.workspacePath,
-      latestAssistantTextRow?.state,
-    ],
-  );
+  const assistantCopyText = assistantRawCopyText;
   const cronAutomationTurnCards = useMemo(
     () => (unit.isRunning ? [] : resolveCronAutomationTurnCards(unit.assistantWorkRows)),
     [unit.assistantWorkRows, unit.isRunning],
@@ -1351,8 +1269,6 @@ function ConversationTurnGroupImpl({
                 onRetry={onRetry}
                 title={backgroundResultTitle}
                 assistantCopyText={assistantCopyText}
-                assistantCodeCommentCards={assistantCodeCommentCards}
-                assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
                 assistantPreviewCardsAutoOpenKey={
                   assistantPreviewPptxAutoOpenTarget?.turnId === unit.turnId
                     ? assistantPreviewPptxAutoOpenTarget.key
@@ -1372,8 +1288,6 @@ function ConversationTurnGroupImpl({
               shareSelectionToggle={shareSelectionToggle}
               shareSelectionRowId={shareSelectionRows[0]?.rowId}
               assistantCopyText={assistantCopyText}
-              assistantCodeCommentCards={assistantCodeCommentCards}
-              assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
               assistantPreviewCardsAutoOpenKey={
                 assistantPreviewPptxAutoOpenTarget?.turnId === unit.turnId
                   ? assistantPreviewPptxAutoOpenTarget.key
@@ -1408,7 +1322,6 @@ function ConversationTurnGroupImpl({
             <ConversationAssistantWorkItems
               rows={unit.browserTurnEndRows}
               context={assistantRowContext}
-              assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
             />
           ) : null}
           {canRenderAssistantActions && latestAssistantTextRow ? (
@@ -1440,7 +1353,6 @@ function ConversationTurnGroupImpl({
             <ConversationAssistantWorkItems
               rows={unit.assistantTailRows}
               context={assistantRowContext}
-              assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
             />
           ) : null}
         </div>
@@ -1454,8 +1366,6 @@ function ConversationTurnGroupImpl({
           shareSelectionToggle={shareSelectionToggle}
           shareSelectionRowId={shareSelectionRows[0]?.rowId}
           assistantCopyText={assistantCopyText}
-          assistantCodeCommentCards={assistantCodeCommentCards}
-          assistantCodeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
         />
       )}
     </section>

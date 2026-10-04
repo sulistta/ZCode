@@ -3,10 +3,10 @@ export {
   getCompactToolCallSummary,
   isCompactToolCallFinishedState,
   isCompactToolCallRunningState,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 export type {
   CompactToolCallState,
   ToolCallChangeStat,
   ToolCallSummary,
   ToolCallSummarySource,
-} from "@zcode/shared";
+} from "@social-harness/shared";

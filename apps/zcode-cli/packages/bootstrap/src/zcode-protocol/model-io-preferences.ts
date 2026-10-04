@@ -1,4 +1,4 @@
-import { zcodeWorkspaceUpdateModelIoPreferencesParamsSchema } from "@zcode/shared";
+import { zcodeWorkspaceUpdateModelIoPreferencesParamsSchema } from "@social-harness/shared";
 import { parseParams, type ZCodeProtocolAgentServerContext } from "./server-types.js";
 
 /**

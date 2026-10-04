@@ -13,7 +13,7 @@ import {
   AmendWorkflowInputSchema,
   type AmendWorkflowInput,
   type DynamicWorkflowRunPort,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { ToolHandlerFailure } from "../types.js";
 import { readWorkflowScriptFile } from "./workflow-path-source.js";
 

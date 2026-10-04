@@ -2,17 +2,17 @@ import { basename, resolve } from "node:path";
 import {
   createWorkspaceHookBundleSnapshot,
   type WorkspaceHookBundleSnapshot,
-} from "@zcode/contracts";
-import { digestSummary, workspaceIdentitySummary } from "@zcode/core";
+} from "@social-harness/contracts";
+import { digestSummary, workspaceIdentitySummary } from "@social-harness/core";
 import {
   buildWorkspaceHookBundleSnapshot,
   readWorkspaceHookProjectSources,
   type WorkspaceHookRuntimeRoot,
-} from "@zcode/shared/workspace-hook-discovery";
+} from "@social-harness/shared/workspace-hook-discovery";
 import {
   WorkspaceHookMutationError,
   writeWorkspaceHookConfiguredToggle,
-} from "@zcode/shared/workspace-hook-mutation";
+} from "@social-harness/shared/workspace-hook-mutation";
 import type { WorkspaceHookReviewMutationPort } from "./workspace-hook-review-controller.js";
 
 interface WorkspaceHookReviewMutationPortOptions {

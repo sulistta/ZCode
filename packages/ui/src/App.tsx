@@ -1,13 +1,11 @@
 /* eslint-disable max-lines -- App 当前集中编排 workspace 级状态、导航、Git 派生数据和 shell wiring；已将新增 side pane memory 桥接抽出，剩余拆分需要按 shell 边界单独重构。 */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import type { GitChangeSourceId, WorkspacePurpose } from "@zcode/shared";
+import type { WorkspacePurpose } from "@social-harness/shared";
 import { useZCodeStore } from "@/store/StoreProvider.js";
 import { getVisibleTaskMetas, useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
 import { useTaskQueryCacheStore } from "@/store/taskQueryCacheStore.js";
 import { useAppPanels } from "@/hooks/useAppPanels.js";
-import { useGitAutoRefresh } from "@/hooks/useGitAutoRefresh.js";
-import { useGitRepository } from "@/hooks/useGitRepository.js";
 import { useAppKeyboard } from "@/hooks/useAppKeyboard.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import { useWorkspaceActiveTaskState } from "@/hooks/useWorkspaceActiveTaskState.js";
@@ -16,7 +14,6 @@ import { useTabStore } from "@/store/TabStoreProvider.js";
 import { isWorkspaceReadOnly, isWorkspaceTab } from "@/store/tabStore.js";
 import type { TaskChatMessage as TestChatMessage } from "@/lib/taskChatMessageTypes.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
-import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
 import { getPathLeaf } from "@/lib/path.js";
 import {
   addPluginStoreOpenListener,
@@ -46,7 +43,6 @@ import {
   type SettingsSectionId,
 } from "@/lib/settingsNavigation.js";
 import { runWorkspaceVisibleCommand } from "@/lib/workspaceVisibleCommand.js";
-import { ZCODE_PRODUCT_DOCS_URL } from "@/lib/productDocs.js";
 import appLogoUrl from "@/assets/provider-icons/logo-zai.svg";
 import { resolveTheme } from "@/useTheme.js";
 import { WorkspaceShellLayout } from "@/app-shell/WorkspaceShellLayout.js";
@@ -108,7 +104,6 @@ export function App({
   onOpenWorkspace,
   onOpenFolderFromWorkspaceMenu,
   onOpenRemoteWorkspace,
-  onCreateScratchWorkspace,
   remoteConnectionInProgress = false,
   onReturnToWorkspace,
   allowOpenWorkspace = true,
@@ -128,13 +123,11 @@ export function App({
   const newTaskShortcutLabel = useShortcutCommandLabel("newTask");
   const goBackShortcutLabel = useShortcutCommandLabel("navigateBack");
   const goForwardShortcutLabel = useShortcutCommandLabel("navigateForward");
-  const toggleTerminalShortcutLabel = useShortcutCommandLabel("toggleTerminal");
   const toggleSidePaneShortcutLabel = useShortcutCommandLabel("toggleSidePane");
   const openWorkspaceShortcutLabel = useShortcutCommandLabel("openWorkspace");
   const isLinuxDesktop = Boolean(isDesktop && !isMacDesktop && !isWindowsDesktop);
   const supportsEmbeddedBrowser = explicitSupportsEmbeddedBrowser ?? Boolean(isDesktop);
   const { intl, locale, setLocale } = useZCodeIntl();
-  const isOfficeMode = useIsOfficeMode();
   const platform = usePlatform();
   // 进程内存本地诊断日志：每窗口一个 60s 采样器，
   // 经门控后写桌面主日志；Web 端无日志桥时为 no-op。同一次读数还经 preload 桥把 heap 送 main 的
@@ -212,8 +205,6 @@ export function App({
     useState<ChatViewSummaryPanelVariant | null>(null);
   const draftFocusVersion = workspaceShellZCodeState.draftFocusVersion;
   const {
-    isTerminalOpen,
-    setIsTerminalOpen,
     sidePaneState,
     recentClosedSidePaneTabs,
     isSidePaneCollapsed,
@@ -226,12 +217,8 @@ export function App({
     handleOpenBrowserUrl,
     handleToggleBrowser,
     handleOpenBrowserTab,
-    handleToggleGit,
-    handleOpenGit,
-    handleOpenTreemapping,
     handleOpenWhiteboard,
     handleOpenDeveloperTools,
-    handleOpenTerminalTab,
     handleOpenSubagentSession,
     handleOpenBackgroundBash,
     handleOpenSubagentDirectory,
@@ -243,11 +230,9 @@ export function App({
     handleOpenWorkflowActorSession,
     handleOpenWorkflowWorkspace,
     handleOpenWorkflowArtifact,
-    handleToggleTerminal,
     handleToggleSidebar,
     handleToggleSidePaneCollapse,
     handleCloseCodeViewer,
-    handleCloseGit,
     handleActivateSidePaneTab,
     handleReorderSidePaneTab,
     handleCloseSidePaneTab,
@@ -341,15 +326,9 @@ export function App({
   const searchResultHighlightRequestIdRef = useRef(0);
   const [searchResultHighlightRequest, setSearchResultHighlightRequest] =
     useState<ChatSearchResultHighlightRequest | null>(null);
-  const [fileChangeFindState, setFileChangeFindState] = useState(createTaskFindNavigationState);
-  const [fileChangeFindMatchCount, setFileChangeFindMatchCount] = useState(0);
   const [canOpenCommunityFromQuickPick, setCanOpenCommunityFromQuickPick] = useState(false);
-  const [gitSelectedSourceId, setGitSelectedSourceId] = useState<GitChangeSourceId>("unstaged");
-  const [gitRefreshVersion, setGitRefreshVersion] = useState(0);
   const { browserRestoreUrls, handleBrowserUrlChange } = useTaskSidePaneMemoryBridge({
     activeTaskId,
-    gitSelectedSourceId,
-    setGitSelectedSourceId,
     workspaceAbsPath,
     workspaceIdentity,
   });
@@ -379,7 +358,6 @@ export function App({
     activeTraceId,
     activeSessionId,
     activeTaskProvider,
-    activeTaskChangeSummary,
     activeTaskTitle,
     taskNativeSessionLogFile,
     taskSessionFile,
@@ -408,99 +386,7 @@ export function App({
   const commandCenterWorkspaceTabs = useMemo(() => tabs.filter(isWorkspaceTab), [tabs]);
   const activeSidePaneTab = useMemo(() => getActiveSidePaneTab(sidePaneState), [sidePaneState]);
   const isBrowserOpen = activeSidePaneTab?.type === "browser";
-  const isGitOpen = activeSidePaneTab?.type === "git";
-  const hasGitTab = sidePaneState?.tabs.some((tab) => tab.type === "git") ?? false;
-  const handleRefreshGit = useCallback(() => {
-    setGitRefreshVersion((value) => value + 1);
-  }, []);
   const openSettingsTab = useTabStore((state) => state.openSettingsTab);
-  const gitState = useGitRepository({
-    workspacePath: workspaceAbsPath,
-    activeTaskId,
-    includeExtendedData: hasGitTab,
-    // 关键逻辑：真实 Git 只在 workspace 变化、Git pane 打开、或用户显式点刷新时重拉。
-    // task 切换 / last-turn 摘要变化只更新本地衍生数据，不再顺带重跑 Git 命令。
-    refreshToken: gitRefreshVersion,
-    remoteSessionId: workspaceRpcTarget.remoteSessionId ?? null,
-    remoteTarget: workspaceRpcTarget.remoteTarget,
-    workspaceIdentity,
-  });
-  useGitAutoRefresh({
-    workspacePath: workspaceAbsPath,
-    workspaceIdentity,
-    remoteSessionId: workspaceRpcTarget.remoteSessionId ?? null,
-    gitSummary: gitState.summary,
-    gitSummaryWorkspaceKey: gitState.workspaceKey,
-    enabled: isWorkspaceVisible,
-    onRefreshGit: handleRefreshGit,
-  });
-  const activeGitSourceId =
-    gitState.sourceOptions.find((option) => option.id === gitSelectedSourceId)?.id ??
-    gitState.sourceOptions[0]?.id ??
-    "unstaged";
-  const gitChangeSummaryBySourceId = useMemo(() => {
-    // 关键业务逻辑：workspace header 和 Git pane 都依赖同一套来源统计，
-    // 这里先把各来源的 +/- 汇总成稳定映射，避免不同位置各自重复计算后出现展示不一致。
-    return Object.fromEntries(
-      gitState.sourceOptions.map((option) => {
-        const dataset = gitState.datasets[option.id] ?? gitState.datasets.unstaged;
-        const summary = dataset.sections
-          .flatMap((section) => section.changes)
-          .reduce(
-            (result, change) => {
-              result.added += change.added;
-              result.removed += change.removed;
-              return result;
-            },
-            { added: 0, removed: 0 },
-          );
-        return [option.id, summary];
-      }),
-    ) as Record<GitChangeSourceId, { added: number; removed: number }>;
-  }, [gitState.datasets, gitState.sourceOptions]);
-  const gitWorktreeChangeSummary = useMemo(() => {
-    const unstaged = gitChangeSummaryBySourceId.unstaged ?? {
-      added: 0,
-      removed: 0,
-    };
-    const staged = gitChangeSummaryBySourceId.staged ?? {
-      added: 0,
-      removed: 0,
-    };
-    return {
-      added: unstaged.added + staged.added,
-      removed: unstaged.removed + staged.removed,
-    };
-  }, [gitChangeSummaryBySourceId]);
-  const gitWorktreeReviewSourceId = useMemo<GitChangeSourceId | null>(() => {
-    const unstaged = gitChangeSummaryBySourceId.unstaged ?? {
-      added: 0,
-      removed: 0,
-    };
-    const staged = gitChangeSummaryBySourceId.staged ?? {
-      added: 0,
-      removed: 0,
-    };
-    if (unstaged.added + unstaged.removed > 0) {
-      return "unstaged";
-    }
-    if (staged.added + staged.removed > 0) {
-      return "staged";
-    }
-    return null;
-  }, [gitChangeSummaryBySourceId]);
-  const handleOpenGitReview = useCallback(
-    (sourceId?: GitChangeSourceId) => {
-      if (workspaceReadOnlyReason) {
-        return;
-      }
-      if (sourceId) {
-        setGitSelectedSourceId(sourceId);
-      }
-      handleOpenGit();
-    },
-    [handleOpenGit, workspaceReadOnlyReason],
-  );
   const isSidePaneOpen = !isSidePaneCollapsed;
   useEffect(() => {
     const handleCloseActiveContextRequest = (event: Event) => {
@@ -552,26 +438,6 @@ export function App({
     },
     [onCreateTask, workspaceReadOnlyReason],
   );
-  const handleToggleTerminalIfWritable = useCallback(() => {
-    if (!workspaceReadOnlyReason) {
-      handleToggleTerminal();
-    }
-  }, [handleToggleTerminal, workspaceReadOnlyReason]);
-  const handleOpenTerminalTabIfWritable = useCallback(() => {
-    if (!workspaceReadOnlyReason) {
-      handleOpenTerminalTab();
-    }
-  }, [handleOpenTerminalTab, workspaceReadOnlyReason]);
-  const handleOpenGitIfWritable = useCallback(() => {
-    if (!workspaceReadOnlyReason) {
-      handleOpenGit();
-    }
-  }, [handleOpenGit, workspaceReadOnlyReason]);
-  const handleToggleGitIfWritable = useCallback(() => {
-    if (!workspaceReadOnlyReason) {
-      handleToggleGit();
-    }
-  }, [handleToggleGit, workspaceReadOnlyReason]);
   const handleOpenCodeViewerIfWritable = useCallback(
     (...args: Parameters<typeof handleOpenCodeViewer>) => {
       if (!workspaceReadOnlyReason) {
@@ -589,18 +455,9 @@ export function App({
     },
     [handleOpenCodeViewers, isDesktop, workspaceReadOnlyReason],
   );
-  const handleOpenTreemappingIfWritable = useCallback(
-    (...args: Parameters<typeof handleOpenTreemapping>) => {
-      if (!workspaceReadOnlyReason) {
-        handleOpenTreemapping(...args);
-      }
-    },
-    [handleOpenTreemapping, workspaceReadOnlyReason],
-  );
   const projectName = getPathLeaf(workspaceAbsPath);
   const handleOpenTaskFind = useCallback(() => {
-    // Cmd/Ctrl+F 语义是“查找对话”，之前误复用了 Cmd/Ctrl+P 的文件搜索入口，
-    // 导致用户在 quick pick 里点 Find 或按快捷键时会跳到打开文件。这里拆成独立状态，避免影响文件搜索链路。
+    // Cmd/Ctrl+F 只查找当前对话，不再复用已退役的 workspace 文件搜索入口。
     runVisibleWorkspaceCommand(() => {
       setTaskFindFocusRequestId((requestId) => requestId + 1);
       setIsTaskFindOpen(true);
@@ -611,8 +468,6 @@ export function App({
     if (!open) {
       setConversationFindState((state) => changeTaskFindSelection(state, "", -1));
       setConversationFindMatchCount(0);
-      setFileChangeFindState((state) => changeTaskFindSelection(state, "", -1));
-      setFileChangeFindMatchCount(0);
     }
   }, []);
   const handleConversationFindChange = useCallback((query: string, activeIndex: number) => {
@@ -648,13 +503,6 @@ export function App({
       current?.requestId === requestId ? null : current,
     );
   }, []);
-  const handleFileChangeFindChange = useCallback((query: string, activeIndex: number) => {
-    setFileChangeFindState((state) => changeTaskFindSelection(state, query, activeIndex));
-  }, []);
-  const handleFileChangeFindNavigate = useCallback((query: string, activeIndex: number) => {
-    // 文件变更范围也可能只有一个命中；重复导航必须重新展开并聚焦同一处。
-    setFileChangeFindState((state) => navigateTaskFindSelection(state, query, activeIndex));
-  }, []);
   const handleOpenQuickPick = useCallback(() => {
     setIsQuickPickOpen((open) => !open);
   }, []);
@@ -680,9 +528,6 @@ export function App({
     };
   }, [openFeedbackSubmit, openFeedbackTickets, platform]);
   const handleOpenCommunity = useCallback(() => platform.openCommunity(), [platform]);
-  const handleOpenProductDocs = useCallback(() => {
-    platform.openExternal(ZCODE_PRODUCT_DOCS_URL);
-  }, [platform]);
   const themeTarget = resolveTheme(theme) === "dark" ? "light" : "dark";
   const handleSwitchTheme = useCallback(() => {
     setTheme(themeTarget);
@@ -705,7 +550,7 @@ export function App({
       targetWorkspacePath: string,
       targetWorkspaceIdentity?: string,
       targetWorkspacePurpose?: WorkspacePurpose,
-      createSource?: import("@zcode/shared").SessionCreateSource,
+      createSource?: import("@social-harness/shared").SessionCreateSource,
     ) => {
       const store = useZCodeSessionStore.getState();
       const resolvedTargetWorkspaceIdentity =
@@ -956,7 +801,6 @@ export function App({
     findInTask: handleOpenTaskFind,
     toggleSidebar: () => runVisibleWorkspaceCommand(handleToggleSidebar),
     switchTheme: handleSwitchTheme,
-    toggleTerminal: () => runVisibleWorkspaceCommand(handleToggleTerminalIfWritable),
     // ⌥⌘B 与 header 最右侧按钮共用同一条 toggle 入口，
     // 避免快捷键和按钮行为漂移；空面板的展示统一由 Open tab 空态承接。
     toggleSidePane: () => runVisibleWorkspaceCommand(handleToggleSidePane),
@@ -994,8 +838,6 @@ export function App({
   const quickPickCommands = useMemo(
     () =>
       createQuickPickCommands({
-        supportsTerminal: !isOfficeMode,
-        supportsReview: !isOfficeMode,
         allowOpenWorkspace,
         canOpenCommunity: canOpenCommunityFromQuickPick,
         isSidebarVisible,
@@ -1008,7 +850,6 @@ export function App({
           newTask: newTaskShortcutLabel,
           openWorkspace: openWorkspaceShortcutLabel,
           toggleSidebar: toggleSidebarShortcutLabel,
-          toggleTerminal: toggleTerminalShortcutLabel,
         },
         handlers: {
           createTask: () => runVisibleWorkspaceCommand(() => handleCreateTaskIfWritable()),
@@ -1025,32 +866,23 @@ export function App({
           switchTheme: handleSwitchTheme,
           openFeedback: handleOpenFeedback,
           openCommunity: handleOpenCommunity,
-          openProductDocs: handleOpenProductDocs,
           login: onLogin,
           logout: onLogout,
           toggleSidebar: () => runVisibleWorkspaceCommand(handleToggleSidebar),
-          toggleTerminal: () => runVisibleWorkspaceCommand(handleToggleTerminalIfWritable),
           togglePreview: () => runVisibleWorkspaceCommand(handleToggleBrowser),
-          openTerminalTab: () => runVisibleWorkspaceCommand(handleOpenTerminalTabIfWritable),
           openBrowserTab: () => runVisibleWorkspaceCommand(handleOpenBrowserTab),
-          openReviewTab: () => runVisibleWorkspaceCommand(handleOpenGitIfWritable),
         },
       }),
     [
       allowOpenWorkspace,
-      isOfficeMode,
       canOpenCommunityFromQuickPick,
       handleOpenCommunity,
       handleOpenFeedback,
-      handleOpenProductDocs,
       handleOpenSettingsSection,
       handleSwitchTheme,
       handleOpenBrowserTab,
-      handleOpenGitIfWritable,
-      handleOpenTerminalTabIfWritable,
       handleToggleBrowser,
       handleToggleSidebar,
-      handleToggleTerminalIfWritable,
       isLoggedIn,
       isSidebarVisible,
       newTaskShortcutLabel,
@@ -1063,7 +895,6 @@ export function App({
       openWorkspaceShortcutLabel,
       supportsEmbeddedBrowser,
       toggleSidebarShortcutLabel,
-      toggleTerminalShortcutLabel,
       themeTarget,
     ],
   );
@@ -1076,25 +907,15 @@ export function App({
       isLinuxDesktop,
       conversationMatchCount: conversationFindMatchCount,
       conversationMatchIndex: conversationFindState.activeIndex,
-      fileChangeMatchCount: fileChangeFindMatchCount,
-      fileChangeMatchIndex: fileChangeFindState.activeIndex,
       onOpenChange: handleTaskFindOpenChange,
       onConversationFindChange: handleConversationFindChange,
       onConversationFindNavigate: handleConversationFindNavigate,
-      onFileChangeFindChange: handleFileChangeFindChange,
-      onFileChangeFindNavigate: handleFileChangeFindNavigate,
-      onOpenFileChanges: handleOpenGitIfWritable,
     }),
     [
       conversationFindMatchCount,
       conversationFindState.activeIndex,
-      fileChangeFindMatchCount,
-      fileChangeFindState.activeIndex,
       handleConversationFindChange,
       handleConversationFindNavigate,
-      handleFileChangeFindChange,
-      handleFileChangeFindNavigate,
-      handleOpenGitIfWritable,
       handleTaskFindOpenChange,
       isLinuxDesktop,
       isMacDesktop,
@@ -1112,12 +933,10 @@ export function App({
         workspaceAbsPath={workspaceAbsPath}
         workspaceIdentity={workspaceIdentity}
         activeTaskId={activeTaskId}
-        activeTaskChangeSummary={activeTaskChangeSummary}
         workspaceTabs={commandCenterWorkspaceTabs}
         onOpenChange={setIsQuickPickOpen}
         onSelectTask={handleSelectTask}
         onSearchResultHighlightRequest={handleSearchResultHighlightRequest}
-        onOpenCodeViewer={handleOpenCodeViewerIfWritable}
       />
       {/* 反馈是应用级能力，必须固定走本机 base host；SSH session 连接中或断开时，
           workspace-scoped services 会切成断连代理，不能让反馈提交跟随远程 session 失效。 */}
@@ -1153,7 +972,6 @@ export function App({
         onOpenWorkspace={onOpenWorkspace}
         onOpenFolderFromWorkspaceMenu={onOpenFolderFromWorkspaceMenu}
         onOpenRemoteWorkspace={onOpenRemoteWorkspace}
-        onCreateScratchWorkspace={onCreateScratchWorkspace}
         remoteConnectionInProgress={remoteConnectionInProgress}
         allowOpenWorkspace={allowOpenWorkspace}
         allowRemoteWorkspace={allowRemoteWorkspace}
@@ -1183,11 +1001,9 @@ export function App({
         canGoForward={canGoForward}
         canTaskNavBack={canTaskNavBack}
         canTaskNavForward={canTaskNavForward}
-        isTerminalOpen={isTerminalOpen}
         isSidebarVisible={isSidebarVisible}
         isBrowserOpen={isBrowserOpen}
         supportsEmbeddedBrowser={supportsEmbeddedBrowser}
-        isGitOpen={isGitOpen}
         isSidePaneOpen={isSidePaneOpen}
         summaryPanelVariantOverride={summaryPanelVariantOverride}
         onSummaryPanelVariantOverrideChange={setSummaryPanelVariantOverride}
@@ -1203,26 +1019,16 @@ export function App({
         activeTaskProvider={activeTaskProvider}
         resolvedActiveTaskMeta={resolvedActiveTaskMeta}
         activeTaskTitle={activeTaskTitle}
-        activeTaskChangeSummary={activeTaskChangeSummary}
-        gitWorktreeReviewSourceId={gitWorktreeReviewSourceId}
-        gitWorktreeChangeSummary={gitWorktreeChangeSummary}
-        activeGitSourceId={activeGitSourceId}
-        gitState={gitState}
         browserNavigationRequest={browserNavigationRequest}
         browserRestoreUrls={browserRestoreUrls}
         taskNativeSessionLogFile={taskNativeSessionLogFile}
         taskSessionFile={taskSessionFile}
-        testMessages={testMessages}
         conversationFindActiveIndex={conversationFindState.activeIndex}
         conversationFindNavigationRequestId={conversationFindState.navigationRequestId}
         conversationFindQuery={conversationFindState.query}
         onConversationFindMatchStateChange={handleConversationFindMatchStateChange}
         searchResultHighlightRequest={searchResultHighlightRequest}
         onSearchResultHighlightDone={handleSearchResultHighlightDone}
-        fileChangeFindActiveIndex={fileChangeFindState.activeIndex}
-        fileChangeFindNavigationRequestId={fileChangeFindState.navigationRequestId}
-        fileChangeFindQuery={fileChangeFindState.query}
-        onFileChangeFindMatchCountChange={setFileChangeFindMatchCount}
         appLogoUrl={appLogoUrl}
         platform={platform}
         reloadSessionDisabled={reloadSessionDisabled}
@@ -1233,19 +1039,13 @@ export function App({
         handleTaskNavForward={handleTaskNavForward}
         handleStartDraftInWorkspace={handleStartDraftInWorkspace}
         handleOpenCommandCenter={handleOpenQuickPick}
-        handleRefreshGit={handleRefreshGit}
-        handleOpenGitReview={handleOpenGitReview}
         handleBrowserUrlChange={handleBrowserUrlChange}
         handleBrowserPageMetadataChange={handleBrowserPageMetadataChange}
         handleToggleSidebar={handleToggleSidebar}
-        handleToggleTerminal={handleToggleTerminalIfWritable}
         handleToggleBrowser={handleToggleBrowser}
         handleOpenBrowserTab={handleOpenBrowserTab}
-        handleOpenTreemapping={handleOpenTreemappingIfWritable}
         handleOpenWhiteboard={handleOpenWhiteboard}
         handleOpenDeveloperTools={handleOpenDeveloperTools}
-        handleOpenTerminalTab={handleOpenTerminalTabIfWritable}
-        handleToggleGit={handleToggleGitIfWritable}
         handleToggleSidePane={handleToggleSidePane}
         handleOpenBrowserUrl={handleOpenBrowserUrl}
         handleOpenCodeViewer={handleOpenCodeViewerIfWritable}
@@ -1262,7 +1062,6 @@ export function App({
         handleOpenWorkflowWorkspace={handleOpenWorkflowWorkspace}
         handleOpenWorkflowArtifact={handleOpenWorkflowArtifact}
         handleCloseCodeViewer={handleCloseCodeViewer}
-        handleCloseGit={handleCloseGit}
         handleActivateSidePaneTab={handleActivateSidePaneTab}
         handleReorderSidePaneTab={handleReorderSidePaneTab}
         handleCloseSidePaneTab={handleCloseSidePaneTab}
@@ -1270,8 +1069,6 @@ export function App({
         handleCloseAllSidePaneTabs={handleCloseAllSidePaneTabs}
         handleReopenClosedSidePaneTab={handleReopenClosedSidePaneTab}
         handleBrowserNavigationRequestHandled={handleBrowserNavigationRequestHandled}
-        setIsTerminalOpen={setIsTerminalOpen}
-        setGitSelectedSourceId={setGitSelectedSourceId}
         // taskFindDialogProps 是对象 prop，内联创建会让 shell 在流式刷新中每轮都看到新引用。
         taskFindDialogProps={taskFindDialogProps}
       />

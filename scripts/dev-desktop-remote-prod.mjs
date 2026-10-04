@@ -14,16 +14,22 @@ export function resolveProductionRemoteAssetCacheDir(
 ) {
   const pathApi = pathApiForPlatform(platform);
   if (platform === "darwin") {
-    return pathApi.join(homeDir, "Library", "Application Support", "ZCode", "remote-assets-cache");
+    return pathApi.join(
+      homeDir,
+      "Library",
+      "Application Support",
+      "Social Harness",
+      "remote-assets-cache",
+    );
   }
 
   if (platform === "win32") {
     const appDataDir = env.APPDATA?.trim() || pathApi.join(homeDir, "AppData", "Roaming");
-    return pathApi.join(appDataDir, "ZCode", "remote-assets-cache");
+    return pathApi.join(appDataDir, "Social Harness", "remote-assets-cache");
   }
 
   const configDir = env.XDG_CONFIG_HOME?.trim() || pathApi.join(homeDir, ".config");
-  return pathApi.join(configDir, "ZCode", "remote-assets-cache");
+  return pathApi.join(configDir, "social-harness", "remote-assets-cache");
 }
 
 export function buildDesktopRemoteProdEnv(
@@ -32,16 +38,16 @@ export function buildDesktopRemoteProdEnv(
   homeDir = homedir(),
 ) {
   const cacheDir =
-    baseEnv.ZCODE_REMOTE_ASSET_CACHE_DIR?.trim() ||
+    baseEnv.SOCIAL_HARNESS_REMOTE_ASSET_CACHE_DIR?.trim() ||
     resolveProductionRemoteAssetCacheDir(baseEnv, platform, homeDir);
 
   return {
     ...baseEnv,
-    // remote CDN 基址现在跟随 ZCODE_ENV 分流；该脚本用于复现生产态下载链路，
+    // remote CDN 基址现在跟随 SOCIAL_HARNESS_ENV 分流；该脚本用于复现生产态下载链路，
     // 因此需要同时强制 production 和 CDN 开关，避免默认 test 环境落到测试资源 CDN。
-    ZCODE_ENV: "production",
-    ZCODE_DEV_REMOTE_ASSET_USE_CDN: "1",
-    ZCODE_REMOTE_ASSET_CACHE_DIR: cacheDir,
+    SOCIAL_HARNESS_ENV: "production",
+    SOCIAL_HARNESS_DEV_REMOTE_ASSET_USE_CDN: "1",
+    SOCIAL_HARNESS_REMOTE_ASSET_CACHE_DIR: cacheDir,
   };
 }
 
@@ -51,7 +57,7 @@ export function resolvePnpmCommand(platform = process.platform) {
 
 export function runDesktopRemoteProdDev() {
   const repoRoot = resolve(import.meta.dirname, "..");
-  const child = spawn(resolvePnpmCommand(), ["--filter", "@zcode/desktop", "dev"], {
+  const child = spawn(resolvePnpmCommand(), ["--filter", "@social-harness/desktop", "dev"], {
     cwd: repoRoot,
     stdio: "inherit",
     env: buildDesktopRemoteProdEnv(),

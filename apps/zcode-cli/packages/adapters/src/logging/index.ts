@@ -5,9 +5,9 @@
 import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { LogContext, LogEntry, Logger, LoggerFactory, LogRedactor } from "@zcode/contracts";
-import { LogLevel, LogLevelName } from "@zcode/contracts";
-import { ZCODE_RUNTIME_ENV_KEY, normalizeZCodeRuntimeEnv } from "@zcode/shared";
+import type { LogContext, LogEntry, Logger, LoggerFactory, LogRedactor } from "@social-harness/contracts";
+import { LogLevel, LogLevelName } from "@social-harness/contracts";
+import { SOCIAL_HARNESS_RUNTIME_ENV_KEY, normalizeZCodeRuntimeEnv } from "@social-harness/shared";
 import {
   formatLocalLogDate,
   scheduleLogRetentionCleanup as scheduleRetentionCleanup,
@@ -170,11 +170,11 @@ export class NodeFileLogger implements Logger {
 export function createNodeLoggerFactory(options: NodeLoggerFactoryOptions = {}): NodeLoggerFactory {
   let currentLevel = options.minLevel ?? getDefaultMinLevel(options.env);
   let retentionCleanupScheduled = false;
-  const logDir = options.logDir ?? options.env?.ZCODE_LOG_DIR ?? getDefaultLogDir();
+  const logDir = options.logDir ?? options.env?.SOCIAL_HARNESS_LOG_DIR ?? getDefaultLogDir(options.env);
   const consoleStream =
     typeof options.console === "object"
       ? options.console.stream
-      : options.console === true || options.env?.ZCODE_LOG_CONSOLE === "1"
+      : options.console === true || options.env?.SOCIAL_HARNESS_LOG_CONSOLE === "1"
         ? process.stderr
         : undefined;
   const redactor = options.redactor ?? new DefaultLogRedactor();
@@ -219,8 +219,9 @@ export function createNodeLoggerFactory(options: NodeLoggerFactoryOptions = {}):
   };
 }
 
-export function getDefaultLogDir(): string {
-  return join(homedir(), ".zcode", "cli", "log");
+export function getDefaultLogDir(env: NodeJS.ProcessEnv = process.env): string {
+  const dataBaseDir = env.SOCIAL_HARNESS_DATA_BASE_DIR?.trim() || homedir();
+  return join(dataBaseDir, ".social-harness", "v1", "cli", "log");
 }
 
 function getDefaultMinLevel(env: NodeJS.ProcessEnv | undefined): LogLevel {
@@ -228,7 +229,7 @@ function getDefaultMinLevel(env: NodeJS.ProcessEnv | undefined): LogLevel {
 }
 
 function isDevelopmentMode(env: NodeJS.ProcessEnv): boolean {
-  const runtimeEnv = normalizeZCodeRuntimeEnv(env[ZCODE_RUNTIME_ENV_KEY]);
+  const runtimeEnv = normalizeZCodeRuntimeEnv(env[SOCIAL_HARNESS_RUNTIME_ENV_KEY]);
   if (runtimeEnv === "development") return true;
   if (runtimeEnv === "production" || runtimeEnv === "test") return false;
 

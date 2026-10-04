@@ -1,13 +1,13 @@
 # Repository dependencies
 
-This directory contains versioned third-party artifacts required by ZCode packaging.
+This directory contains versioned third-party artifacts required by Social Harness packaging.
 Keep the original archives in Git; extracted binaries and build caches belong in
 the existing ignored output directories.
 
 ## Native search
 
 `native-search/<tool>-<release>/<archive>` contains the 18 archives selected by
-the current Desktop/SEA and remote plans. Unreferenced older binaries are removed
+the current Desktop and remote plans. Unreferenced older binaries are removed
 so that the source distribution does not retain unsupported binary dependencies.
 macOS metadata (`__MACOSX`, `._*`, `.DS_Store`) is excluded.
 `native-search/SHA256SUMS` records every retained archive.
@@ -33,9 +33,9 @@ and [`scripts/remote-native-search-tools-config.mjs`](../../../scripts/remote-na
 
 Remote packaging uses `resolveRemoteNativeSearchPrebuiltPlan` to retain the
 deployed macOS rg13 contract. Its component versions come from the same plan as
-the extracted archives; the default Desktop / SEA / server-cli plan continues to use rg14.
+the extracted archives; the default Desktop / server-cli plan continues to use rg14.
 
-Desktop, CLI SEA, server-cli staging and remote asset packaging resolve these
+Desktop, server-cli staging and remote asset packaging resolve these
 archives relative to the repository, independently of the current working
 directory. Native search preparation does not download archives or fall back to
 a mirror. Other build dependencies retain their own preparation steps.
@@ -46,15 +46,15 @@ From the repository root:
 
 ```sh
 # Prepare the host tools in packages/desktop/bundled-tools/<platform>-<arch>.
-pnpm --filter @zcode/desktop prepare:native-search
+pnpm --filter @social-harness/desktop prepare:native-search
 
 # Prepare a specific target, optionally into a separate staging directory.
 node scripts/prepare-native-search-tools.mjs --platform linux --arch x64 --output-dir /tmp/zcode-native-search
 
-# Package the CLI, including the prepared target tools.
-pnpm build:sea
+# Prepare Desktop and internal Agent runtime assets.
+pnpm prepare:desktop-runtime
 
-# Verify archives, server-cli staging, SEA assets, and remote component packaging.
+# Verify archives, server-cli staging, and remote component packaging.
 node --test scripts/native-search-tools.test.mjs
 ```
 
@@ -67,5 +67,5 @@ To update a dependency, add the new versioned archives, update the release and
 SHA-256 pins in the configuration, and update `SHA256SUMS`. The public source
 archives and build inputs for bfs and ugrep are recorded in that configuration;
 the producer entry points remain `pnpm build:native-search` and
-`pnpm pack:native-search`. Recheck every affected target and SEA packaging before
+`pnpm pack:native-search`. Recheck every affected target and server packaging before
 replacing an active release.

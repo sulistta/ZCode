@@ -11,7 +11,7 @@ import type {
   SessionTaskType,
   StableForkGoalBoundaryMetadata,
   TraceContext,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type {
   CommandAck,
   CommandEnvelope,
@@ -21,7 +21,7 @@ import type {
   StableForkTarget,
   StableForkTargetResolution,
   ConversationRowTarget,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import type { ZCodeApp } from "../../app/types.js";
 import type { V4InteractionRegistry } from "../interaction-registry.js";
 import type {
@@ -228,6 +228,7 @@ export interface V4CommandCoreHost {
    */
   createSessionRecord?(params: {
     workspaceId: string;
+    workspacePath?: string;
     mcpServers?: CommandPayloadMap["createSession"]["mcpServers"];
     /** host 判定的 Off-Peak 工具面门禁；缺省不注册工具。 */
     offPeakToolEnabled?: boolean;

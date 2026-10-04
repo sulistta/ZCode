@@ -6,12 +6,12 @@ import {
   providerProvisioningEnvelopeSchema,
   type ProviderProvisioningCredentialEntry,
   type ProviderProvisioningEnvelope,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type {
   PersonalProviderConfigRepository,
   ProviderConfigLayerSnapshot,
-} from "@zcode/provider";
-import { decodeProviderConfigFile, encodeProviderConfigFile } from "@zcode/provider-node";
+} from "@social-harness/provider";
+import { decodeProviderConfigFile, encodeProviderConfigFile } from "@social-harness/provider-node";
 import {
   createCredentialCipherProvider,
   type CredentialCipherProvider,

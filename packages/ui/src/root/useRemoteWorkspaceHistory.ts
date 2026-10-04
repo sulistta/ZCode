@@ -6,9 +6,13 @@ import type {
   IPlatformService,
   RemoteSessionClosedEvent,
   RemoteWorkspaceSessionEntry,
-} from "@zcode/shared";
-import { buildSshRemoteHostKey, createUuid, stripRemoteTargetSecrets } from "@zcode/shared";
-import type { IServiceAccessor } from "@zcode/services";
+} from "@social-harness/shared";
+import {
+  buildSshRemoteHostKey,
+  createUuid,
+  stripRemoteTargetSecrets,
+} from "@social-harness/shared";
+import type { IServiceAccessor } from "@social-harness/services";
 import {
   bindRemoteWorkspaceIdentity,
   bindRemoteWorkspacePath,

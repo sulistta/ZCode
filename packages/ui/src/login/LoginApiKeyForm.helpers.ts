@@ -3,8 +3,8 @@ import {
   type AppSettings,
   type Locale,
   type ProviderFamilyDomain,
-} from "@zcode/shared";
-import type { ModelSelectionView } from "@zcode/services";
+} from "@social-harness/shared";
+import type { ModelSelectionView } from "@social-harness/services";
 import { encodeCustomModelValue } from "@/lib/zcodeCustomModelValue.js";
 
 export type ApiKeyProviderChoice = "zai" | "bigmodel";

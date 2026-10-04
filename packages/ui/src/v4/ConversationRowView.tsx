@@ -29,7 +29,7 @@ import {
   TID_V4_ROW,
   TID_V4_ROW_ATTACHMENTS,
   testId,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type {
   AttachmentRef,
   ArtifactRow,
@@ -45,10 +45,8 @@ import type {
   TurnHeaderRow,
   UserInputRow,
   V4ConversationFileRewindPreviewResult,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import { AssistantPreviewCards } from "@/AssistantPreviewCards.js";
-import { AssistantCodeCommentCards } from "@/AssistantCodeCommentCards.js";
-import { useAssistantCodeCommentFeatureEnabled } from "@/AssistantCodeCommentFeatureProvider.js";
 import {
   Attachment,
   AttachmentPreview,
@@ -90,10 +88,6 @@ import {
   FileDisplayInline,
   resolveFileDisplayDescriptor,
 } from "@/lib/fileDisplay.js";
-import {
-  projectAssistantCodeComments,
-  type AssistantCodeCommentCard,
-} from "@/lib/assistantCodeComment.js";
 import { resolveProviderLabel } from "@/lib/registryProviderView.js";
 import type { LexicalChatInputHandle } from "@/LexicalChatInput.js";
 import { ChatPromptEditor } from "@/prompt-editor/ChatPromptEditor.js";
@@ -265,10 +259,6 @@ interface ConversationRowViewProps {
   assistantPreviewCards?: AssistantPreviewCard[];
   /** 仅当前 renderer 观察到 running -> complete 时下发的一次性自动打开身份。 */
   assistantPreviewCardsAutoOpenKey?: string;
-  /** Assistant code-comment cards 只由 TurnGroup 为轮尾终态 assistant text 计算后下发。 */
-  assistantCodeCommentCards?: AssistantCodeCommentCard[];
-  /** 由 TurnGroup 统一裁决整轮正文是否隐藏 code-comment 协议原文。 */
-  assistantCodeCommentProjectionEnabled?: boolean;
 }
 
 // ── 每种行拆成独立 memo 叶子：虚拟列表下父级重渲染时，只有 props 真变的行重渲染；
@@ -1480,8 +1470,6 @@ const AssistantTextRowView = memo(function AssistantTextRowView({
   copyText,
   previewCards,
   previewCardsAutoOpenKey,
-  codeCommentCards,
-  codeCommentProjectionEnabled,
 }: {
   row: AssistantTextRow;
   context: ConversationRowRenderContext;
@@ -1493,20 +1481,9 @@ const AssistantTextRowView = memo(function AssistantTextRowView({
   copyText?: string;
   previewCards?: AssistantPreviewCard[];
   previewCardsAutoOpenKey?: string;
-  codeCommentCards?: AssistantCodeCommentCard[];
-  codeCommentProjectionEnabled?: boolean;
 }) {
   const streaming = row.state === "streaming";
   const isOfficeMode = useIsOfficeMode();
-  const codeCommentCardsEnabled = useAssistantCodeCommentFeatureEnabled();
-  const projectsCodeComments = codeCommentCardsEnabled && codeCommentProjectionEnabled === true;
-  const visibleText = useMemo(
-    () =>
-      projectsCodeComments
-        ? projectAssistantCodeComments(row.text, { streaming }).visibleText
-        : row.text,
-    [projectsCodeComments, row.text, streaming],
-  );
   const visiblePreviewCards = previewCards && previewCards.length > 0 ? previewCards : null;
   return (
     <RowShell rowId={row.rowId} className="group/assistant-row">
@@ -1531,20 +1508,9 @@ const AssistantTextRowView = memo(function AssistantTextRowView({
           sessionId={context.sessionId ?? undefined}
           readAttachment={context.readAttachment}
         >
-          {visibleText}
+          {row.text}
         </MessageResponse>
       </div>
-      {codeCommentCardsEnabled && codeCommentCards && codeCommentCards.length > 0 ? (
-        <div className="mt-3">
-          <AssistantCodeCommentCards
-            cards={codeCommentCards}
-            workspacePath={context.workspacePath}
-            workspaceIdentity={context.workspaceIdentity}
-            workspaceRemoteSessionId={context.workspaceRemoteSessionId}
-            onOpenCodeViewer={context.onOpenCodeViewer}
-          />
-        </div>
-      ) : null}
       {visiblePreviewCards ? (
         <div className="mt-3">
           <AssistantPreviewCards
@@ -2060,8 +2026,6 @@ function ConversationRowViewImpl({
   assistantCopyText,
   assistantPreviewCards,
   assistantPreviewCardsAutoOpenKey,
-  assistantCodeCommentCards,
-  assistantCodeCommentProjectionEnabled,
   reasoningContentVariant,
   userInputStatus,
 }: ConversationRowViewProps) {
@@ -2089,8 +2053,6 @@ function ConversationRowViewImpl({
           copyText={assistantCopyText}
           previewCards={assistantPreviewCards}
           previewCardsAutoOpenKey={assistantPreviewCardsAutoOpenKey}
-          codeCommentCards={assistantCodeCommentCards}
-          codeCommentProjectionEnabled={assistantCodeCommentProjectionEnabled}
         />
       );
     case "reasoning":

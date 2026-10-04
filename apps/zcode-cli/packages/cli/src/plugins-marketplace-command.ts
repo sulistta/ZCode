@@ -1,5 +1,5 @@
-import { formatJson } from "@zcode/core";
-import type { GlobalOptions, RunContext } from "@zcode/shared-types";
+import { formatJson } from "@social-harness/core";
+import type { GlobalOptions, RunContext } from "@social-harness/shared-types";
 import {
   formatDiagnosticJson,
   formatDiagnosticLines,

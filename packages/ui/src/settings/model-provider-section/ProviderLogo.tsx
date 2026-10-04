@@ -1,4 +1,4 @@
-import type { ProviderConfigObject } from "@zcode/provider";
+import type { ProviderConfigObject } from "@social-harness/provider";
 import { PackageIcon } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/components/lib/utils.js";

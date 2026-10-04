@@ -1,8 +1,6 @@
 export type QuickPickCommandIcon =
-  | "book"
   | "browser"
   | "community"
-  | "diff"
   | "feedback"
   | "folder"
   | "login"
@@ -14,8 +12,7 @@ export type QuickPickCommandIcon =
   | "sidebarOpen"
   | "skills"
   | "themeDark"
-  | "themeLight"
-  | "terminal";
+  | "themeLight";
 
 export type QuickPickCommandSectionId =
   | "suggested"
@@ -54,15 +51,11 @@ interface QuickPickCommandHandlers {
   switchTheme: () => void;
   openFeedback: () => void | Promise<void>;
   openCommunity: () => void | Promise<void>;
-  openProductDocs: () => void | Promise<void>;
   login?: () => void | Promise<void>;
   logout?: () => void | Promise<void>;
   toggleSidebar: () => void;
-  toggleTerminal: () => void;
   togglePreview: () => void;
-  openTerminalTab: () => void;
   openBrowserTab: () => void;
-  openReviewTab: () => void;
 }
 
 interface CreateQuickPickCommandsOptions {
@@ -71,14 +64,11 @@ interface CreateQuickPickCommandsOptions {
   isSidebarVisible: boolean;
   isLoggedIn: boolean;
   supportsEmbeddedBrowser?: boolean;
-  supportsTerminal?: boolean;
-  supportsReview?: boolean;
   themeTarget: "dark" | "light";
   shortcuts: {
     newTask: string;
     openWorkspace: string;
     toggleSidebar: string;
-    toggleTerminal: string;
   };
   handlers: QuickPickCommandHandlers;
 }
@@ -89,8 +79,6 @@ export function createQuickPickCommands({
   isSidebarVisible,
   isLoggedIn,
   supportsEmbeddedBrowser = true,
-  supportsTerminal = true,
-  supportsReview = true,
   themeTarget,
   shortcuts,
   handlers,
@@ -132,15 +120,6 @@ export function createQuickPickCommands({
       keywords: ["sidebar", "left sidebar", "toggle sidebar", "侧栏", "侧边栏", "切换侧栏"],
       run: handlers.toggleSidebar,
     },
-    {
-      id: "toggle-terminal",
-      sectionId: "panels",
-      titleId: "quickPick.command.toggleTerminal",
-      icon: "terminal",
-      shortcut: shortcuts.toggleTerminal,
-      keywords: ["terminal", "shell", "console", "终端"],
-      run: handlers.toggleTerminal,
-    },
     ...(supportsEmbeddedBrowser
       ? [
           {
@@ -164,14 +143,6 @@ export function createQuickPickCommands({
           } satisfies QuickPickCommand,
         ]
       : []),
-    {
-      id: "add-terminal-tab",
-      sectionId: "panels",
-      titleId: "quickPick.command.addTerminalTab",
-      icon: "terminal",
-      keywords: ["add", "terminal", "tab", "new terminal", "添加终端", "终端标签"],
-      run: handlers.openTerminalTab,
-    },
     ...(supportsEmbeddedBrowser
       ? [
           {
@@ -184,14 +155,6 @@ export function createQuickPickCommands({
           } satisfies QuickPickCommand,
         ]
       : []),
-    {
-      id: "add-review-tab",
-      sectionId: "panels",
-      titleId: "quickPick.command.addReviewTab",
-      icon: "diff",
-      keywords: ["add", "review", "diff", "changes", "添加审查", "审查标签", "变更"],
-      run: handlers.openReviewTab,
-    },
     {
       id: "settings",
       sectionId: "configure",
@@ -259,15 +222,6 @@ export function createQuickPickCommands({
     });
   }
 
-  commands.push({
-    id: "product-docs",
-    sectionId: "app",
-    titleId: "quickPick.command.productDocs",
-    icon: "book",
-    keywords: ["docs", "documentation", "product docs", "文档", "产品文档"],
-    run: handlers.openProductDocs,
-  });
-
   if (isLoggedIn && handlers.logout) {
     commands.push({
       id: "logout",
@@ -289,10 +243,5 @@ export function createQuickPickCommands({
     });
   }
 
-  return commands.filter(
-    (command) =>
-      (supportsTerminal ||
-        (command.id !== "toggle-terminal" && command.id !== "add-terminal-tab")) &&
-      (supportsReview || command.id !== "add-review-tab"),
-  );
+  return commands;
 }

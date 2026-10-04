@@ -8,15 +8,15 @@ import type {
   ToolResultPayload,
   TurnResultType,
   TurnStartedPayload,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type {
   GoalState,
   TimelineMarkerPayload,
   ToolOutput,
   TurnHeaderRow,
   UserInputRow,
-} from "@zcode/shared/zcode-protocol-v4";
-import { PROTOCOL_V4_LIMITS } from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
+import { PROTOCOL_V4_LIMITS } from "@social-harness/shared/zcode-protocol-v4";
 
 interface RowBaseInput {
   rowId: number;

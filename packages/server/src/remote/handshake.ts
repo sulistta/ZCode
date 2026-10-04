@@ -1,5 +1,5 @@
-import type { HelloMessage, HelloAckMessage } from "@zcode/shared";
-import { ZCODE_VERSION, formatZodError, helloMessageSchema } from "@zcode/shared";
+import type { HelloMessage, HelloAckMessage } from "@social-harness/shared";
+import { SOCIAL_HARNESS_VERSION, formatZodError, helloMessageSchema } from "@social-harness/shared";
 import type { StdioStream } from "./backend.js";
 
 const MAX_HANDSHAKE_DIAGNOSTIC_CHARS = 2048;
@@ -77,7 +77,7 @@ export function performHandshake(
               // Send ack
               const ack: HelloAckMessage = {
                 type: "zcode-hello-ack",
-                version: ZCODE_VERSION,
+                version: SOCIAL_HARNESS_VERSION,
                 clientId,
               };
               stream.stdin.write(JSON.stringify(ack) + "\n");

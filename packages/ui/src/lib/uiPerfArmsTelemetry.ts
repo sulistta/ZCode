@@ -3,7 +3,7 @@ import {
   type ArmsCustomEventPayload,
   type IPlatformService,
   type LaunchMarks,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { logger } from "@/logger.js";
 
 const UI_PERF_ARMS_GROUP = "ui_perf";

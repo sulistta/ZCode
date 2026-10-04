@@ -1,7 +1,7 @@
 import { useServices } from "@/hooks/useServices.js";
 import { useWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
-import type { IZCodeTaskService } from "@zcode/services";
-import type { ZCodeTaskSnapshot } from "@zcode/shared";
+import type { IZCodeTaskService } from "@social-harness/services";
+import type { ZCodeTaskSnapshot } from "@social-harness/shared";
 import { uiMemoryDiagnosticsRegistry } from "@/lib/memoryDiagnostics.js";
 
 type GetTaskSnapshotParams = Parameters<IZCodeTaskService["getTaskSnapshot"]>[0];

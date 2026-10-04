@@ -1,9 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "@zcode/browser-use-plugin",
+  "name": "@social-harness/browser-use-plugin",
   "version": "0.5.1",
   "private": true,
-  "description": "作为官方 ZCode 内置插件发布的 Browser Use skill 与 client runtime；node_repl MCP server 由 @zcode/node-repl-host 提供。",
+  "description": "作为 Social Harness 内置插件发布的 Browser Use skill 与 client runtime；node_repl MCP server 由 @social-harness/node-repl-host 提供。",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/mcp/server.js",
@@ -15,17 +15,17 @@
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.0.0",
-    "@zcode/contracts": "workspace:*",
-    "@zcode/core": "workspace:*",
-    "@zcode/node-repl-host": "workspace:*",
-    "@zcode/shared": "workspace:*",
+    "@social-harness/contracts": "workspace:*",
+    "@social-harness/core": "workspace:*",
+    "@social-harness/node-repl-host": "workspace:*",
+    "@social-harness/shared": "workspace:*",
     "zod": "4.6.5"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.0.0",
     "@types/node": "^24.0.0",
-    "@zcode/adapters": "workspace:*",
-    "@zcode/bootstrap": "workspace:*",
+    "@social-harness/adapters": "workspace:*",
+    "@social-harness/bootstrap": "workspace:*",
     "esbuild": "^0.25.0",
     "playwright-core": "1.59.1",
     "typescript": "^5.9.0"

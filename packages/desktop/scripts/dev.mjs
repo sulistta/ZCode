@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { request } from "node:http";
+import { createServer } from "node:net";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -55,6 +56,22 @@ function probeHttpUrl(url) {
   });
 }
 
+async function reserveE2ECDPPort() {
+  const server = createServer();
+  await new Promise((resolveListen, rejectListen) => {
+    server.once("error", rejectListen);
+    server.listen(0, "127.0.0.1", resolveListen);
+  });
+  const address = server.address();
+  if (!address || typeof address !== "object") {
+    throw new Error("Could not reserve a Social Harness E2E debugging port");
+  }
+  await new Promise((resolveClose, rejectClose) => {
+    server.close((error) => (error ? rejectClose(error) : resolveClose()));
+  });
+  return address.port;
+}
+
 // Wait for both Vite dev server and main bundle to be ready
 async function waitForReady() {
   // desktop 的 tsup 实际是 main/host/preload 三个独立 watch 构建。
@@ -86,7 +103,12 @@ async function waitForReady() {
   // Wait for Vite dev server
   // Vite 在不同本机 DNS/IPv6 配置下可能只监听 localhost/::1 或 127.0.0.1 其中之一。
   // 这里轮询多个 loopback 地址，避免 dev 脚本和 Vite 实际监听地址不一致导致 Electron 永远不启动。
-  const viteUrls = ["http://localhost:5174", "http://127.0.0.1:5174", "http://[::1]:5174"];
+  const vitePort = Number.parseInt(process.env.SOCIAL_HARNESS_E2E_VITE_PORT ?? "", 10) || 5174;
+  const viteUrls = [
+    `http://localhost:${vitePort}`,
+    `http://127.0.0.1:${vitePort}`,
+    `http://[::1]:${vitePort}`,
+  ];
   let lastViteWaitLogAt = 0;
   while (true) {
     const failures = [];
@@ -107,32 +129,52 @@ async function waitForReady() {
 }
 
 const rendererUrl = await waitForReady();
+const electronEnvironment = { ...process.env, ELECTRON_RENDERER_URL: rendererUrl };
+if (process.env.SOCIAL_HARNESS_E2E_CDP_PORT?.trim() === "auto") {
+  const port = await reserveE2ECDPPort();
+  electronEnvironment.SOCIAL_HARNESS_E2E_CDP_PORT = String(port);
+  console.log(`[dev] Social Harness E2E CDP port: ${port}`);
+}
 console.log("[dev] Starting Electron...");
 
 const electronBinary = resolveLocalElectronBinary();
 let electronCommand = existsSync(electronBinary) ? electronBinary : "electron";
+const electronArguments = ["."];
+if (process.platform === "linux" && process.env.SOCIAL_HARNESS_E2E_NO_SANDBOX === "1") {
+  // CI 的 rootless Xvfb runner 无法修复 Electron sandbox helper 的 root 所有者；仅 E2E 显式 opt-in 时关闭它。
+  electronArguments.push("--no-sandbox");
+}
+const requestedCdpPort = electronEnvironment.SOCIAL_HARNESS_E2E_CDP_PORT?.trim();
+if (requestedCdpPort && requestedCdpPort !== "auto") {
+  // Electron 默认 app 的入口位于 process.argv[1]；remote-debugging 参数需跟在入口后，避免破坏 deep-link 注册。
+  electronArguments.push(`--remote-debugging-port=${requestedCdpPort}`);
+}
+if (process.platform === "linux" && electronEnvironment.SOCIAL_HARNESS_E2E_FORCE_X11 === "1") {
+  // 本机 E2E 在 Wayland 下无法完成 Electron ready；固定走可用的 XWayland，避免测试卡在创建首窗之前。
+  electronArguments.push("--ozone-platform=x11");
+}
 
 if (process.platform === "darwin" && existsSync(electronBinary)) {
   // macOS 命令行启动的 raw Electron 没有 CFBundleURLTypes，LaunchServices 会把
-  // zcode:// 交给一个没有项目入口的 Electron 默认壳。给本地启动副本补齐产品
+  // social-harness:// 交给一个没有项目入口的 Electron 默认壳。给本地启动副本补齐产品
   // Info.plist 后，线上 Share 页面无需感知 Dev，仍可把链接投递给已运行的 Dev 实例。
   const electronPackageJsonPath = require.resolve("electron/package.json");
   const electronPackage = JSON.parse(await readFile(electronPackageJsonPath, "utf8"));
   const electronAppPath = resolve(electronBinary, "../../..");
   const devBundle = await prepareDevElectronAppBundle({
     electronAppPath,
-    runtimeRoot: resolve(root, "../../.zcode-runtime/desktop-dev"),
+    runtimeRoot: resolve(root, "../../.social-harness-runtime/desktop-dev"),
     electronVersion: electronPackage.version,
     arch: process.arch,
   });
   electronCommand = devBundle.executablePath;
-  console.log(`[dev] Prepared macOS ZCode Dev bundle: ${devBundle.appPath}`);
+  console.log(`[dev] Prepared macOS Social Harness Dev bundle: ${devBundle.appPath}`);
 }
 
-const electron = spawn(electronCommand, ["."], {
+const electron = spawn(electronCommand, electronArguments, {
   cwd: root,
   stdio: "inherit",
-  env: { ...process.env, ELECTRON_RENDERER_URL: rendererUrl },
+  env: electronEnvironment,
   windowsHide: true,
   detached: process.platform !== "win32",
 });

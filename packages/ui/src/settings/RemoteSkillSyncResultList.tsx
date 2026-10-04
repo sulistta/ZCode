@@ -1,4 +1,4 @@
-import type { SkillSyncImportResult } from "@zcode/shared";
+import type { SkillSyncImportResult } from "@social-harness/shared";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 
 export function RemoteSkillSyncResultList({ result }: { result: SkillSyncImportResult | null }) {

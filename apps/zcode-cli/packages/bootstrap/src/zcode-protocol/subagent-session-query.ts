@@ -10,8 +10,8 @@ import {
   type SessionProjection,
   type ToolPart,
   STREAM_RECOVERY_DISCARDED_ERROR_NAME,
-} from "@zcode/contracts";
-import type { ZCodeSessionEndedSubagent, ZCodeSessionRunningSubagent } from "@zcode/shared";
+} from "@social-harness/contracts";
+import type { ZCodeSessionEndedSubagent, ZCodeSessionRunningSubagent } from "@social-harness/shared";
 
 const SUBAGENT_TOOL_NAMES = new Set(["Agent", "Task", "subagent"]);
 const CANCELLATION_PATTERN = /abort|cancel|interrupt|stop/i;

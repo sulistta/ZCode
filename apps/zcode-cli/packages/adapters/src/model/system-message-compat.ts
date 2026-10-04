@@ -1,7 +1,7 @@
 import {
   modelMessageContentToText,
   type ModelInputMessage,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 
 export function normalizeOpenAiCompatibleSystemMessages(
   messages: readonly ModelInputMessage[],

@@ -4,7 +4,7 @@ import type {
   SessionId,
   SessionMailboxEnvelope,
   SessionMailboxPort,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 
 export interface NodeSessionMailboxOptions {
   rootDir: string;

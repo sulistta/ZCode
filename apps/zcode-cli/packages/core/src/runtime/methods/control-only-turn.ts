@@ -39,7 +39,7 @@ export async function emitControlOnlyUserTurn(
     titleInput: string;
     /** 进 runtime history 的可见文本（模型下一回合读它）。 */
     historyText: string;
-    /** `TurnStarted.input`（旧客户端 / TUI 的降级呈现）。 */
+    /** `TurnStarted.input`（旧客户端的降级呈现）。 */
     turnInput: string;
     traceContext: TraceContext;
     inputId?: string;

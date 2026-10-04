@@ -2,6 +2,7 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import {
   WORKFLOW_RUN_ID_PATTERN,
+  SAVED_WORKFLOW_GLOBAL_DIR,
   createCoreError,
   CoreErrorType,
   isFileSystemPortError,
@@ -16,7 +17,7 @@ import {
   type WorkflowStartRequest,
   type WorkflowTaskSnapshot,
   type WorkflowTaskStatus,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import { readWorkflowScriptDocument } from "./script-workflow-meta.js";
 import type { ScriptWorkflowRuntime } from "./script-workflow-runtime.js";
 import { isScriptWorkflowStore } from "./script-workflow-utils.js";
@@ -315,7 +316,11 @@ async function resolveNamedWorkflowPath(
   const fileName = workflowFileName(name);
   const candidates = [
     join(deps.workingDirectory, ".zcode", "workflows", fileName),
-    join(homedir(), ".zcode", "workflows", fileName),
+    join(
+      process.env.SOCIAL_HARNESS_DATA_BASE_DIR?.trim() || homedir(),
+      SAVED_WORKFLOW_GLOBAL_DIR,
+      fileName,
+    ),
   ];
   const builtIn = BUILTIN_WORKFLOW_ALLOWLIST.get(name);
   if (builtIn) candidates.push(builtIn);

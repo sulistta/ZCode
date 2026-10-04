@@ -2,9 +2,9 @@ import { basename, relative } from "node:path";
 import {
   WORKSPACE_HOOK_REVIEW_TIMEOUT_MS,
   type WorkspaceHookBundleSnapshot,
-} from "@zcode/contracts";
-import type { WorkspaceHookReviewTarget, WorkspaceHookSnapshotEvaluation } from "@zcode/core";
-import type { WorkspaceHookReviewRequestPayload } from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/contracts";
+import type { WorkspaceHookReviewTarget, WorkspaceHookSnapshotEvaluation } from "@social-harness/core";
+import type { WorkspaceHookReviewRequestPayload } from "@social-harness/shared/zcode-protocol-v4";
 import type { WorkspaceHookReviewHostPort } from "./workspace-hook-review-types.js";
 
 export function buildWorkspaceHookReviewRequest(input: {

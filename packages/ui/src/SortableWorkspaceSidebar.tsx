@@ -4,7 +4,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { WorkspaceSidebarItem, type SortableBindings } from "./WorkspaceSidebarItem.js";
 import type { WorkspaceTabState } from "@/store/tabStore.js";
 import type { RemoteConnectionLogEntry } from "@/hooks/useRemoteConnectionLogs.js";
-import type { ZCodeTaskMeta } from "@zcode/shared";
+import type { ZCodeTaskMeta } from "@social-harness/shared";
 
 export type { SortableBindings };
 
@@ -31,7 +31,6 @@ export const SortableWorkspaceSidebarItem = memo(function SortableWorkspaceSideb
   remoteWorkspaceErrorByWorkspaceKey,
   reconnectingRemoteWorkspaceLogsByWorkspaceKey,
   onReconnectRemoteWorkspace,
-  onOpenFileTree,
 }: {
   tab: WorkspaceTabState;
   isActiveWorkspace: boolean;
@@ -56,12 +55,6 @@ export const SortableWorkspaceSidebarItem = memo(function SortableWorkspaceSideb
   remoteWorkspaceErrorByWorkspaceKey: Record<string, string>;
   reconnectingRemoteWorkspaceLogsByWorkspaceKey: Record<string, RemoteConnectionLogEntry[]>;
   onReconnectRemoteWorkspace: (workspaceKey: string) => Promise<void>;
-  onOpenFileTree: (target: {
-    workspacePath: string;
-    workspaceName: string;
-    workspaceIdentity?: string;
-    workspaceRemoteSessionId?: string;
-  }) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: tab.id,
@@ -124,7 +117,6 @@ export const SortableWorkspaceSidebarItem = memo(function SortableWorkspaceSideb
       remoteWorkspaceErrorByWorkspaceKey={remoteWorkspaceErrorByWorkspaceKey}
       reconnectingRemoteWorkspaceLogsByWorkspaceKey={reconnectingRemoteWorkspaceLogsByWorkspaceKey}
       onReconnectRemoteWorkspace={onReconnectRemoteWorkspace}
-      onOpenFileTree={onOpenFileTree}
       itemRef={setNodeRef}
       itemStyle={style}
       sortableBindings={sortableBindings}

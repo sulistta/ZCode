@@ -34,11 +34,11 @@ function readImageDestination(imageSyntax: string): string {
 /**
  * 把远程图片降级为普通链接。
  *
- * 公开分享页（ConversationShareReadonlyTimeline）不传 workspacePath /
+ * 外部分享内容的只读渲染（ConversationShareReadonlyTimeline）不传 workspacePath /
  * sessionId / readAttachment，MarkdownImage 会 fallback 到 `displaySrc = resolvedSrc`
- * 并渲染 `<img src={远程} loading="lazy">`，于是任意匿名访客一打开页面就自动向
- * 发布者指定的第三方发起请求，泄露 IP / UA / Referer —— 等价于发布者可控的 tracking
- * pixel。这个版本的 streamdown 没有 allowedImagePrefixes 可用（linkSafety 也已关闭），
+ * 并渲染 `<img src={远程} loading="lazy">`，用户打开导入预览时就会自动向内容作者指定的
+ * 第三方发起请求，泄露查看者的 IP / UA / Referer —— 等价于作者可控的 tracking pixel。
+ * 这个版本的 streamdown 没有 allowedImagePrefixes 可用（linkSafety 也已关闭），
  * 所以在唯一的公开投影 choke point 上剥离：`![alt](url)` → `[alt](url)`，
  * 不发自动请求、信息不丢、访客点击才加载，且对已发布的旧分享立即生效。
  * 只处理 http(s) 与协议相对地址：data: 不走网络，相对路径落在自身 origin。

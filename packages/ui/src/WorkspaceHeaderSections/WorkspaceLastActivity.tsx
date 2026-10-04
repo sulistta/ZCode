@@ -1,6 +1,6 @@
 import { Clock } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { ZCodeTaskMeta } from "@zcode/shared";
+import type { ZCodeTaskMeta } from "@social-harness/shared";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { getTaskListRowActivity } from "@/v4/taskListRowActivity.js";
 

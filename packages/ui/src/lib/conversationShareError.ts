@@ -1,4 +1,4 @@
-import type { ConversationShareFailureIssue } from "@zcode/services";
+import type { ConversationShareFailureIssue } from "@social-harness/services";
 
 interface ConversationShareErrorDetails {
   name: string;

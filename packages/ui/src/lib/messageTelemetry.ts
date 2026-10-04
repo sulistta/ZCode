@@ -13,7 +13,7 @@ import type {
   ZCodeStreamEvent,
   ZCodeTimelineStatus,
   ZCodeUsage,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   CUSTOM_SUPPLIER_KEY_PREFIX,
   GHOST_SUPPLIER_KEY_PREFIX,
@@ -21,7 +21,7 @@ import {
   createUuid,
   computeLineChangeStat,
   decodeCustomModelValue,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 interface ComposerInputTimingState {
   inputStartTime: number;
   inputFirstCharTime: number;

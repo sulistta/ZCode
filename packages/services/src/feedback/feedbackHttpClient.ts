@@ -1,4 +1,4 @@
-import { redactFeedbackText } from "@zcode/shared";
+import { redactFeedbackText } from "@social-harness/shared";
 /* eslint-disable max-lines -- 反馈 HTTP 客户端集中维护新后端协议、鉴权头合并、OSS 表单直传和响应归一化。 */
 import { randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
@@ -25,7 +25,7 @@ import type {
   FeedbackTicketStatus,
   FeedbackTicketSummary,
   FeedbackTicketType,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { createServiceLogger, type ServiceLogger } from "#src/logger/serviceLogger.js";
 import { withRequestIdHeaderRecord } from "#src/providers/api/requestIdHeaders.js";
 import {
@@ -572,13 +572,13 @@ function toFeedbackEnvironment(input: CreateFeedbackTicketInput): Record<string,
   const device = input.device ?? {};
   const environment: Record<string, unknown> = {};
   assignDefined(environment, "app_version", device.appVersion);
-  // 反馈后端与 client/configs 使用同一套平台键；传 desktop 会让反馈无法按真实系统架构归类。
+  // 反馈后端沿用共享的平台编码；传 desktop 会让反馈无法按真实系统架构归类。
   assignDefined(
     environment,
     "platform",
     resolveClientConfigPlatform(device.osPlatform, device.osArch),
   );
-  assignDefined(environment, "release_channel", process.env.ZCODE_ENV?.trim() || "stable");
+  assignDefined(environment, "release_channel", process.env.SOCIAL_HARNESS_ENV?.trim() || "stable");
   assignDefined(environment, "os_category", device.osPlatform ?? process.platform);
   assignDefined(environment, "os_version", device.osVersion ?? device.osRelease ?? process.version);
   assignDefined(environment, "build_commit_id", device.buildCommitId);

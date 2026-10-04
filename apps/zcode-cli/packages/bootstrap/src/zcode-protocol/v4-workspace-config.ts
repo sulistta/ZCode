@@ -1,8 +1,8 @@
 // v4 workspace-config 只承载 workspace presentation；模型候选与首选项由目标 Host
 // ModelSelectionView 提供，不能再从 live Session settings 反向建立第二份模型目录。
-import { getZCodeAgentModeSelectOptions, normalizeAvailableZCodeMode } from "@zcode/shared";
-import type { ZCodeSessionSettingsState, ZCodeSlashCommand } from "@zcode/shared";
-import type { WorkspaceConfigState } from "@zcode/shared/zcode-protocol-v4";
+import { getZCodeAgentModeSelectOptions, normalizeAvailableZCodeMode } from "@social-harness/shared";
+import type { ZCodeSessionSettingsState, ZCodeSlashCommand } from "@social-harness/shared";
+import type { WorkspaceConfigState } from "@social-harness/shared/zcode-protocol-v4";
 import { mapSessionSettings } from "./mapper.js";
 import { listProtocolSlashCommands } from "./slash-commands.js";
 import type { ZCodeProtocolAgentServerContext } from "./server-types.js";

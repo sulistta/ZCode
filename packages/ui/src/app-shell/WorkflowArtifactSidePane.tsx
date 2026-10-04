@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { TID_WORKFLOW_ARTIFACT_PANE } from "@zcode/shared";
-import type { WorkflowRunArtifactSummary } from "@zcode/shared/zcode-protocol-v4";
-import { ChevronLeftIcon, ChevronRightIcon, CopyIcon, FolderOpenIcon } from "lucide-react";
+import { TID_WORKFLOW_ARTIFACT_PANE } from "@social-harness/shared";
+import type { WorkflowRunArtifactSummary } from "@social-harness/shared/zcode-protocol-v4";
+import { ChevronLeftIcon, ChevronRightIcon, CopyIcon } from "lucide-react";
 import { Button } from "@/components/ui/button.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import {
@@ -37,11 +37,9 @@ const EMPTY_SUMMARIES: readonly WorkflowRunArtifactSummary[] = [];
 const WorkflowArtifactContent = memo(function WorkflowArtifactContent({
   tab,
   onOpenBrowserUrl,
-  onRevealFileInTree,
 }: {
   tab: WorkflowArtifactSidePaneTab;
   onOpenBrowserUrl?: (url: string) => void;
-  onRevealFileInTree?: (path: string) => void;
 }) {
   const { intl } = useZCodeIntl();
   const { layer } = useV4Conversation();
@@ -110,7 +108,6 @@ const WorkflowArtifactContent = memo(function WorkflowArtifactContent({
           tab={tab}
           theme={theme}
           {...(onOpenBrowserUrl === undefined ? {} : { onOpenBrowserUrl })}
-          {...(onRevealFileInTree === undefined ? {} : { onRevealFileInTree })}
         />
       )}
     </div>
@@ -127,7 +124,6 @@ function WorkflowArtifactView({
   tab,
   theme,
   onOpenBrowserUrl,
-  onRevealFileInTree,
 }: {
   artifact: WorkflowRunArtifactView;
   /** 元数据（含预置看板的 spec）还在读；正文据此区分「还没到」与「真的没有」。 */
@@ -135,7 +131,6 @@ function WorkflowArtifactView({
   tab: WorkflowArtifactSidePaneTab;
   theme: Theme;
   onOpenBrowserUrl?: (url: string) => void;
-  onRevealFileInTree?: (path: string) => void;
 }) {
   const { intl } = useZCodeIntl();
   const preset = isArtifactPresetKind(artifact.kind);
@@ -179,8 +174,7 @@ function WorkflowArtifactView({
     enabled: preset,
   });
 
-  // 「在工作区显示」与 html 的「在浏览器中打开」共用这一条路径：工作区相对的 `sourcePath`
-  // 拼上 workspacePath 才是本机上真实存在的位置。远程 workspace 与无出处的产物都得不到它。
+  // html 预览使用工作区内当前文件；远程 workspace 与无出处的产物都不能转成本机 file URL。
   const sourcePath = artifact.sourcePath;
   const localSourcePath =
     sourcePath !== undefined &&
@@ -236,18 +230,6 @@ function WorkflowArtifactView({
             versionIndex={versionIndex}
           />
           <div className="ml-auto flex items-center gap-1">
-            {localSourcePath !== undefined && onRevealFileInTree !== undefined ? (
-              <Button
-                data-testid="workflow-artifact-reveal"
-                onClick={() => onRevealFileInTree(localSourcePath)}
-                size="sm"
-                type="button"
-                variant="ghost"
-              >
-                <FolderOpenIcon aria-hidden="true" className="size-3.5" />
-                {intl.formatMessage({ id: "chat.toolCall.workflow.run.artifacts.reveal" })}
-              </Button>
-            ) : null}
             {copyable ? (
               <Button
                 data-testid="workflow-artifact-copy"
@@ -288,9 +270,6 @@ function WorkflowArtifactView({
           version={version}
           {...(localSourcePath === undefined ? {} : { localSourcePath })}
           {...(onOpenBrowserUrl === undefined ? {} : { onOpenBrowserUrl })}
-          {...(localSourcePath !== undefined && onRevealFileInTree !== undefined
-            ? { onReveal: () => onRevealFileInTree(localSourcePath) }
-            : {})}
         />
       </div>
     </>
@@ -383,13 +362,10 @@ function ArtifactVersionStepper({
 export const WorkflowArtifactSidePane = memo(function WorkflowArtifactSidePane({
   tab,
   onOpenBrowserUrl,
-  onRevealFileInTree,
 }: {
   tab: WorkflowArtifactSidePaneTab;
   /** html 产物的「在浏览器中打开」。 */
   onOpenBrowserUrl?: (url: string) => void;
-  /** 「在工作区显示」：复用既有的文件树 reveal（与 Git 面板同一条路径）。 */
-  onRevealFileInTree?: (path: string) => void;
 }) {
   const scope = useMemo<PaneWorkspaceScope>(
     () => ({
@@ -405,7 +381,6 @@ export const WorkflowArtifactSidePane = memo(function WorkflowArtifactSidePane({
       <WorkflowArtifactContent
         tab={tab}
         {...(onOpenBrowserUrl === undefined ? {} : { onOpenBrowserUrl })}
-        {...(onRevealFileInTree === undefined ? {} : { onRevealFileInTree })}
       />
     </V4PaneConversationProvider>
   );

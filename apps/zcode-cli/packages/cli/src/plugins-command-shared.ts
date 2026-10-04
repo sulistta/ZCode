@@ -1,10 +1,10 @@
-import type { Logger } from "@zcode/contracts";
-import type { listZCodePlugins } from "@zcode/bootstrap";
+import type { Logger } from "@social-harness/contracts";
+import type { listZCodePlugins } from "@social-harness/bootstrap";
 import { createInterface } from "node:readline";
-import type { GlobalOptions, RunContext } from "@zcode/shared-types";
+import type { GlobalOptions, RunContext } from "@social-harness/shared-types";
 import type { CliEnv } from "./env.js";
 
-export type BootstrapModule = typeof import("@zcode/bootstrap");
+export type BootstrapModule = typeof import("@social-harness/bootstrap");
 export type PluginListOutcome = ReturnType<typeof listZCodePlugins>;
 export type PluginListItem = PluginListOutcome["plugins"][number];
 export type PluginDiagnostic = PluginListOutcome["diagnostics"][number];
@@ -12,7 +12,7 @@ export type PluginScope = "user" | "workspace";
 
 /**
  * CLI 依赖名 → bootstrap 导出名。测试按依赖名注入假实现；生产路径按导出名懒加载 bootstrap，
- * 避免 `zcode plugins list` 这类轻命令把整个 bootstrap 图提前拉起来。
+ * 避免 `social-harness plugins list` 这类轻命令把整个 bootstrap 图提前拉起来。
  */
 export const BOOTSTRAP_EXPORTS = {
   addMarketplace: "addZCodePluginMarketplace",
@@ -43,7 +43,7 @@ export interface PluginsCommandDependencies extends PluginsCommandOverrides {
   userConfigPath?: string;
 }
 
-/** `zcode plugins` 子命令专属旗标；由 run.ts 的全局解析器收集后原样透传。 */
+/** `social-harness plugins` 子命令专属旗标；由 run.ts 的全局解析器收集后原样透传。 */
 export interface PluginsCommandFlags {
   all?: boolean;
   available?: boolean;
@@ -67,7 +67,7 @@ export async function resolveDep<K extends PluginDepName>(
 ): Promise<PluginDepFn<K>> {
   const override = deps[key] as PluginDepFn<K> | undefined;
   if (override) return override;
-  const bootstrap = deps.loadBootstrapModule ?? (() => import("@zcode/bootstrap"));
+  const bootstrap = deps.loadBootstrapModule ?? (() => import("@social-harness/bootstrap"));
   return (await bootstrap())[BOOTSTRAP_EXPORTS[key]] as PluginDepFn<K>;
 }
 
@@ -87,7 +87,7 @@ export function resolveScope(value: string | undefined): PluginScope | undefined
   if (value === "user") return "user";
   if (value === "project") return "workspace";
   if (value === "local") {
-    throw new PluginsUsageError("Scope 'local' is not supported by zcode. Use: user, project");
+    throw new PluginsUsageError("Scope 'local' is not supported by social-harness. Use: user, project");
   }
   throw new PluginsUsageError(`Invalid scope '${value}'. Use: user, project`);
 }

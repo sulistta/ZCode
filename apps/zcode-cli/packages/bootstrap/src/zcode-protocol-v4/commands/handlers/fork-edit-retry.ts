@@ -8,13 +8,13 @@ import type {
   CommandEnvelope,
   CommandPayloadMap,
   CommandResult,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import {
   RewindStrategy,
   traceContextToLogContext,
   type MessageId,
   type TurnId,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import { mapAttachmentRefsToTurnAttachments } from "../attachment-refs.js";
 import { inputIntentMetadataFromCanonical } from "../input-intent.js";
 import { startPromptTurn } from "../prompt-turn.js";

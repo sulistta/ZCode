@@ -1,13 +1,12 @@
 import { randomBytes } from "node:crypto";
-import type { HttpClientPort, HttpClientRunOptions, TraceContext } from "@zcode/contracts";
+import type { HttpClientPort, HttpClientRunOptions, TraceContext } from "@social-harness/contracts";
 
-const DEFAULT_ZCODE_OAUTH_BASE_URL = "https://zcode.z.ai/api/v1";
 export type CliOAuthProviderId = "zai" | "bigmodel";
 const POLL_TOKEN_BYTES = 32;
 const JSON_CONTENT_TYPE = "application/json";
 
 export interface CliOAuthClientOptions {
-  baseUrl?: string;
+  baseUrl: string;
   providerId: CliOAuthProviderId;
   httpClient: HttpClientPort;
   trace?: TraceContext;
@@ -73,7 +72,7 @@ export class CliOAuthError extends Error {
 }
 
 export function createCliOAuthClient(options: CliOAuthClientOptions): CliOAuthClient {
-  const baseUrl = normalizeBaseUrl(options.baseUrl ?? DEFAULT_ZCODE_OAUTH_BASE_URL);
+  const baseUrl = normalizeBaseUrl(options.baseUrl);
   const encoder = new TextEncoder();
 
   return {
@@ -125,7 +124,20 @@ export function createCliOAuthPollToken(): string {
 }
 
 function normalizeBaseUrl(baseUrl: string): string {
-  return baseUrl.replace(/\/+$/u, "");
+  const normalized = baseUrl.trim().replace(/\/+$/u, "");
+  // Social Harness 没有默认 OAuth 源站；缺少显式 origin 时必须本地失败，不能回退到已退役的 ZCode API。
+  if (!normalized) {
+    throw new CliOAuthError("OAuth service base URL is not configured");
+  }
+  try {
+    const parsed = new URL(normalized);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new Error("unsupported protocol");
+    }
+  } catch {
+    throw new CliOAuthError("OAuth service base URL must be an absolute HTTP(S) URL");
+  }
+  return normalized;
 }
 
 async function requestJsonEnvelope(

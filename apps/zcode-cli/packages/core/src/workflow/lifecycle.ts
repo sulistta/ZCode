@@ -11,7 +11,7 @@ import {
   type WorkflowNodeStatus,
   type WorkflowPhaseSnapshot,
   type WorkflowRunSnapshot,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 
 export interface WorkflowGraphNodeChange {
   nodeId: string;

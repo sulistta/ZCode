@@ -1,10 +1,10 @@
-import { getZCodeCopy, type UiLocale } from "@zcode/i18n";
-import type { TuiEffortOption } from "@zcode/tui";
+import { getZCodeCopy, type UiLocale } from "@social-harness/i18n";
+import type { CommandCenterEffortOption } from "./contracts.js";
 import type { CommandCenterApp } from "./types.js";
 
 export async function listAppEffortOptions(
   app: CommandCenterApp,
-): Promise<TuiEffortOption[] | undefined> {
+): Promise<CommandCenterEffortOption[] | undefined> {
   const levels = app.listThoughtLevels ? await app.listThoughtLevels() : undefined;
   return levels ? thoughtLevelsToEffortOptions(levels, app.getLocale?.()) : undefined;
 }
@@ -12,8 +12,8 @@ export async function listAppEffortOptions(
 export function thoughtLevelsToEffortOptions(
   levels: readonly string[],
   locale?: UiLocale,
-): TuiEffortOption[] {
-  const effortCopy = getZCodeCopy(locale).tui.effort;
+): CommandCenterEffortOption[] {
+  const effortCopy = getZCodeCopy(locale).commandCenter.effort;
   return levels.map((level) => ({
     id: level,
     label: effortLabel(level, effortCopy),

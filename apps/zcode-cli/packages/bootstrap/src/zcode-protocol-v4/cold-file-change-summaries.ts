@@ -7,8 +7,8 @@ import {
   type SessionEvent,
   type TurnFileChangeSummary,
   type TurnId,
-} from "@zcode/contracts";
-import type { V4ConversationFileChangesResult } from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/contracts";
+import type { V4ConversationFileChangesResult } from "@social-harness/shared/zcode-protocol-v4";
 import { applyPatch, structuredPatch, type StructuredPatch } from "diff";
 
 interface FileChangeAggregate {

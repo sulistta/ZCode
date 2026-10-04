@@ -1,5 +1,5 @@
 {
-  "name": "@zcode/i18n",
+  "name": "@social-harness/i18n",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,12 +14,13 @@
   "scripts": {
     "build": "tsc",
     "clean": "node ../../scripts/clean-dist.mjs",
+    "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint src",
+    "lint": "oxlint src test --no-ignore",
     "lint:fix": "oxlint --write src"
   },
   "dependencies": {
-    "@zcode/contracts": "workspace:*"
+    "@social-harness/contracts": "workspace:*"
   },
   "devDependencies": {
   }

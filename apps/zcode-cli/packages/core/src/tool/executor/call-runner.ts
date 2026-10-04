@@ -8,17 +8,17 @@ import {
   traceContextToLogContext,
   type ToolExecutionSpanWriter,
   type SessionEvent,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import {
   OFFICIAL_CUA_FRAME_MODEL_CONTENT_PROTECTION,
   attestOfficialCuaFrameContent,
-} from "@zcode/zcode-cua/frame-contract";
+} from "@social-harness/zcode-cua/frame-contract";
 import {
   normalizeToolExecutionInput,
   prepareInitialToolExecutionInput,
 } from "../input-normalization.js";
 import { hasOfficialCuaFrameAuthority } from "../../mcp/image-normalization.js";
-import type { SkillTelemetryMetadata } from "@zcode/contracts";
+import type { SkillTelemetryMetadata } from "@social-harness/contracts";
 import type { ToolExecutionContext, ToolExecutionResult } from "../types.js";
 import type { ToolEntry } from "../types.js";
 import type { BackgroundTaskTracker } from "./background-tasks.js";
@@ -407,6 +407,8 @@ async function executeToolCallImpl(
       workflowEscalatePort: deps.workflowEscalatePort,
       artifactStore: deps.artifactStore,
       automationPort: deps.automationPort,
+      socialAgentPort: deps.socialAgentPort,
+      socialProjectPort: deps.socialProjectPort,
       offPeakPort: deps.offPeakPort,
       sessionStore: deps.sessionStore,
       sessionModePort: deps.sessionModePort,

@@ -1,0 +1,173 @@
+{
+  "checkedOn": "2026-10-03",
+  "package": "@hono/node-ws@1.3.0",
+  "method": "Verify exact registry archives; compare every shipped compiled implementation/declaration/map file; match both original implementation sources against published source-map contents and the licensed publisher revision; retain the publisher response to the exact-version notice request.",
+  "archives": [
+    {
+      "version": "1.3.0",
+      "metadataUrl": "https://registry.npmjs.org/@hono%2fnode-ws/1.3.0",
+      "gitHead": "2c026b9d5bfff006dc9abdc1b33c53856d2d784f",
+      "archiveUrl": "https://registry.npmjs.org/@hono/node-ws/-/node-ws-1.3.0.tgz",
+      "integrity": "sha512-ju25YbbvLuXdqBCmLZLqnNYu1nbHIQjoyUqA8ApZOeL1k4skuiTcw5SW77/5SUYo2Xi2NVBJoVlfQurnKEp03Q==",
+      "sha256": "48b94f87b85ca84428491d7275f0fad16450254bd49d9b2b4f621539fda8a2af"
+    },
+    {
+      "version": "1.3.1",
+      "metadataUrl": "https://registry.npmjs.org/@hono%2fnode-ws/1.3.1",
+      "gitHead": "d0e7b8ee0b8552defc580f30b2a55ad6fbbdfa7a",
+      "archiveUrl": "https://registry.npmjs.org/@hono/node-ws/-/node-ws-1.3.1.tgz",
+      "integrity": "sha512-vo/MwCnpJAVHBkGzWjCJ28wF45fYHAfbPZcH2rodZODHtch2GHA94KtMfusmVycTUtsLAsaNsHhtY6P8X3RQsA==",
+      "sha256": "f742a98d56449a2730ac76c85ddb507aa25929be7e28dd13df7522018cc71813"
+    }
+  ],
+  "archiveFileComparisons": [
+    {
+      "path": "package/CHANGELOG.md",
+      "identical": false,
+      "oldSha256": "c48b37f65885c47e0a389303589041f9e667c3c7883a2afca26067e7e11794c2",
+      "newSha256": "04e1d73a811a1ac5165941e37ce53c2286495c2ba3f098ff9081701d1f554abb"
+    },
+    {
+      "path": "package/README.md",
+      "identical": false,
+      "oldSha256": "5fbb43438fcc582491d1b089fff6b4e024a43c1856ae1c9f9c5a4b6441acbe66",
+      "newSha256": "1e6e2550dce24ba2d08b5076633fd5bedc7ff08a4e0b5db9d0d6b5e56f722148"
+    },
+    {
+      "path": "package/dist/index.cjs",
+      "identical": true,
+      "oldSha256": "1f88a24b3fb0b71588f3b999539fbbebe51f495e0eb597f6e3f3982fd78dd622",
+      "newSha256": "1f88a24b3fb0b71588f3b999539fbbebe51f495e0eb597f6e3f3982fd78dd622"
+    },
+    {
+      "path": "package/dist/index.d.cts",
+      "identical": true,
+      "oldSha256": "df71ca50ce3e15176e13ab3bcc9718a806efa8e4614e284b99b078b0a0855a54",
+      "newSha256": "df71ca50ce3e15176e13ab3bcc9718a806efa8e4614e284b99b078b0a0855a54"
+    },
+    {
+      "path": "package/dist/index.d.cts.map",
+      "identical": true,
+      "oldSha256": "17ea6470ddfa5a7c07cea15e32044cfa1ebef141b129471fe2052f930baee632",
+      "newSha256": "17ea6470ddfa5a7c07cea15e32044cfa1ebef141b129471fe2052f930baee632"
+    },
+    {
+      "path": "package/dist/index.d.ts",
+      "identical": true,
+      "oldSha256": "ccd5ceecc6a803a8faaea0a2e0b7c0666eefe37685731ffcaea0cd84ac486f3d",
+      "newSha256": "ccd5ceecc6a803a8faaea0a2e0b7c0666eefe37685731ffcaea0cd84ac486f3d"
+    },
+    {
+      "path": "package/dist/index.d.ts.map",
+      "identical": true,
+      "oldSha256": "a6105577eb861514346c1e701619ea76832d8b57f60f9a6c6d8969a4fb351388",
+      "newSha256": "a6105577eb861514346c1e701619ea76832d8b57f60f9a6c6d8969a4fb351388"
+    },
+    {
+      "path": "package/dist/index.js",
+      "identical": true,
+      "oldSha256": "ac4c19c1c0b4fd9e5bb5096ce0813970f31d2bed9e44a41752b521e3515e2a3c",
+      "newSha256": "ac4c19c1c0b4fd9e5bb5096ce0813970f31d2bed9e44a41752b521e3515e2a3c"
+    },
+    {
+      "path": "package/dist/index.js.map",
+      "identical": true,
+      "oldSha256": "52f7b3258c8a4fcd36e09de6890ce31dc270ce591b37f28c173c7c9486bbe6c7",
+      "newSha256": "52f7b3258c8a4fcd36e09de6890ce31dc270ce591b37f28c173c7c9486bbe6c7"
+    },
+    {
+      "path": "package/package.json",
+      "identical": false,
+      "oldSha256": "beeb4cfbd16d5d08ebe19b3ca588b914a24b60bde41d4129f6f1d60a083ef874",
+      "newSha256": "f64178473f465a6038c5672a9c5c7243fa2fc46c49d92b0f5254791e0d6155f7"
+    }
+  ],
+  "manifestDifferences": {
+    "version": {
+      "published": "1.3.0",
+      "comparison": "1.3.1"
+    },
+    "scripts": {
+      "published": {
+        "build": "tsdown",
+        "format": "prettier --check . --ignore-path ../../.gitignore",
+        "lint": "eslint",
+        "typecheck": "tsc -b tsconfig.json",
+        "test": "vitest",
+        "version:jsr": "yarn version:set $npm_package_version"
+      },
+      "comparison": {
+        "build": "tsdown",
+        "test": "vitest",
+        "version:jsr": "yarn version:set $npm_package_version"
+      }
+    },
+    "devDependencies": {
+      "published": {
+        "@hono/node-server": "^1.19.2",
+        "hono": "^4.11.3",
+        "tsdown": "^0.15.9",
+        "typescript": "^5.8.2",
+        "vitest": "^4.0.16"
+      },
+      "comparison": {
+        "@hono/node-server": "^1.19.11",
+        "@types/ws": "^8.18.1",
+        "hono": "^4.11.5",
+        "tsdown": "^0.15.9",
+        "typescript": "^5.9.3",
+        "vitest": "^4.1.0-beta.1"
+      }
+    },
+    "peerDependencies": {
+      "published": {
+        "@hono/node-server": "^1.19.2",
+        "hono": "^4.6.0"
+      },
+      "comparison": {
+        "@hono/node-server": "^1.19.11",
+        "hono": "^4.6.0"
+      }
+    }
+  },
+  "sourceComparisons": [
+    {
+      "path": "packages/node-ws/src/index.ts",
+      "publishedSha256": "25e91349c88108c2540d7632080f89aef6338e6b30084dafaf8a1c3515388f75",
+      "licensedSha256": "25e91349c88108c2540d7632080f89aef6338e6b30084dafaf8a1c3515388f75",
+      "sourceMapContentSha256": "25e91349c88108c2540d7632080f89aef6338e6b30084dafaf8a1c3515388f75",
+      "identical": true
+    },
+    {
+      "path": "packages/node-ws/src/events.ts",
+      "publishedSha256": "3047318d995caf3f6c821bcf26fd61f52bb1a0b573e07f75d3fee1fc78d0f905",
+      "licensedSha256": "3047318d995caf3f6c821bcf26fd61f52bb1a0b573e07f75d3fee1fc78d0f905",
+      "sourceMapContentSha256": "3047318d995caf3f6c821bcf26fd61f52bb1a0b573e07f75d3fee1fc78d0f905",
+      "identical": true
+    }
+  ],
+  "publishedSourceRevision": "2c026b9d5bfff006dc9abdc1b33c53856d2d784f",
+  "licensedSourceRevision": "a8e2af4d857aa7fabf290cdf6f67307678e50409",
+  "licensedSourcePackageVersion": "1.3.1",
+  "licenseCommitFiles": [
+    {
+      "path": "LICENSE",
+      "status": "added"
+    }
+  ],
+  "licenseUrl": "https://raw.githubusercontent.com/honojs/middleware/a8e2af4d857aa7fabf290cdf6f67307678e50409/LICENSE",
+  "licenseSha256": "6895190430d809c4c57a7582ecc2f99acbc2ea39a5dfad20262a41d5b3e91733",
+  "publisherIssue": {
+    "url": "https://github.com/honojs/middleware/issues/2157",
+    "bodySha256": "a3ae9b96591c22af7f1ecb8ef0cb9088b6d54c2fcfa9b3fcb442bfe789dc1ef4",
+    "identifiesPackage": "@hono/node-ws@1.3.0",
+    "identifiesSourceRevision": "2c026b9d5bfff006dc9abdc1b33c53856d2d784f"
+  },
+  "publisherResponse": {
+    "url": "https://github.com/honojs/middleware/issues/2157#issuecomment-5883302683",
+    "author": "yusukebe",
+    "association": "MEMBER",
+    "bodySha256": "e25dbef40e59113da0893fde261d7c8ad4d6edea6103c09af5b727d1de36c575",
+    "record": "The maintainer supplied the repository notice in response to the request for the recorded package/version. Attribution also relies on the unchanged shipped runtime files and original source, not a blanket claim about later incompatible releases."
+  }
+}

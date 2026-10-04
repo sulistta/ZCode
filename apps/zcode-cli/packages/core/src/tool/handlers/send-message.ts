@@ -8,7 +8,7 @@ import {
   type SendMessageInput,
   type SendMessageOutput,
   type TraceContext,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { ToolEntry, ToolHandler } from "../types.js";
 import { assertNotOffPeakTurn } from "./off-peak.js";
 

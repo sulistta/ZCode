@@ -1,17 +1,18 @@
 import { stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
-import type { SkillRoot, SkillSource } from "@zcode/contracts";
+import type { SkillRoot, SkillSource } from "@social-harness/contracts";
 
 const GIT_MARKER = ".git";
 const HOME_PREFIX = "~/";
 const PRIORITY_STEP = 10;
 const SKILLS_DIR = "skills";
-const ZCODE_DIR = ".zcode";
+const SOCIAL_HARNESS_DIR = ".zcode";
 const AGENTS_DIR = ".agents";
 
 export interface SkillRootResolutionOptions {
   homeDirectory?: string;
+  dataBaseDir?: string;
   extraRoots?: string[];
   extraResolvedRoots?: SkillRoot[];
   includeZcodeSkills?: boolean;
@@ -25,6 +26,8 @@ export async function resolveDefaultSkillRoots(
   const roots: SkillRoot[] = [];
   const includeZcode = options.includeZcodeSkills ?? true;
   const home = options.homeDirectory ?? homedir();
+  const dataBaseDir =
+    options.dataBaseDir?.trim() || process.env.SOCIAL_HARNESS_DATA_BASE_DIR?.trim() || home;
   let priority = 0;
   const nextPriority = () => {
     priority += PRIORITY_STEP;
@@ -43,7 +46,7 @@ export async function resolveDefaultSkillRoots(
   }
 
   if (includeZcode) {
-    roots.push(...skillRootsForBase(home, "user", nextPriority));
+    roots.push(...skillRootsForBase(dataBaseDir, "user", nextPriority, home));
   }
 
   const projectDirectories = await resolveProjectSkillDirectories(resolvedWorkingDirectory);
@@ -95,12 +98,16 @@ function skillRootsForBase(
   baseDirectory: string,
   scope: SkillRoot["scope"],
   nextPriority: () => number,
+  compatibilityBaseDirectory = baseDirectory,
 ): SkillRoot[] {
-  // 合并而不是 fallback：用户可能同时安装原生 `.zcode` skill 和兼容 `.agents` skill。
-  // 同一级别仍保持 `.zcode` 优先，后续同名按 root 顺序解析。
+  const productSkillRoot =
+    scope === "user"
+      ? join(baseDirectory, ".social-harness", "v1", SKILLS_DIR)
+      : join(baseDirectory, SOCIAL_HARNESS_DIR, SKILLS_DIR);
+  // Global Social Harness skills and compatible ~/.agents skills remain separate sources.
   return [
-    root(join(baseDirectory, ZCODE_DIR, SKILLS_DIR), scope, "zcode", nextPriority()),
-    root(join(baseDirectory, AGENTS_DIR, SKILLS_DIR), scope, "agents", nextPriority()),
+    root(productSkillRoot, scope, "zcode", nextPriority()),
+    root(join(compatibilityBaseDirectory, AGENTS_DIR, SKILLS_DIR), scope, "agents", nextPriority()),
   ];
 }
 

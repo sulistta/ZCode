@@ -10,7 +10,7 @@ import type {
   ResolvedUserInstructions,
   SkillLoadOutcome,
   UserInstructionsOptions,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { AutoCompactPolicyConfig } from "../compact/index.js";
 import type { AgentProfile } from "../subagent/profile.js";
 
@@ -22,7 +22,7 @@ export type {
   ResolvedUserInstructionSource,
   ResolvedUserInstructions,
   UserInstructionsOptions,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 
 // -----------------------------------------------
 // Context Source
@@ -31,6 +31,9 @@ export type {
 export type ContextSource =
   | "cli_prefix" // CLI / 产品身份前缀
   | "identity" // Agent 基础描述
+  | "social_agent_prefix" // Social Harness 社交代理产品身份前缀
+  | "social_agent_identity" // Social Harness 社交代理稳定身份
+  | "social_account_guidance" // Social Harness 账号会话的稳定行为指导
   | "env_info" // 环境信息 (cwd, platform, git repo boolean)
   | "system_context" // git snapshot context
   | "skills" // 可用 skills
@@ -115,6 +118,8 @@ export interface ContextBuilderConfig {
   embeddedSearchEnabled?: boolean;
   skillMetadataBudget?: number;
   customSystemPrompt?: string;
+  /** Enables account-scoped Social Harness guidance without embedding account facts. */
+  socialAccountRuntime?: boolean;
   /**
    * 动态工作流子代理（workflow child）的身份输入。在场即走 builder 的第三条路径：
    * 基座段（CLI prefix、安全行、Harness、memory）+ 工作流子代理契约 + persona 叠加，

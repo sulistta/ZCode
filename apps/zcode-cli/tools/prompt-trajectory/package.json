@@ -1,5 +1,5 @@
 {
-  "name": "@zcode/prompt-trajectory",
+  "name": "@social-harness/prompt-trajectory",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "derive": "tsx src/cli.ts derive",
     "model-io": "tsx src/cli.ts model-io",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint src scripts"
+    "lint": "oxlint src scripts --no-ignore"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

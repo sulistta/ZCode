@@ -1,9 +1,9 @@
-import { zcodeWorkspaceUpdateDynamicWorkflowPolicyParamsSchema } from "@zcode/shared";
+import { zcodeWorkspaceUpdateDynamicWorkflowPolicyParamsSchema } from "@social-harness/shared";
 import { parseParams, type ZCodeProtocolAgentServerContext } from "./server-types.js";
 
 /**
- * 动态工作流灰度门。判定权在 Host：
- * 它读 `/client/configs` 的 `dynamicWorkflow.mode`，CLI 只缓存结论，从不读 feature key
+ * 动态工作流本地开关。判定权在 Host：
+ * Host 解析 Social Harness 本地环境覆盖，CLI 只缓存结论，从不读取 feature key
  * 或本地覆盖环境变量。与 off-peak-tool-policy.ts 同构：CLI 进程按 workspace 隔离，
  * 缓存一份即可；createRecord 对 legacy create/resume、v4 createSession 与 v4 冷恢复
  * （subscribe → resumePersistedSession，没有 host 参数通道）统一读取。

@@ -1,9 +1,9 @@
 /* eslint-disable max-lines -- CLI 入口集中编排子命令分发与进程管理，oxfmt 换行后略超 400 行，拆分会割裂编排流程。 */
 import { fork } from "node:child_process";
-import { access, mkdir, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { dirname, isAbsolute, join } from "node:path";
-import { ZCODE_VERSION } from "@zcode/shared";
+import { isAbsolute, join } from "node:path";
+import { SOCIAL_HARNESS_VERSION } from "@social-harness/shared";
 import {
   controlRequestSchema,
   createStoppedServerStatus,
@@ -39,7 +39,6 @@ export interface CliIO {
   stdout?: { write(value: string): void };
   stderr?: { write(value: string): void };
   confirm?: (prompt: string) => Promise<string>;
-  legacyDelegate?: (argv: readonly string[]) => Promise<number>;
 }
 
 export interface ServerCliRuntimeOptions {
@@ -52,7 +51,7 @@ const stderr = (io: CliIO, value: unknown): void =>
   io.stderr?.write(`${value instanceof Error ? value.message : String(value)}\n`);
 
 export function serviceRegistrationEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.ZCODE_SERVER_SKIP_SERVICE_REGISTRATION !== "1";
+  return env.SOCIAL_HARNESS_SERVER_SKIP_SERVICE_REGISTRATION !== "1";
 }
 
 export function daemonStartupMode(env: NodeJS.ProcessEnv = process.env): "service" | "fallback" {
@@ -64,6 +63,7 @@ export function isRegisteredServiceEntry(args: readonly string[]): boolean {
 }
 
 export const SERVER_SERVICE_ARGS = ["serve", "--supervisor"] as const;
+const SERVER_CLI_USAGE = "Usage: zcode <serve|status|stop|restart|update|uninstall> [options]";
 
 export function shouldRegisterService(
   daemonRequested: boolean,
@@ -81,8 +81,9 @@ export async function runServerCli(
   try {
     const parsed = parseServerCliArguments(argv);
     const command = parsed.argv[0];
-    if (!command) {
-      return await (io.legacyDelegate?.(parsed.argv) ?? delegateLegacyCli(parsed.argv, io));
+    if (!command || command === "--help" || command === "-h") {
+      stdout(io, SERVER_CLI_USAGE);
+      return 0;
     }
     // 同一物理 data-root 的符号链接别名会派生不同 control endpoint 和 OS service
     // identity。生命周期命令统一在 IO 前收敛 root，避免第二个 Supervisor 绕过探测重复注册。
@@ -103,7 +104,8 @@ export async function runServerCli(
       case "uninstall":
         return await runUninstall(io, json, layout);
       default:
-        return await (io.legacyDelegate?.(parsed.argv) ?? delegateLegacyCli(parsed.argv, io));
+        stderr(io, `Unknown server command: ${command}. ${SERVER_CLI_USAGE}`);
+        return 1;
     }
   } catch (error: unknown) {
     if (json)
@@ -203,8 +205,8 @@ async function runServe(
           stdio: "ignore",
           env: {
             ...process.env,
-            ZCODE_DATA_BASE_DIR: layout.dataBaseDir,
-            ZCODE_SERVER_ROOT: layout.serverRoot,
+            SOCIAL_HARNESS_DATA_BASE_DIR: layout.dataBaseDir,
+            SOCIAL_HARNESS_SERVER_ROOT: layout.serverRoot,
           },
         },
       );
@@ -254,8 +256,8 @@ async function runServe(
           : process.execPath;
         const inheritedEnv = {
           ...process.env,
-          ZCODE_DATA_BASE_DIR: layout.dataBaseDir,
-          ZCODE_SERVER_ROOT: layout.serverRoot,
+          SOCIAL_HARNESS_DATA_BASE_DIR: layout.dataBaseDir,
+          SOCIAL_HARNESS_SERVER_ROOT: layout.serverRoot,
         };
         const releaseWiring = runtimeRoot
           ? createReleaseAgentWiring(runtimeRoot, runtimeNode, inheritedEnv)
@@ -265,13 +267,13 @@ async function runServe(
           env: {
             ...inheritedEnv,
             ...releaseWiring,
-            ...(runtimeRoot ? { ZCODE_SERVER_RUNTIME_ROOT: runtimeRoot } : {}),
+            ...(runtimeRoot ? { SOCIAL_HARNESS_SERVER_RUNTIME_ROOT: runtimeRoot } : {}),
           },
           stdio: ["ignore", "ignore", "ignore", "ipc"],
         });
       },
     },
-    version: ZCODE_VERSION,
+    version: SOCIAL_HARNESS_VERSION,
     serviceRegistered,
     onStopped: () => {
       process.stdin.pause();
@@ -330,7 +332,7 @@ async function runControl(
   } catch (error: unknown) {
     if (command === "status") {
       const persisted = await readPersistedStatusDetailed(layout);
-      result = persisted.status ?? createStoppedServerStatus(ZCODE_VERSION);
+      result = persisted.status ?? createStoppedServerStatus(SOCIAL_HARNESS_VERSION);
     } else if (command === "stop" && isControlEndpointUnavailable(error)) {
       const persisted = await readPersistedStatusDetailed(layout);
       if (persisted.state === "invalid" || persisted.state === "unreadable") {
@@ -345,7 +347,7 @@ async function runControl(
       }
       // Supervisor 停止时会先关闭 control socket，再由 CLI 落盘 stopped 状态。
       // 重复 stop 发生在这个窗口后不应因为 socket 不存在而变成失败。
-      result = persisted.status ?? createStoppedServerStatus(ZCODE_VERSION);
+      result = persisted.status ?? createStoppedServerStatus(SOCIAL_HARNESS_VERSION);
     } else {
       throw error;
     }
@@ -439,7 +441,7 @@ async function finishUninstall(
     // 让并发 Supervisor 在删除 run 目录的最后窗口也会 fail-closed。
     await writeFile(
       layout.uninstalledFile,
-      `${JSON.stringify({ uninstalled: true, uninstalledAt: Date.now(), version: ZCODE_VERSION, preservedPaths }, null, 2)}\n`,
+      `${JSON.stringify({ uninstalled: true, uninstalledAt: Date.now(), version: SOCIAL_HARNESS_VERSION, preservedPaths }, null, 2)}\n`,
       { encoding: "utf8", mode: 0o600 },
     );
     await uninstallLock.release();
@@ -500,18 +502,4 @@ async function readControlStatus(
   } catch {
     return null;
   }
-}
-
-async function delegateLegacyCli(argv: readonly string[], io: CliIO): Promise<number> {
-  const candidate =
-    process.env.ZCODE_LEGACY_CLI_ENTRY?.trim() ||
-    join(dirname(fileURLToPath(import.meta.url)), "zcode.cjs");
-  try {
-    await access(candidate);
-  } catch {
-    stdout(io, argv.length ? `Unknown command: ${argv[0]}` : "ZCode TUI");
-    return argv.length ? 1 : 0;
-  }
-  const child = fork(candidate, [...argv], { stdio: "inherit" });
-  return await new Promise<number>((resolve) => child.once("exit", (code) => resolve(code ?? 1)));
 }

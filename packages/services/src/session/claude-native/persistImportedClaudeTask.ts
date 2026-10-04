@@ -1,6 +1,6 @@
 import { mkdir, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import type { ZCodeSessionFile, ZCodeTaskMeta } from "@zcode/shared";
+import type { ZCodeSessionFile, ZCodeTaskMeta } from "@social-harness/shared";
 import { getLegacyTaskSessionSnapshotPath } from "#src/paths.js";
 import {
   parseLegacyTaskSessionFile,
@@ -81,7 +81,7 @@ export async function writeImportedClaudeTaskSnapshot(params: {
   );
 
   // legacy ACP 下线后 importClaudeSessions 变成空桩，导入虽复制了 jsonl 却没有写
-  // ~/.zcode/v2/sessions/{hash}/{taskId}.json。现在真实 ZCode session 承担续聊，legacy snapshot
+  // Social Harness config/sessions/{hash}/{taskId}.json。现在 Agent session 承担续聊，legacy snapshot
   // 只保存过滤后的迁移备份，避免 Claude 来源运行态污染当前模型选择。
   await writeSessionFileAtomic(filePath, parsed);
 }

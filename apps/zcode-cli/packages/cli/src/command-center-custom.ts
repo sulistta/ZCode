@@ -1,4 +1,4 @@
-import type { TuiSlashCommandSuggestion } from "@zcode/tui";
+import type { CommandCenterSlashCommandSuggestion } from "./command-center/contracts.js";
 import { expandCliCustomCommandPrompt } from "./custom-command-expand.js";
 
 const customCommandNotFoundPattern = /not found/i;
@@ -39,7 +39,7 @@ interface CommandCenterCustomCommandDeps {
 
 export function listCustomCommandSuggestions(
   customCommands?: CommandCenterCustomCommandListOutcome,
-): TuiSlashCommandSuggestion[] {
+): CommandCenterSlashCommandSuggestion[] {
   return (customCommands?.commands ?? []).map((command) => ({
     name: command.name,
     summary: `${command.description} (${command.scope}/${command.source})`,

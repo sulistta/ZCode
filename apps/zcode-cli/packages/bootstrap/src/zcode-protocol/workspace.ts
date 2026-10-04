@@ -1,4 +1,8 @@
-import { parseRemoteWorkspaceIdentity, type ZCodeWorkspaceRef } from "@zcode/shared";
+import {
+  parseRemoteWorkspaceIdentity,
+  parseSocialAccountWorkspaceIdentity,
+  type ZCodeWorkspaceRef,
+} from "@social-harness/shared";
 
 export function buildWorkspaceRef(input: {
   workspaceIdentity?: string;
@@ -15,7 +19,23 @@ export function buildWorkspaceRef(input: {
 /**
  * 将 V4 workspaceId 的本地路径/远程 identity 双形态统一还原为 workspace ref。
  */
-export function resolveWorkspaceRefFromId(workspaceId: string): ZCodeWorkspaceRef {
+export function resolveWorkspaceRefFromId(
+  workspaceId: string,
+  physicalWorkspacePath?: string,
+): ZCodeWorkspaceRef {
+  if (workspaceId.startsWith("social-account:")) {
+    // Bug 原因：账号 workspace key 不是文件路径；旧分支把它写入 cwd 并丢弃 identity，
+    // 导致 runtime 注册通用工具。Account Service 已解析并验证真实路径，必须保留两者的边界。
+    if (!parseSocialAccountWorkspaceIdentity(workspaceId)) {
+      throw new Error(`Invalid social account workspace identity: ${workspaceId}`);
+    }
+    const workspacePath = physicalWorkspacePath?.trim();
+    if (!workspacePath) {
+      throw new Error("Social account workspace requires a physical workspace path");
+    }
+    return buildWorkspaceRef({ workspaceIdentity: workspaceId, workspacePath });
+  }
+
   const parsedRemote = parseRemoteWorkspaceIdentity(workspaceId);
   if (!parsedRemote) {
     // 非法 remote identity 若继续按本地路径处理，会再次把 identity 写入

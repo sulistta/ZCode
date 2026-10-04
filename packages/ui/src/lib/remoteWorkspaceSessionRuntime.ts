@@ -1,4 +1,4 @@
-import type { ZCodeTaskRuntimeStatus } from "@zcode/shared";
+import type { ZCodeTaskRuntimeStatus } from "@social-harness/shared";
 import { getWorkspaceDisplayedTaskState } from "@/store/zcodeSessionStore.js";
 import type { ZCodeSessionStoreState, WorkspaceZCodeUIState } from "@/store/zcodeSessionStore.js";
 

@@ -6,6 +6,7 @@ const HOME_PREFIX = "~/";
 
 export interface SubagentStorageOptions {
   homeDir?: string;
+  dataBaseDir?: string;
 }
 
 export function resolveUserHomeDir(options?: SubagentStorageOptions): string {
@@ -25,7 +26,7 @@ export function resolveWorkspaceSubagentRoot(workspacePath: string): string {
 }
 
 export async function resolveSubagentStateFile(options?: SubagentStorageOptions): Promise<string> {
-  return join(await resolveZCodeStorageRoot(options), "v2", "agents-state.json");
+  return join(await resolveZCodeStorageRoot(options), "agents-state.json");
 }
 
 export async function resolveZCodeStorageRoot(options?: SubagentStorageOptions): Promise<string> {
@@ -34,8 +35,17 @@ export async function resolveZCodeStorageRoot(options?: SubagentStorageOptions):
   const storageDir =
     typeof storage.dir === "string" && storage.dir.trim().length > 0
       ? storage.dir.trim()
-      : "~/.zcode";
+      : join(resolveDataBaseDir(options), ".social-harness", "v1");
   return resolveConfigPath(storageDir, options);
+}
+
+function resolveDataBaseDir(options?: SubagentStorageOptions): string {
+  return (
+    options?.dataBaseDir?.trim() ||
+    options?.homeDir?.trim() ||
+    process.env.SOCIAL_HARNESS_DATA_BASE_DIR?.trim() ||
+    resolveUserHomeDir(options)
+  );
 }
 
 export function resolveConfigPath(path: string, options?: SubagentStorageOptions): string {
@@ -50,7 +60,7 @@ async function readUserCliConfig(
 ): Promise<Record<string, unknown>> {
   try {
     const raw = await readFile(
-      join(resolveUserHomeDir(options), ".zcode", "cli", "config.json"),
+      join(resolveDataBaseDir(options), ".social-harness", "v1", "cli", "config.json"),
       "utf8",
     );
     const parsed = JSON.parse(raw) as unknown;

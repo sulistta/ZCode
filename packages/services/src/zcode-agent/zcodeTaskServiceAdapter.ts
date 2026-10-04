@@ -1,14 +1,14 @@
 /* oxlint-disable eslint(max-lines) -- 迁移期需要在一个门面里集中维护旧 task projection 到 ZCode session 的协议适配。 */
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import {
   Emitter,
   Event,
   emitNetworkTelemetryObservation,
   type NetworkObservation,
-} from "@zcode/rpc";
+} from "@social-harness/rpc";
+import { getSocialHarnessDataRootDir } from "#src/paths.js";
 import {
   coalesceConsecutiveZCodeAssistants,
   createSessionTraceId,
@@ -31,7 +31,7 @@ import {
   resolveWorkspaceKey,
   resolveZCodeVisibleSessionTitle,
   textFromZCodeMessageParts,
-  ZCODE_AGENT_PROVIDER,
+  SOCIAL_HARNESS_AGENT_PROVIDER,
   zcodeBackgroundTaskNotificationToolUpdateStatus,
   appendZCodeStreamingToolInputDelta,
   buildZCodeStreamingToolInputPreview,
@@ -108,7 +108,7 @@ import {
   type ZCodeUserInputRequestParams,
   type ZCodeUserInputResponse,
   type ZCodeAgentMcpServer,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type {
   ZCodeTaskListQuery,
   ZCodeTaskListResult,
@@ -140,7 +140,10 @@ import type {
   ZCodeTaskIndexTerminalEvent,
 } from "./zcodeTaskIndexSyncer.js";
 import { readModelTrajectory } from "./modelTrajectory.js";
-import { errorAttributionSchema, type CommandPayloadMap } from "@zcode/shared/zcode-protocol-v4";
+import {
+  errorAttributionSchema,
+  type CommandPayloadMap,
+} from "@social-harness/shared/zcode-protocol-v4";
 import {
   assertV4CommandAckOk,
   createHostCommandEnvelope,
@@ -205,7 +208,7 @@ type ZCodeTerminalStreamEvent =
   | Extract<ZCodeStreamEvent, { type: "task_complete" }>
   | Extract<ZCodeStreamEvent, { type: "task_error" }>;
 
-const GLM_PROVIDER: ZCodeProvider = ZCODE_AGENT_PROVIDER;
+const GLM_PROVIDER: ZCodeProvider = SOCIAL_HARNESS_AGENT_PROVIDER;
 const EMPTY_SLASH_COMMANDS: ZCodeSlashCommand[] = [];
 const logger = createServiceLogger("zcode-task-service");
 const ASK_USER_QUESTION_TOOL_NAME = "AskUserQuestion";
@@ -242,8 +245,8 @@ function formatZCodeAgentLogDate(now: Date): string {
 }
 
 function resolveZCodeAgentCurrentLogFilePath(now = new Date()): string {
-  const configuredLogDir = process.env.ZCODE_LOG_DIR?.trim();
-  const logDir = configuredLogDir || join(homedir(), ".zcode", "cli", "log");
+  const configuredLogDir = process.env.SOCIAL_HARNESS_LOG_DIR?.trim();
+  const logDir = configuredLogDir || join(getSocialHarnessDataRootDir(), "cli", "log");
   return join(logDir, `zcode-${formatZCodeAgentLogDate(now)}.jsonl`);
 }
 
@@ -288,7 +291,7 @@ export function createZCodeTaskServiceAdapter(
     throw Object.assign(
       new Error(`ZCode task service adapter does not support IZCodeTaskService.${name} yet.`),
       {
-        code: "ZCODE_AGENT_UNSUPPORTED_LEGACY_TASK_METHOD",
+        code: "SOCIAL_HARNESS_AGENT_UNSUPPORTED_LEGACY_TASK_METHOD",
       },
     );
   }
@@ -979,7 +982,7 @@ export function createZCodeTaskServiceAdapter(
     const target = taskTargets.get(taskId);
     if (!target) {
       throw Object.assign(new Error(`ZCode session target is not loaded: ${taskId}`), {
-        code: "ZCODE_SESSION_TARGET_NOT_FOUND",
+        code: "SOCIAL_HARNESS_SESSION_TARGET_NOT_FOUND",
       });
     }
     return target;
@@ -3475,7 +3478,7 @@ function mapMessage(
       }
     } else if (part.type === "compaction" && !syntheticTimeline) {
       // compact 的模型 summary/timelineText 属于 agent 内部上下文，不能作为正文透出。
-      // 持久化恢复只从结构化字段合成横线，展示文案由 UI/TUI 本地 i18n 决定。
+      // 持久化恢复只从结构化字段合成横线，展示文案由 UI 本地 i18n 决定。
       syntheticTimeline = synthesizeCompactionTimeline(part);
     }
   }

@@ -11,13 +11,13 @@ import type {
   WorkflowRunSnapshot,
   WorkflowRunListItem,
   WorkflowStorePort,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import {
   WorkflowDefinitionSchema,
   WorkflowEventSchema,
   WorkflowGraphRecordSchema,
   WorkflowRunSnapshotSchema,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 
 export interface NodeWorkflowStoreOptions {
   rootDir?: string;
@@ -32,7 +32,13 @@ interface WorkflowIndexFile {
   runs: WorkflowRunListItem[];
 }
 
-const DEFAULT_WORKFLOW_ROOT = join(homedir(), ".zcode", "cli", "workflows");
+const DEFAULT_WORKFLOW_ROOT = join(
+  process.env.SOCIAL_HARNESS_DATA_BASE_DIR?.trim() || homedir(),
+  ".social-harness",
+  "v1",
+  "cli",
+  "workflows",
+);
 const WORKFLOW_DEFINITION_FILE_EXTENSION = ".json";
 
 export class NodeWorkflowStore implements WorkflowStorePort {

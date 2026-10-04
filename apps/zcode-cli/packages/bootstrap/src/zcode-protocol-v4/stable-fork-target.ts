@@ -4,9 +4,9 @@ import {
   type MessageWithParts,
   type SessionStorePort,
   type StableForkGoalBoundaryMetadata,
-} from "@zcode/contracts";
-import { isConversationRealUserTurnStarter } from "@zcode/shared";
-import type { StableForkTarget } from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/contracts";
+import { isConversationRealUserTurnStarter } from "@social-harness/shared";
+import type { StableForkTarget } from "@social-harness/shared/zcode-protocol-v4";
 import type { V4StableForkTargetResolution } from "./commands/types.js";
 import type { StableForkCandidate } from "./product-projection.js";
 

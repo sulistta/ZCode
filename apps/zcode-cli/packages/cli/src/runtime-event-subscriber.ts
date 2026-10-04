@@ -1,10 +1,8 @@
 // runtime 上「跨回合会话事件订阅」的能力读取。
 //
-// 单独成模块是因为消费者有两个且不同venue：headless（`prompt-command.ts`）与 TUI
-// （`tui-prompt-handler.ts` → `tui-session-event-relay.ts`）。能力读取器需要独立于任何
-// venue：若放在 headless 专属模块里，TUI 侧就得从一个名为 headless 的模块 import 一个
-// 名为 Headless 的读取器——名字对行为撒谎。它只回答「这个 runtime 能不能跨回合订阅」。
-import type { SessionEvent } from "@zcode/contracts";
+// 读取器独立于 prompt 命令编排，避免能力探测与单条 prompt 生命周期耦合。
+// 它只回答「这个 runtime 能不能跨回合订阅」。
+import type { SessionEvent } from "@social-harness/contracts";
 
 /**
  * 从 `unknown` 上动态读一个函数成员。

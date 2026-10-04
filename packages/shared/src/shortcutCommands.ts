@@ -19,7 +19,6 @@ export type ShortcutCommandId =
   | "findInTask"
   | "toggleSidebar"
   | "switchTheme"
-  | "toggleTerminal"
   | "toggleSidePane"
   | "previousConversation"
   | "nextConversation"
@@ -69,7 +68,6 @@ export const SHORTCUT_COMMANDS: readonly ShortcutCommandEntry[] = [
   { id: "findInTask", channel: "window", defaultBindings: ["CmdOrCtrl+f"] },
   { id: "toggleSidebar", channel: "window", defaultBindings: ["CmdOrCtrl+b"] },
   { id: "switchTheme", channel: "window", defaultBindings: ["CmdOrCtrl+Shift+l"] },
-  { id: "toggleTerminal", channel: "window", defaultBindings: ["CmdOrCtrl+j"] },
   { id: "toggleSidePane", channel: "window", defaultBindings: ["CmdOrCtrl+Alt+b"] },
   { id: "previousConversation", channel: "window", defaultBindings: ["CmdOrCtrl+Shift+["] },
   { id: "nextConversation", channel: "window", defaultBindings: ["CmdOrCtrl+Shift+]"] },

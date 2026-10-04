@@ -29,8 +29,8 @@ import type {
   V4ConversationWorkflowRunsParams,
   V4ConversationWorkflowRunEventsResult,
   V4ConversationWorkflowRunsResult,
-} from "@zcode/shared/zcode-protocol-v4";
-import type { IServiceAccessor } from "@zcode/services";
+} from "@social-harness/shared/zcode-protocol-v4";
+import type { IServiceAccessor } from "@social-harness/services";
 import { ServiceProvider } from "@/hooks/useServices.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import { useWorkspaceServicesResolution } from "@/hooks/useWorkspaceServices.js";
@@ -124,7 +124,7 @@ function ReadyV4ConversationProvider({
       workspacePath,
       workspaceIdentity,
       // 主 workspace resolver 已识别远端 endpoint，但这里曾丢弃
-      // remoteSessionId，导致远端绝对路径被交给本机 zcode-media。仅本地 endpoint 注入转换器。
+      // remoteSessionId，导致远端绝对路径被交给本机 social-harness-media。仅本地 endpoint 注入转换器。
       ...(remoteSessionId === null && platform.createLocalMediaPreviewUrl
         ? { createLocalMediaPreviewUrl: platform.createLocalMediaPreviewUrl }
         : {}),

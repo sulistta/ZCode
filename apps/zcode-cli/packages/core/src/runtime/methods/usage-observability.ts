@@ -13,7 +13,7 @@ import type {
   TraceContext,
   TurnId,
   UsageStorePort,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { RuntimeModelTextResult } from "../types.js";
 import type { AgentRuntimeInternal } from "../internal.js";
 import { isModelContextExceededError } from "../helpers/index.js";

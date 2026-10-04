@@ -30,7 +30,7 @@ import {
   type SavedWorkflowMeta,
   type SavedWorkflowScope,
   type SavedWorkflowShadowing,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import { parseSavedWorkflow, serializeSavedWorkflow } from "./frontmatter.js";
 
 /** 一个查找根：作用域标签 + 绝对目录。 */
@@ -45,12 +45,13 @@ export interface SavedWorkflowRoot {
  */
 export interface SavedWorkflowRootsOptions {
   homeDir?: string;
+  dataBaseDir?: string;
 }
 
 /**
  * 本次会话的查找根，**按优先级排列**：`[project, global]`。
  *
- * 项目档落在会话工作目录的 `.zcode/workflows/`，全局档落在家目录的 `~/.zcode/workflows/`。
+ * 项目档落在会话工作目录的 `.zcode/workflows/`，全局档落在 Social Harness 数据根下。
  * 所有查找按顺序 first-wins：项目里的那份永远赢过全局那份（同名遮蔽）。
  */
 export function savedWorkflowRoots(
@@ -59,7 +60,16 @@ export function savedWorkflowRoots(
 ): SavedWorkflowRoot[] {
   return [
     { scope: "project", dir: join(cwd, SAVED_WORKFLOW_PROJECT_DIR) },
-    { scope: "global", dir: join(options?.homeDir ?? homedir(), SAVED_WORKFLOW_GLOBAL_DIR) },
+    {
+      scope: "global",
+      dir: join(
+        options?.dataBaseDir?.trim() ||
+          process.env.SOCIAL_HARNESS_DATA_BASE_DIR?.trim() ||
+          options?.homeDir ||
+          homedir(),
+        SAVED_WORKFLOW_GLOBAL_DIR,
+      ),
+    },
   ];
 }
 

@@ -1,4 +1,4 @@
-import type { HookConfig, HookExecutionDescriptor } from "@zcode/contracts";
+import type { HookConfig, HookExecutionDescriptor } from "@social-harness/contracts";
 
 const SENSITIVE_KEY =
   "(?:access[_-]?token|api[_-]?key|credential|password|private[_-]?key|secret|token)";

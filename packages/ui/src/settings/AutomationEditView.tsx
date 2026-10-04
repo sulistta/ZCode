@@ -1,7 +1,7 @@
 /* eslint-disable max-lines -- 定时任务编辑整页集中维护 Settings/History 两个 tab、cron builder、项目/模型选择器与运行历史，集中更利于交互一致。 */
 import { useStartPlanRecommendation } from "@/hooks/useStartPlanRecommendation.js";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { completeNewModelSelection } from "@zcode/provider";
+import { completeNewModelSelection } from "@social-harness/provider";
 import {
   ArrowLeft,
   ArrowRight,
@@ -37,11 +37,11 @@ import {
   TID_AUTOMATION_YEAR_DAY_OPTION,
   TID_AUTOMATION_YEAR_MONTH_OPTION,
   TID_AUTOMATION_YEAR_MONTHDAY,
-  ZCODE_AGENT_PROVIDER,
+  SOCIAL_HARNESS_AGENT_PROVIDER,
   type ZCodeAutomation,
   type ZCodeAutomationRun,
   type ZCodeAutomationScheduleRule,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   AutomationAddScheduleIcon,
   AutomationChevronDownIcon,
@@ -1485,7 +1485,7 @@ export function AutomationEditView({
   const modelSelectGroups = useMemo(() => {
     if (!modelSelectionView) return [];
     return buildAutomationModelSelectGroups({
-      selectedProvider: ZCODE_AGENT_PROVIDER,
+      selectedProvider: SOCIAL_HARNESS_AGENT_PROVIDER,
       labels: {
         apiKeyLabel: intl.formatMessage({ id: "settings.modelProvider.apiKey" }),
         apiKeyBadgeLabel: intl.formatMessage({
@@ -2657,7 +2657,7 @@ export function AutomationEditView({
                         "w-fit max-w-56 min-w-0 shrink justify-start gap-1 px-2",
                       )}
                       labelVisibilityClassName="inline-flex min-w-0 truncate text-left"
-                      provider={ZCODE_AGENT_PROVIDER}
+                      provider={SOCIAL_HARNESS_AGENT_PROVIDER}
                       restoreFocusSelector={null}
                     />
                   </div>
@@ -2704,7 +2704,7 @@ export function AutomationEditView({
                       <ThoughtLevelCycleControl
                         intl={intl}
                         option={thoughtLevelOption}
-                        provider={ZCODE_AGENT_PROVIDER}
+                        provider={SOCIAL_HARNESS_AGENT_PROVIDER}
                         triggerRef={thoughtTriggerRef}
                         indicatorClassName="hidden @xl/composer:block"
                         triggerClassName={cn(

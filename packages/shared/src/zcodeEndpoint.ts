@@ -1,19 +1,21 @@
 import type { ZCodeEnv } from "./env.js";
 
-export const DEFAULT_ZCODE_ENDPOINT_ORIGIN = "https://zcode.z.ai";
+// 保留历史导出名以兼容尚未清理的消费者；Social Harness 不内置第一方 API 地址。
+export const DEFAULT_SOCIAL_HARNESS_ENDPOINT_ORIGIN = "";
+const RETIRED_ZCODE_ENDPOINT_HOST = "zcode.z.ai";
 export const DEFAULT_BIGMODEL_API_ORIGIN = "https://bigmodel.cn";
 export const DEFAULT_ZAI_OAUTH_ORIGIN = "https://chat.z.ai";
 export const DEFAULT_ZAI_BUSINESS_BASE_URL = "https://api.z.ai";
 export const DEFAULT_ZAI_OAUTH_CLIENT_ID = "client_P8X5CMWmlaRO9gyO-KSqtg";
 
 // 构建仅注入公开链接；Node 调用方仍可显式传 env，避免读取另一进程的配置。
-declare const __ZCODE_ENDPOINT_ENV__: Record<string, string | undefined> | undefined;
+declare const __SOCIAL_HARNESS_ENDPOINT_ENV__: Record<string, string | undefined> | undefined;
 export function pickProductEndpointEnv(
   env: Record<string, string | undefined>,
 ): Record<string, string> {
   const keys = [
-    "ZCODE_BASE_URL",
-    "ZCODE_ENDPOINT_ORIGIN",
+    "SOCIAL_HARNESS_BASE_URL",
+    "SOCIAL_HARNESS_ENDPOINT_ORIGIN",
     "BIGMODEL_API_BASE_URL",
     "ZAI_OAUTH_ORIGIN",
     "ZAI_BUSINESS_BASE_URL",
@@ -26,7 +28,9 @@ export function pickProductEndpointEnv(
 }
 export function readProductEndpointEnv(): Record<string, string | undefined> {
   return {
-    ...(typeof __ZCODE_ENDPOINT_ENV__ === "undefined" ? {} : __ZCODE_ENDPOINT_ENV__),
+    ...(typeof __SOCIAL_HARNESS_ENDPOINT_ENV__ === "undefined"
+      ? {}
+      : __SOCIAL_HARNESS_ENDPOINT_ENV__),
     ...pickProductEndpointEnv(typeof process === "undefined" ? {} : process.env),
   };
 }
@@ -43,20 +47,20 @@ export interface ZCodeEndpointUrls {
 
 export interface RuntimeZCodeEndpointEnv {
   [key: string]: string | undefined;
-  ZCODE_ENV?: string;
-  ZCODE_BASE_URL?: string;
-  ZCODE_ENDPOINT_ORIGIN?: string;
+  SOCIAL_HARNESS_ENV?: string;
+  SOCIAL_HARNESS_BASE_URL?: string;
+  SOCIAL_HARNESS_ENDPOINT_ORIGIN?: string;
 }
 
 export interface RuntimeBigModelApiEnv {
   [key: string]: string | undefined;
-  ZCODE_ENV?: string;
+  SOCIAL_HARNESS_ENV?: string;
   BIGMODEL_API_BASE_URL?: string;
 }
 
 export interface RuntimeZaiEndpointEnv {
   [key: string]: string | undefined;
-  ZCODE_ENV?: string;
+  SOCIAL_HARNESS_ENV?: string;
   ZAI_OAUTH_ORIGIN?: string;
   ZAI_BUSINESS_BASE_URL?: string;
   ZAI_OAUTH_CLIENT_ID?: string;
@@ -97,6 +101,19 @@ export function normalizeZCodeEndpointOrigin(value: string): string {
   return parsed.origin;
 }
 
+export function isRetiredZCodeEndpointUrl(input: string | URL): boolean {
+  try {
+    const url = input instanceof URL ? input : new URL(input);
+    const hostname = url.hostname.toLowerCase().replace(/\.$/u, "");
+    return (
+      hostname === RETIRED_ZCODE_ENDPOINT_HOST ||
+      hostname.endsWith(`.${RETIRED_ZCODE_ENDPOINT_HOST}`)
+    );
+  } catch {
+    return false;
+  }
+}
+
 function isLoopbackHostname(hostname: string): boolean {
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 }
@@ -111,7 +128,7 @@ export function isTrustedCodingPlanWebviewOrigin(
   try {
     const origin = normalizeZCodeEndpointOrigin(value);
     if (
-      origin === DEFAULT_ZCODE_ENDPOINT_ORIGIN ||
+      origin === DEFAULT_SOCIAL_HARNESS_ENDPOINT_ORIGIN ||
       origin === resolveRuntimeZCodeEndpointOrigin()
     ) {
       return true;
@@ -129,14 +146,18 @@ export function resolveZCodeEndpointOrigin(options?: {
   overrideOrigin?: string | null;
 }): string {
   const origin = options?.overrideOrigin?.trim() || options?.envBaseOrigin?.trim();
-  return origin ? normalizeZCodeEndpointOrigin(origin) : DEFAULT_ZCODE_ENDPOINT_ORIGIN;
+  if (!origin) return DEFAULT_SOCIAL_HARNESS_ENDPOINT_ORIGIN;
+
+  const normalizedOrigin = normalizeZCodeEndpointOrigin(origin);
+  // 旧环境变量可能仍保存 ZCode 地址；将它视为未配置，避免恢复旧 API 路由。
+  return isRetiredZCodeEndpointUrl(normalizedOrigin) ? "" : normalizedOrigin;
 }
 
 export function resolveRuntimeZCodeEnv(
   env: RuntimeZCodeEndpointEnv = readProductEndpointEnv(),
 ): ZCodeEnv {
   // 产品身份仅用于既有展示与安装标识，不参与地址解析。
-  return env.ZCODE_ENV?.trim().toLowerCase() === "test" ? "test" : "production";
+  return env.SOCIAL_HARNESS_ENV?.trim().toLowerCase() === "test" ? "test" : "production";
 }
 
 export function resolveRuntimeZCodeEndpointOrigin(
@@ -145,8 +166,8 @@ export function resolveRuntimeZCodeEndpointOrigin(
 ): string {
   return resolveZCodeEndpointOrigin({
     envBaseOrigin:
-      readRuntimeEnvValue(env, "ZCODE_BASE_URL") ??
-      readRuntimeEnvValue(env, "ZCODE_ENDPOINT_ORIGIN"),
+      readRuntimeEnvValue(env, "SOCIAL_HARNESS_BASE_URL") ??
+      readRuntimeEnvValue(env, "SOCIAL_HARNESS_ENDPOINT_ORIGIN"),
     overrideOrigin: options?.overrideOrigin,
   });
 }
@@ -161,8 +182,11 @@ export function buildRuntimeZCodeApiUrl(
   env: RuntimeZCodeEndpointEnv = readProductEndpointEnv(),
   path: string,
 ): string {
+  const origin = resolveRuntimeZCodeEndpointOrigin(env);
+  if (!origin) return "";
+
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${resolveRuntimeZCodeEndpointOrigin(env)}${normalizedPath}`;
+  return `${origin}${normalizedPath}`;
 }
 
 export function resolveBigModelApiOrigin(
@@ -258,6 +282,18 @@ export function resolveRuntimeProductEndpointConfig(
 }
 
 export function buildZCodeEndpointUrls(origin: string): ZCodeEndpointUrls {
+  if (!origin.trim()) {
+    return {
+      origin: "",
+      apiBaseUrl: "",
+      webShareCallbackUrl: "",
+      zcodePlanOpenAiBaseUrl: "",
+      zcodePlanAnthropicBaseUrl: "",
+      zcodePlanBillingCurrentUrl: "",
+      zcodePlanBillingBalanceUrl: "",
+    };
+  }
+
   const normalizedOrigin = normalizeZCodeEndpointOrigin(origin);
   return {
     origin: normalizedOrigin,
@@ -272,21 +308,13 @@ export function buildZCodeEndpointUrls(origin: string): ZCodeEndpointUrls {
 
 export function rewriteZCodeEndpointUrl(input: string | URL, endpointOrigin: string): string | URL {
   const originalUrl = typeof input === "string" ? input : input.toString();
-  let parsed: URL;
-  try {
-    parsed = new URL(originalUrl);
-  } catch {
-    return input;
-  }
-  const sourceOrigin = DEFAULT_ZCODE_ENDPOINT_ORIGIN;
-  if (parsed.origin !== sourceOrigin) {
+  if (!isRetiredZCodeEndpointUrl(originalUrl)) {
     return input;
   }
 
-  const targetOrigin = normalizeZCodeEndpointOrigin(endpointOrigin);
-  if (targetOrigin === sourceOrigin) {
-    return input;
-  }
+  const parsed = new URL(originalUrl);
+  const targetOrigin = resolveZCodeEndpointOrigin({ overrideOrigin: endpointOrigin });
+  if (!targetOrigin) return input;
 
   const target = new URL(targetOrigin);
   target.pathname = parsed.pathname;

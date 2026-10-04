@@ -5,7 +5,7 @@ import {
   isPublicStoreMarketplaceId,
   resolvePluginDisplayName,
   sortPluginStoreEntries,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.js";
 import {
   Command,

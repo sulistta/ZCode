@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { IPlatformService } from "@zcode/shared";
+import type { IPlatformService } from "@social-harness/shared";
 import { logger } from "@/logger.js";
 import { resolveTheme, type Theme } from "@/useTheme.js";
 

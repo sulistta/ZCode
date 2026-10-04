@@ -1,5 +1,5 @@
 {
-  "name": "@zcode/provider-node",
+  "name": "@social-harness/provider-node",
   "private": true,
   "type": "module",
   "exports": {
@@ -11,13 +11,13 @@
     "lint": "oxlint"
   },
   "dependencies": {
-    "@zcode/provider": "workspace:*",
-    "@zcode/shared": "workspace:*",
+    "@social-harness/provider": "workspace:*",
+    "@social-harness/shared": "workspace:*",
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@social-harness/model-option-map": "workspace:*",
     "@types/node": "^25.5.0",
-    "@zcode/model-option-map": "workspace:*",
     "typescript": "^6.0.2"
   }
 }

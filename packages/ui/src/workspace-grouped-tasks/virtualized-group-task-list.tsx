@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import type { ZCodeTaskMeta } from "@zcode/shared";
+import type { ZCodeTaskMeta } from "@social-harness/shared";
 import { GroupedTaskItem } from "@/workspace-grouped-tasks/task-item.js";
 import { taskKey } from "@/workspace-grouped-tasks/ids.js";
 import {
@@ -50,7 +50,6 @@ export function VirtualizedGroupedTaskList({
   getTaskWorkspaceLabel,
   onSelectTask,
   onCloseTask,
-  onOpenFileTree,
   onMoveTaskToGroup,
   onMoveTaskToTop,
   onStartRenameTask,
@@ -69,7 +68,6 @@ export function VirtualizedGroupedTaskList({
   getTaskWorkspaceLabel: (task: ZCodeTaskMeta) => string;
   onSelectTask: (workspacePath: string, taskId: string, workspaceIdentity?: string) => void;
   onCloseTask: (task: ZCodeTaskMeta) => void;
-  onOpenFileTree?: (task: ZCodeTaskMeta) => void;
   onMoveTaskToGroup: (task: ZCodeTaskMeta, groupId: string | null) => void;
   onMoveTaskToTop: (task: ZCodeTaskMeta) => void;
   onStartRenameTask: (task: ZCodeTaskMeta) => void;
@@ -162,7 +160,6 @@ export function VirtualizedGroupedTaskList({
         activeTaskId={activeTaskId}
         onSelectTask={onSelectTask}
         onCloseTask={onCloseTask}
-        onOpenFileTree={onOpenFileTree}
         onMoveTaskToGroup={onMoveTaskToGroup}
         onMoveTaskToTop={onMoveTaskToTop}
         onStartRenameTask={onStartRenameTask}
@@ -186,7 +183,6 @@ export function VirtualizedGroupedTaskList({
       onMarkTaskAsUnread,
       onMoveTaskToGroup,
       onMoveTaskToTop,
-      onOpenFileTree,
       onSelectTask,
       onStartRenameTask,
       activeDragTaskKey,

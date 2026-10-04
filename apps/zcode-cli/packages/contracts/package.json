@@ -1,5 +1,5 @@
 {
-  "name": "@zcode/contracts",
+  "name": "@social-harness/contracts",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -91,11 +91,11 @@
     "build": "tsc",
     "clean": "node ../../scripts/clean-dist.mjs",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint src",
+    "lint": "oxlint src --no-ignore",
     "lint:fix": "oxlint --write src"
   },
   "dependencies": {
-    "@zcode/shared": "workspace:*",
+    "@social-harness/shared": "workspace:*",
     "zod": "^3.24.0",
     "zod-to-json-schema": "3.25.2"
   },

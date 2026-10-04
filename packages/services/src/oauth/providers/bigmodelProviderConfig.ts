@@ -1,4 +1,4 @@
-import { BIGMODEL_PROVIDER_ID, buildBigModelApiUrl } from "@zcode/shared";
+import { BIGMODEL_PROVIDER_ID, buildBigModelApiUrl } from "@social-harness/shared";
 import type { OAuthProviderRuntimeConfig } from "../runtimeConfig.js";
 import {
   buildDesktopOAuthRedirectUriFromEnv,
@@ -17,7 +17,7 @@ const BIGMODEL_OAUTH_PROVIDER_CONFIG: Omit<OAuthProviderRuntimeConfig, "appSecre
   order: 0,
   authorizeUrl: "https://bigmodel.cn/login",
   tokenUrl: "https://zcode.z.ai/api/v1/oauth/token",
-  userinfoUrl: buildBigModelApiUrl({ ZCODE_ENV: "production" }, BIGMODEL_USERINFO_PATH),
+  userinfoUrl: buildBigModelApiUrl({ SOCIAL_HARNESS_ENV: "production" }, BIGMODEL_USERINFO_PATH),
   appId: "zcode",
   redirectUri: "zcode://oauth/callback",
 };

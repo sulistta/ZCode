@@ -1,27 +1,27 @@
 /* eslint-disable max-lines -- 远程 workspace 服务注册需集中维护，以保持依赖注入顺序 */
 import {
   ServiceCollection,
+  ISocialAccountService,
+  ISocialMediaService,
+  ISocialMediaPreviewService,
+  ISocialProjectService,
   IFileService,
   IMediaPreviewService,
   IGitService,
   IGitCheckpointService,
   ISystemService,
-  ITerminalService,
   ISettingService,
   ICredentialService,
   IBroadcastService,
   IZCodeTaskService,
   IZCodeAgentService,
   IZCodeSessionService,
-  IConversationShareService,
   IFileWatcherService,
   IOAuthService,
   IModelSelectionService,
   IProviderSettingsService,
   IUsageStatsService,
-  ICodingPlanSubscriptionService,
   IClientConfigService,
-  IClientScenesService,
   ISkillsService,
   ISkillSyncService,
   IMcpSyncService,
@@ -35,10 +35,8 @@ import {
   ISettingsSyncService,
   IPromptAttachmentTransferService,
   type IServiceAccessor,
-} from "@zcode/services";
+} from "@social-harness/services";
 import {
-  ConversationShareHttpClient,
-  ConversationShareService,
   createSettingService,
   createCredentialService,
   createBroadcastService,
@@ -56,22 +54,18 @@ import {
   createSettingsSyncService,
   createUsageStatsService,
   createMediaPreviewService,
-  createCodingPlanSubscriptionService,
-  createClientScenesService,
   createServiceLogger,
   createSubagentsService,
   createMemoryService,
-  createRemoteConversationShareArtifactSource,
   OAuthCredentialRepo,
-} from "@zcode/services/node";
+} from "@social-harness/services/node";
 import {
   BIGMODEL_PROVIDER_ID,
-  buildRuntimeZCodeApiUrl,
-  DEFAULT_ZCODE_MODEL_CONTEXT_BUDGET_STRATEGY,
+  DEFAULT_SOCIAL_HARNESS_MODEL_CONTEXT_BUDGET_STRATEGY,
   type ProviderFamilyDomain,
   type ZCodeSessionRuntimePreferencesResult,
   ZAI_PROVIDER_ID,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { assertLegacyRemoteWorkspaceRpcContract } from "./legacyRemoteWorkspaceRpcContract.js";
 import {
   createRemoteProviderProvisioningExecutorFromWorkspace,
@@ -79,7 +73,6 @@ import {
 } from "./remoteProviderProvisioningService.js";
 
 const runtimePreferencesLogger = createServiceLogger("remote-runtime-preferences");
-const ZCODE_JWT_TOKEN_KEY = "zcodejwttoken";
 
 export function createRemoteWorkspaceServiceCollection(params: {
   clientConfigService: IClientConfigService;
@@ -170,26 +163,8 @@ export function createRemoteWorkspaceServiceCollection(params: {
         }),
     }),
   );
-  const localCodingPlanSubscriptionService = createCodingPlanSubscriptionService({
-    apiClient: localApiClient,
-    credentialService: localCredentialService,
-  });
   handleOAuthProviderLogout = createOAuthProviderLogoutHandler({
     accountProviderCredentialStore: localAccountProviderCredentialStore,
-  });
-  const conversationShareClient = new ConversationShareHttpClient({
-    // 远端 workspace 的分享也必须使用真实 API；本地 Mock 仅用于单测，不生成无法跨进程访问的链接。
-    apiClient: localApiClient,
-    baseUrl: buildRuntimeZCodeApiUrl(process.env, "/api/v1"),
-    tokenProvider: async () =>
-      (await localCredentialService.load(ZCODE_JWT_TOKEN_KEY))?.trim() || null,
-  });
-  const conversationShareService = new ConversationShareService({
-    zcodeAgentService: params.connectionServices.zcodeAgentService,
-    client: conversationShareClient,
-    artifactSource: createRemoteConversationShareArtifactSource(
-      params.connectionServices.fileService,
-    ),
   });
   const reportingRemoteZCodeTaskService = params.createReportingRemoteZCodeTaskService(
     params.connectionServices.zcodeTaskService,
@@ -258,7 +233,7 @@ export function createRemoteWorkspaceServiceCollection(params: {
         try {
           // 与本地 Host 同源：固定预算不依赖配置网关，远程/手机偏好响应不再串行等待网络。
           const settings = await trackStage("settings", localSettingService.get());
-          const modelContextBudgetStrategy = DEFAULT_ZCODE_MODEL_CONTEXT_BUDGET_STRATEGY;
+          const modelContextBudgetStrategy = DEFAULT_SOCIAL_HARNESS_MODEL_CONTEXT_BUDGET_STRATEGY;
           resolution = {
             status: "resolved",
             preferences: {
@@ -314,14 +289,12 @@ export function createRemoteWorkspaceServiceCollection(params: {
     .register(IGitService, params.connectionServices.gitService)
     .register(IGitCheckpointService, params.connectionServices.gitCheckpointService)
     .register(ISystemService, params.connectionServices.systemService)
-    .register(ITerminalService, params.connectionServices.terminalService)
     .register(ISettingService, localSettingService)
     .register(ICredentialService, localCredentialService)
     .register(IBroadcastService, localBroadcastService)
     .register(IZCodeTaskService, remoteZCodeTaskService)
     .register(IZCodeAgentService, params.connectionServices.zcodeAgentService)
     .register(IZCodeSessionService, remoteZCodeSessionService)
-    .register(IConversationShareService, conversationShareService)
     .register(IFileWatcherService, params.connectionServices.fileWatcherService)
     .register(
       IOAuthService,
@@ -343,9 +316,7 @@ export function createRemoteWorkspaceServiceCollection(params: {
         zcodeAgentService: params.connectionServices.zcodeAgentService,
       }),
     )
-    .register(ICodingPlanSubscriptionService, localCodingPlanSubscriptionService)
     .register(IClientConfigService, params.clientConfigService)
-    .register(IClientScenesService, createClientScenesService({ apiClient: localApiClient }))
     // 远端 workspace 的项目级 skills/plugins/commands 位于 SSH/Docker 文件系统。
     // 这里必须透出远端服务，避免本机服务拿远端 workspacePath 去本机目录扫描。
     .register(ISkillsService, params.connectionServices.skillsService)
@@ -364,6 +335,24 @@ export function createRemoteWorkspaceServiceCollection(params: {
       createSettingsSyncService({ settingService: localSettingService }),
     )
     .register(IPromptAttachmentTransferService, params.promptAttachmentTransferService);
+  const localSocialAccountService = params.sourceServices?.getOptional(ISocialAccountService);
+  if (localSocialAccountService) {
+    services.register(ISocialAccountService, localSocialAccountService);
+  }
+  const localSocialMediaService = params.sourceServices?.getOptional(ISocialMediaService);
+  if (localSocialMediaService) {
+    services.register(ISocialMediaService, localSocialMediaService);
+  }
+  const localSocialMediaPreviewService = params.sourceServices?.getOptional(
+    ISocialMediaPreviewService,
+  );
+  if (localSocialMediaPreviewService) {
+    services.register(ISocialMediaPreviewService, localSocialMediaPreviewService);
+  }
+  const localSocialProjectService = params.sourceServices?.getOptional(ISocialProjectService);
+  if (localSocialProjectService) {
+    services.register(ISocialProjectService, localSocialProjectService);
+  }
   registerHostApiNetworkTransportForDispose(services, hostApiNetworkTransport);
   registerRemoteProviderProvisioningExecutor(services, remoteProviderProvisioningService);
   return services;
