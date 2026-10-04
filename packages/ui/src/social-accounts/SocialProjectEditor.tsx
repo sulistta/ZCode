@@ -251,6 +251,7 @@ export function SocialProjectEditor({
         project={project}
         assets={assets}
         mediaPreviewService={mediaPreviewService}
+        mediaService={mediaService}
         playheadMs={playheadMs}
         seekRevision={seekRevision}
         onSeek={seekTo}

@@ -1,10 +1,16 @@
 import { z } from "zod";
+export {
+  socialMediaJobSchema,
+  socialMediaJobStateSchema,
+  socialMediaJobErrorCodeSchema,
+} from "./social-media-jobs.js";
+export type { SocialMediaJob } from "./social-media-jobs.js";
+import { socialMediaPreviewProxySchema } from "./social-media-preview-proxy.js";
+export { socialMediaPreviewProxySchema } from "./social-media-preview-proxy.js";
+export type { SocialMediaPreviewProxy } from "./social-media-preview-proxy.js";
 import { socialAccountIdSchema } from "./social-account.js";
 import { socialMediaIdSchema, socialMediaYouTubeVideoIdSchema } from "./social-media-primitives.js";
-import {
-  normalizeSocialMediaSourceUrl,
-  socialMediaSourceKeySchema,
-} from "./social-media-source.js";
+import { normalizeSocialMediaSourceUrl } from "./social-media-source.js";
 
 export { socialMediaIdSchema, socialMediaYouTubeVideoIdSchema } from "./social-media-primitives.js";
 export {
@@ -120,8 +126,19 @@ export const socialMediaAssetSchema = z
     subtitleTracks: z.array(socialMediaSubtitleTrackSchema).max(4).optional(),
     transcript: socialMediaTranscriptSchema.optional(),
     heatmap: z.array(socialMediaHeatmapSegmentSchema).max(5_000).optional(),
+    previewProxy: socialMediaPreviewProxySchema.optional(),
   })
   .superRefine((asset, context) => {
+    if (
+      asset.previewProxy &&
+      (asset.mediaKind !== "video" || asset.previewProxy.sourceSha256 !== asset.sha256)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["previewProxy"],
+        message: "A preview proxy must belong to the same immutable video",
+      });
+    }
     if (asset.sourceKind === "local-file" && asset.sourceOrigin !== undefined) {
       context.addIssue({
         code: "custom",
@@ -203,6 +220,7 @@ export const socialMediaPreviewSchema = z.object({
   sizeBytes: z.number().int().positive().safe(),
   url: z.string().trim().min(1).max(2048),
   expiresAt: z.number().int().nonnegative().safe(),
+  representation: z.enum(["original", "proxy"]).default("original"),
 });
 
 export const socialMediaYouTubeSearchRequestSchema = z.object({
@@ -234,83 +252,6 @@ export const socialMediaJobActionRequestSchema = z.object({
   jobId: socialMediaJobIdSchema,
 });
 
-export const socialMediaJobStateSchema = z.enum([
-  "queued",
-  "downloading",
-  "transcribing",
-  "finalizing",
-  "cancelling",
-  "completed",
-  "failed",
-  "cancelled",
-]);
-
-export const socialMediaJobErrorCodeSchema = z.enum([
-  "tool-unavailable",
-  "download-failed",
-  "output-invalid",
-  "transcription-model-unavailable",
-  "transcription-tool-unavailable",
-  "transcription-output-invalid",
-  "transcription-failed",
-]);
-
-export const socialMediaJobSchema = z
-  .object({
-    jobId: socialMediaJobIdSchema,
-    accountId: socialAccountIdSchema,
-    sourceKind: z.enum(["youtube", "remote-url"]).default("youtube"),
-    sourceKey: socialMediaSourceKeySchema.optional(),
-    sourceOrigin: z.enum(["youtube-search", "video-url"]).default("video-url"),
-    sourceVideoId: socialMediaYouTubeVideoIdSchema.optional(),
-    sourceUrl: z.string().url(),
-    state: socialMediaJobStateSchema,
-    downloadedBytes: z.number().int().nonnegative().safe(),
-    totalBytes: z.number().int().positive().safe().nullable(),
-    etaSeconds: z.number().int().nonnegative().nullable(),
-    mediaId: socialMediaIdSchema.nullable(),
-    errorCode: socialMediaJobErrorCodeSchema.nullable(),
-    createdAt: z.number().int().nonnegative(),
-    updatedAt: z.number().int().nonnegative(),
-  })
-  .superRefine((job, context) => {
-    if (job.sourceKind === "youtube") {
-      if (
-        !job.sourceVideoId ||
-        job.sourceUrl !== `https://www.youtube.com/watch?v=${job.sourceVideoId}` ||
-        (job.sourceKey !== undefined && job.sourceKey !== job.sourceVideoId)
-      ) {
-        context.addIssue({
-          code: "custom",
-          path: ["sourceUrl"],
-          message: "YouTube job source must match its validated video ID",
-        });
-      }
-    } else {
-      const normalizedSource = normalizeSocialMediaSourceUrl(job.sourceUrl);
-      if (
-        job.sourceOrigin !== "video-url" ||
-        !normalizedSource ||
-        normalizedSource.sourceKind !== "remote-url" ||
-        normalizedSource.sourceUrl !== job.sourceUrl ||
-        !job.sourceKey?.startsWith("url-")
-      ) {
-        context.addIssue({
-          code: "custom",
-          path: ["sourceUrl"],
-          message: "Remote URL job must retain its canonical source key and URL",
-        });
-      }
-    }
-    if (job.state === "transcribing" && job.mediaId === null) {
-      context.addIssue({
-        code: "custom",
-        path: ["mediaId"],
-        message: "A transcribing job must point to its durable source asset",
-      });
-    }
-  });
-
 export const socialMediaJobChangeSchema = z.object({
   accountId: socialAccountIdSchema,
   jobId: socialMediaJobIdSchema,
@@ -340,7 +281,7 @@ export type SocialMediaAsset = z.infer<typeof socialMediaAssetSchema>;
 export type SocialMediaPreviewRequest = z.infer<typeof socialMediaPreviewRequestSchema>;
 export type SocialMediaPreview = z.infer<typeof socialMediaPreviewSchema>;
 export type SocialMediaKind = z.infer<typeof socialMediaKindSchema>;
-export type SocialMediaJob = z.infer<typeof socialMediaJobSchema>;
+
 export type SocialMediaJobChange = z.infer<typeof socialMediaJobChangeSchema>;
 export type SocialMediaHeatmapSegment = z.infer<typeof socialMediaHeatmapSegmentSchema>;
 export type SocialMediaSubtitleTrack = z.infer<typeof socialMediaSubtitleTrackSchema>;

@@ -552,7 +552,7 @@ const enUS: Record<string, string> = {
   "socialMedia.youtubeNoResults": "No matching videos were found.",
   "socialMedia.youtubeResults": "YouTube search results",
   "socialMedia.youtubeViews": "{count} views",
-  "socialMedia.jobsTitle": "Source downloads",
+  "socialMedia.jobsTitle": "Media processing",
   "socialMedia.transcription.title": "Local transcription",
   "socialMedia.transcription.description":
     "Install a Whisper model on this device to transcribe videos without usable subtitles.",
@@ -572,6 +572,12 @@ const enUS: Record<string, string> = {
     "The downloaded model failed its integrity check. Try installing it again.",
   "socialMedia.job.queued": "Queued",
   "socialMedia.job.downloading": "Downloading",
+  "socialMedia.job.proxying": "Preparing video preview",
+  "socialMedia.job.previewProxy": "Compatible video preview — exports use the original",
+  "socialMedia.jobError.preview-proxy-failed":
+    "Preview conversion failed. The original is unchanged. You can retry.",
+  "socialMedia.jobError.preview-proxy-tool-unavailable":
+    "The bundled preview tool is unavailable. Check the app installation.",
   "socialMedia.job.transcribing": "Transcribing",
   "socialMedia.job.finalizing": "Saving to library",
   "socialMedia.job.cancelling": "Cancelling",

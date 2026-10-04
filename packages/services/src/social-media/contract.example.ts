@@ -38,6 +38,15 @@ export function prepareAccountMediaPreview(
   return service.prepare({ accountId, mediaId });
 }
 
+/** Request a compatibility job only after a video decoder rejects the original. */
+export function requestAccountVideoPreviewProxy(
+  service: ISocialMediaPreviewService,
+  accountId: string,
+  mediaId: string,
+) {
+  return service.requestProxy({ accountId, mediaId });
+}
+
 /** Queue one supported account-scoped source URL; repeated calls reuse its job. */
 export function addMediaUrlToLibrary(service: ISocialMediaService, accountId: string, url: string) {
   return service.downloadSourceUrl({ accountId, url });

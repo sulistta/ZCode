@@ -43,6 +43,8 @@ import { createSocialMediaJobQueue } from "./socialMediaJobQueue.js";
 import { rankPodcastClipCandidates } from "../domain/clipCandidateRanking.js";
 import { rankMusicClipCandidates } from "../domain/musicClipCandidates.js";
 
+import type { SocialMediaPreviewProxyRenderer } from "./ports/socialMediaPreviewProxyRenderer.js";
+
 interface SocialMediaServiceOptions {
   store: SocialMediaStore;
   socialAccountService: ISocialAccountService;
@@ -51,6 +53,7 @@ interface SocialMediaServiceOptions {
   transcriber: SocialMediaTranscriber;
   clipSignalAnalyzer?: SocialMediaClipSignalAnalyzer;
   sourceUrlDownload?: SocialMediaSourceUrlDownload;
+  previewProxyRenderer?: SocialMediaPreviewProxyRenderer;
   createPreviewUrl?: (path: string) => Promise<{ url: string; expiresAt: number }>;
   now?: () => number;
   createMediaId?: () => string;
@@ -88,6 +91,7 @@ export function createSocialMediaService(
     store: options.store,
     socialAccountService: options.socialAccountService,
     sourceUrlDownload,
+    previewProxyRenderer: options.previewProxyRenderer,
     transcriptionModelManager: options.transcriptionModelManager,
     transcriber: options.transcriber,
     now,
@@ -108,6 +112,39 @@ export function createSocialMediaService(
   };
 
   const previewService: ISocialMediaPreviewService = {
+    async requestProxy(request) {
+      const input = socialMediaPreviewRequestSchema.parse(request);
+      await requireAccount(input.accountId);
+      const asset = await options.store.getAsset(input.accountId, input.mediaId);
+      if (!asset) throw new SocialMediaAssetNotFoundError(input.mediaId);
+      if (asset.mediaKind !== "video") throw new SocialMediaPreviewUnavailableError();
+      const createdAt = Math.max(0, Math.trunc(now()));
+      const job = socialMediaJobSchema.parse({
+        jobId: createMediaId(),
+        accountId: asset.accountId,
+        sourceKind: "preview-proxy",
+        sourceOrigin: "preview",
+        sourceKey: `preview-${asset.mediaId}`,
+        mediaId: asset.mediaId,
+        state: "queued",
+        downloadedBytes: 0,
+        totalBytes: null,
+        etaSeconds: null,
+        errorCode: null,
+        createdAt,
+        updatedAt: createdAt,
+      });
+      const result = await options.store.createOrGetJob(job);
+      if (result.created) {
+        jobChanged.fire({
+          accountId: result.job.accountId,
+          jobId: result.job.jobId,
+          updatedAt: result.job.updatedAt,
+        });
+        jobQueue.requestQueueRun();
+      }
+      return result.job;
+    },
     async prepare(request) {
       const input = socialMediaPreviewRequestSchema.parse(request);
       await requireAccount(input.accountId);
@@ -115,13 +152,16 @@ export function createSocialMediaService(
       if (!asset) throw new SocialMediaAssetNotFoundError(input.mediaId);
       if (!options.createPreviewUrl) throw new SocialMediaPreviewUnavailableError();
       try {
-        const path = await options.store.getManagedOriginalPath(asset);
+        const path = asset.previewProxy
+          ? await options.store.getManagedPreviewProxyPath(asset)
+          : await options.store.getManagedOriginalPath(asset);
         const capability = await options.createPreviewUrl(path);
         return socialMediaPreviewSchema.parse({
           accountId: asset.accountId,
           mediaId: asset.mediaId,
-          mimeType: asset.mimeType,
-          sizeBytes: asset.sizeBytes,
+          mimeType: asset.previewProxy ? "video/mp4" : asset.mimeType,
+          sizeBytes: asset.previewProxy?.sizeBytes ?? asset.sizeBytes,
+          representation: asset.previewProxy ? "proxy" : "original",
           url: capability.url,
           expiresAt: capability.expiresAt,
         });
@@ -183,7 +223,7 @@ export function createSocialMediaService(
         createdAt,
         updatedAt: createdAt,
       });
-      const result = await options.store.createOrGetSourceUrlJob(job);
+      const result = await options.store.createOrGetJob(job);
       if (result.created) {
         jobChanged.fire({
           accountId: result.job.accountId,

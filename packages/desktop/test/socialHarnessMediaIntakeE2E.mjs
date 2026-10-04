@@ -142,7 +142,7 @@ export async function exerciseSocialHarnessMediaIntake(page, dataBaseDir, accoun
   await urlInput.fill(videoUrl);
   const urlForm = page.locator("form").filter({ has: urlInput });
   await urlForm.getByRole("button", { name: "Add to library", exact: true }).click();
-  const jobs = page.getByRole("list", { name: "Source downloads", exact: true });
+  const jobs = page.getByRole("list", { name: "Media processing", exact: true });
   const jobRow = jobs.getByRole("listitem").filter({ hasText: videoUrl });
   await jobRow.getByText("Processing failed", { exact: true }).waitFor({ timeout: 45_000 });
   const failed = await waitForCatalogJob(dataBaseDir, fixtures.youtubeVideoId, "failed");

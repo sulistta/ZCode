@@ -33,7 +33,7 @@ export interface SocialMediaStore {
   importLocalFile(
     input: SocialMediaLocalFileImportRequest & { mediaId: string; importedAt: number },
   ): Promise<SocialMediaAsset>;
-  createOrGetSourceUrlJob(job: SocialMediaJob): Promise<{ job: SocialMediaJob; created: boolean }>;
+  createOrGetJob(job: SocialMediaJob): Promise<{ job: SocialMediaJob; created: boolean }>;
   getJob(accountId: string, jobId: string): Promise<SocialMediaJob | null>;
   updateJob(
     accountId: string,
@@ -55,6 +55,14 @@ export interface SocialMediaStore {
     input: SocialMediaSourceUrlFinalizationInput,
   ): Promise<SocialMediaAsset>;
   getManagedOriginalPath(asset: SocialMediaAsset): Promise<string>;
+  getManagedPreviewProxyPath(asset: SocialMediaAsset): Promise<string>;
+  completePreviewProxy(input: {
+    job: SocialMediaJob;
+    asset: SocialMediaAsset;
+    outputPath: string;
+    durationSeconds: number;
+    updatedAt: number;
+  }): Promise<{ asset: SocialMediaAsset; job: SocialMediaJob } | null>;
   readValidSubtitleContents(asset: SocialMediaAsset): Promise<SocialMediaSubtitleContent[]>;
   completeTranscription(input: {
     accountId: string;

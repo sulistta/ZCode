@@ -616,8 +616,11 @@ nodes:
         symbol: SocialProjectPreview
       - file: packages/ui/src/social-accounts/SocialProjectPreviewMediaLayer.tsx
         symbol: SocialProjectPreviewMediaLayer
+      - file: packages/ui/src/hooks/useSocialMediaPreviewProxy.ts
+        symbol: useSocialMediaPreviewProxy
     invariants:
       - "Renderer playhead and media capabilities are local projections; active scene layers and clip math come from the shared editor-core contract."
+      - "Only original-video decoder failure requests an account-bound proxy job. The existing Host media catalog and locked queue own conversion; completed proxies use ephemeral capabilities and never replace export inputs."
   - id: surface.social-project-timeline
     kind: ui-surface
     label: Account project timeline with pinned track names, local zoom, move gestures and trim handles

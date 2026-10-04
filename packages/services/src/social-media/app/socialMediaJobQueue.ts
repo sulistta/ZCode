@@ -1,37 +1,28 @@
+import type {
+  SocialMediaJobQueue,
+  SocialMediaJobQueueOptions,
+} from "./ports/socialMediaJobQueue.js";
+export type { SocialMediaJobQueue } from "./ports/socialMediaJobQueue.js";
 import {
   socialMediaAssetSchema,
   socialMediaTranscriptSchema,
   type SocialMediaJob,
 } from "@social-harness/shared";
-import type { ISocialAccountService } from "../../social-account/contract.js";
-import type { SocialMediaStore } from "./ports/socialMediaStore.js";
 import type {
   SocialMediaSourceDownloadProgress,
   SocialMediaSourceDownloadTask,
-  SocialMediaSourceUrlDownload,
 } from "./ports/socialMediaSourceDownload.js";
-import type { SocialMediaTranscriber } from "./ports/socialMediaTranscriber.js";
-import type { SocialMediaTranscriptionModelManager } from "./ports/socialMediaTranscriptionModelManager.js";
 import {
   SocialMediaTranscriptionFailedError,
   SocialMediaTranscriptionModelUnavailableError,
   SocialMediaTranscriptionOutputError,
-  SocialMediaTranscriptionToolUnavailableError,
   SocialMediaSourceDownloadOutputError,
-  SocialMediaSourceDownloadUnavailableError,
 } from "./errors.js";
+import { errorCodeFor, toProgressUpdate } from "./socialMediaJobErrors.js";
 import { selectYouTubeSubtitleTranscript } from "../domain/webVttTranscript.js";
 
-interface SocialMediaJobQueueOptions {
-  store: SocialMediaStore;
-  socialAccountService: ISocialAccountService;
-  sourceUrlDownload: SocialMediaSourceUrlDownload;
-  transcriptionModelManager: SocialMediaTranscriptionModelManager;
-  transcriber: SocialMediaTranscriber;
-  now(): number;
-  onJobChanged(job: SocialMediaJob): void;
-  onMediaImported(asset: Awaited<ReturnType<SocialMediaStore["finalizeSourceUrlDownload"]>>): void;
-}
+import { processSocialMediaPreviewProxy } from "./socialMediaPreviewProxyJob.js";
+import { SocialMediaPreviewProxyToolUnavailableError } from "./errors.js";
 
 interface ActiveTask {
   job: SocialMediaJob;
@@ -43,46 +34,9 @@ interface CancellableTask<T> {
   cancel(): Promise<void>;
 }
 
-export interface SocialMediaJobQueue {
-  requestQueueRun(): void;
-  cancelActiveJob(job: SocialMediaJob): Promise<void>;
-  disposeAll(): void;
-  disposeAllAndWait(): Promise<void>;
-}
-
 const PROGRESS_PERSIST_INTERVAL_MS = 1_000;
 const CANCEL_POLL_INTERVAL_MS = 500;
 const QUEUE_RETRY_INTERVAL_MS = 1_500;
-
-function toProgressUpdate(progress: SocialMediaSourceDownloadProgress) {
-  return {
-    downloadedBytes: Math.max(0, Math.trunc(progress.downloadedBytes)),
-    totalBytes:
-      progress.totalBytes !== null &&
-      Number.isSafeInteger(progress.totalBytes) &&
-      progress.totalBytes > 0
-        ? progress.totalBytes
-        : null,
-    etaSeconds:
-      progress.etaSeconds !== null &&
-      Number.isSafeInteger(progress.etaSeconds) &&
-      progress.etaSeconds >= 0
-        ? progress.etaSeconds
-        : null,
-  };
-}
-
-function errorCodeFor(error: unknown, hasCommittedMedia: boolean): SocialMediaJob["errorCode"] {
-  if (error instanceof SocialMediaSourceDownloadUnavailableError) return "tool-unavailable";
-  if (error instanceof SocialMediaSourceDownloadOutputError) return "output-invalid";
-  if (error instanceof SocialMediaTranscriptionModelUnavailableError)
-    return "transcription-model-unavailable";
-  if (error instanceof SocialMediaTranscriptionToolUnavailableError)
-    return "transcription-tool-unavailable";
-  if (error instanceof SocialMediaTranscriptionOutputError) return "transcription-output-invalid";
-  if (error instanceof SocialMediaTranscriptionFailedError) return "transcription-failed";
-  return hasCommittedMedia ? "transcription-failed" : "download-failed";
-}
 
 export function createSocialMediaJobQueue(
   options: SocialMediaJobQueueOptions,
@@ -119,7 +73,14 @@ export function createSocialMediaJobQueue(
     }, CANCEL_POLL_INTERVAL_MS);
     cancelTimer.unref?.();
     try {
-      return await task.completion;
+      // 关闭可能发生在解析文件期间、activeTask 注册之前；不能只依赖 dispose 当时的句柄快照。
+      const stopOnShutdown = async () => {
+        if (!disposed) return;
+        await options.store.requestCancel(job.accountId, job.jobId, options.now());
+        await task.cancel();
+      };
+      const [result] = await Promise.all([task.completion, stopOnShutdown()]);
+      return result;
     } finally {
       clearInterval(cancelTimer);
       if (activeTask?.job.jobId === job.jobId) activeTask = null;
@@ -130,7 +91,9 @@ export function createSocialMediaJobQueue(
     const latest = await options.store.getJob(job.accountId, job.jobId);
     if (
       !latest ||
-      !["cancelling", "downloading", "finalizing", "transcribing"].includes(latest.state)
+      !["cancelling", "downloading", "finalizing", "transcribing", "proxying"].includes(
+        latest.state,
+      )
     )
       return;
     if (latest.mediaId) await options.store.cleanupJobWorkingDirectory(job.jobId);
@@ -138,7 +101,7 @@ export function createSocialMediaJobQueue(
     const updated = await options.store.updateJob(
       job.accountId,
       job.jobId,
-      ["cancelling", "downloading", "finalizing", "transcribing"],
+      ["cancelling", "downloading", "finalizing", "transcribing", "proxying"],
       {
         state: disposed ? "queued" : "cancelled",
         errorCode: null,
@@ -153,6 +116,9 @@ export function createSocialMediaJobQueue(
     language: string,
     workingDirectory: string,
   ): Promise<void> {
+    if (!job.sourceUrl || job.sourceKind === "preview-proxy")
+      throw new SocialMediaSourceDownloadOutputError();
+    const sourceUrl = job.sourceUrl;
     let latestProgress: SocialMediaSourceDownloadProgress | null = null;
     let progressWrite = Promise.resolve();
     let progressTimer: ReturnType<typeof setInterval> | null = null;
@@ -160,7 +126,7 @@ export function createSocialMediaJobQueue(
     try {
       task = options.sourceUrlDownload.start({
         sourceKey: sourceKeyOf(job),
-        sourceUrl: job.sourceUrl,
+        sourceUrl,
         workingDirectory,
         language,
         onProgress(progress) {
@@ -284,6 +250,21 @@ export function createSocialMediaJobQueue(
       const workingDirectory = await options.store.createJobWorkingDirectory(job.jobId);
       const account = await options.socialAccountService.get(job.accountId);
       if (!account) throw new Error("Social account disappeared while a media job was queued");
+      if (job.sourceKind === "preview-proxy") {
+        await processSocialMediaPreviewProxy({
+          job,
+          workingDirectory,
+          store: options.store,
+          renderer: options.previewProxyRenderer,
+          now: options.now,
+          observeTask,
+          onJobChanged: emitJob,
+          onMediaChanged: options.onMediaImported,
+        });
+        const latest = await options.store.getJob(job.accountId, job.jobId);
+        if (latest?.state === "cancelling") await finishCancelledJob(job);
+        return;
+      }
       if (!job.mediaId)
         await downloadAsset(job, account.editorialProfile.language, workingDirectory);
       const latest = await options.store.getJob(job.accountId, job.jobId);
@@ -302,16 +283,25 @@ export function createSocialMediaJobQueue(
         await finishCancelledJob(job);
         return;
       }
-      if (!latest || !["downloading", "finalizing", "transcribing"].includes(latest.state)) return;
+      if (
+        !latest ||
+        !["downloading", "finalizing", "transcribing", "proxying"].includes(latest.state)
+      )
+        return;
       if (latest.mediaId) await options.store.cleanupJobWorkingDirectory(job.jobId);
       else await options.store.discardNonResumableJobOutput(job.jobId, sourceKeyOf(job));
       const failed = await options.store.updateJob(
         job.accountId,
         job.jobId,
-        ["downloading", "finalizing", "transcribing"],
+        ["downloading", "finalizing", "transcribing", "proxying"],
         {
           state: "failed",
-          errorCode: errorCodeFor(error, Boolean(latest.mediaId)),
+          errorCode:
+            job.sourceKind === "preview-proxy"
+              ? error instanceof SocialMediaPreviewProxyToolUnavailableError
+                ? "preview-proxy-tool-unavailable"
+                : "preview-proxy-failed"
+              : errorCodeFor(error, Boolean(latest.mediaId)),
           updatedAt: Math.max(0, Math.trunc(options.now())),
         },
       );
@@ -381,7 +371,15 @@ export function createSocialMediaJobQueue(
       disposed = true;
       if (queueRetryTimer) clearTimeout(queueRetryTimer);
       queueRetryTimer = null;
-      if (activeTask) await activeTask.cancel().catch(() => undefined);
+      if (activeTask) {
+        // 先持久化取消再终止进程，避免关闭窗口时已完成的子进程继续提交预览输出。
+        await options.store.requestCancel(
+          activeTask.job.accountId,
+          activeTask.job.jobId,
+          options.now(),
+        );
+        await activeTask.cancel().catch(() => undefined);
+      }
       await queueRunner;
     },
   };

@@ -65,6 +65,28 @@ export async function getManagedOriginalPath(
   return path;
 }
 
+export async function getManagedPreviewProxyPath(
+  asset: SocialMediaAsset,
+  originalsDir: string,
+): Promise<string> {
+  const proxy = asset.previewProxy;
+  if (!proxy || proxy.sourceSha256 !== asset.sha256 || asset.mediaKind !== "video") {
+    throw new Error("Preview source association is invalid");
+  }
+  const path = await resolvePrivateAssetFile(
+    asset,
+    originalsDir,
+    `${asset.mediaId}.preview-v1.mp4`,
+    MAX_MEDIA_BYTES,
+  );
+  if (!path) throw new Error("Managed preview is missing or invalid");
+  const digest = await hashManagedFile(path, MAX_MEDIA_BYTES);
+  if (!digest || digest.sizeBytes !== proxy.sizeBytes || digest.sha256 !== proxy.sha256) {
+    throw new Error("Managed preview failed integrity validation");
+  }
+  return path;
+}
+
 export async function readValidSubtitleContents(
   asset: SocialMediaAsset,
   originalsDir: string,

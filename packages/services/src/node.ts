@@ -351,6 +351,7 @@ import { createFfmpegClipSignalAnalyzer } from "./social-media/adapters/ffmpegCl
 import { createYtDlpSourceDownloadAdapter } from "./social-media/adapters/ytDlpSourceDownload.js";
 import { createYtDlpYouTubeSearchAdapter } from "./social-media/adapters/ytDlpYouTubeSearch.js";
 import { createSocialMediaService } from "./social-media/app/socialMediaService.js";
+import { createFfmpegPreviewProxyRenderer } from "./social-media/adapters/ffmpegPreviewProxyRenderer.js";
 import { ISocialProjectService } from "./social-project/contract.js";
 import { createSocialProjectFileStore } from "./social-project/adapters/socialProjectFileStore.js";
 import { createSocialProjectExportFileStore } from "./social-project/adapters/socialProjectExportFileStore.js";
@@ -2419,6 +2420,10 @@ export function createLocalServices(options: {
   const socialMediaService = createSocialMediaService({
     store: socialMediaStore,
     socialAccountService,
+    previewProxyRenderer: createFfmpegPreviewProxyRenderer({
+      ffmpegExecutablePath: process.env.SOCIAL_HARNESS_FFMPEG_PATH,
+      ffprobeExecutablePath: process.env.SOCIAL_HARNESS_FFPROBE_PATH,
+    }),
     transcriptionModelManager: createWhisperTranscriptionModelManager({
       modelsDir: transcriptionModelsDir,
       selectedModelPath: join(socialMediaRootDir, "transcription-model.json"),

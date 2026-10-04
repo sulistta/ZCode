@@ -3,11 +3,15 @@ import type {
   SocialMediaAsset,
   SocialMediaPreview,
   SocialMediaPreviewService,
+  SocialMediaService,
 } from "@social-harness/services";
 import type { SocialProject, SocialProjectClip } from "@social-harness/shared";
 import { Button } from "@/components/ui/button.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { SocialProjectPreviewMediaLayer } from "./SocialProjectPreviewMediaLayer.js";
+import { useSocialMediaPreviewProxy } from "@/hooks/useSocialMediaPreviewProxy.js";
+import { SocialProjectPreviewControls } from "./SocialProjectPreviewControls.js";
+import { SocialMediaJobsList } from "./SocialMediaJobsList.js";
 import { getSocialProjectClipColorFilter, transitionOpacity } from "./socialProjectPreviewModel.js";
 import {
   getActiveSocialProjectClips,
@@ -16,11 +20,6 @@ import {
 } from "./socialProjectPlayback.js";
 
 type PreviewMediaElement = HTMLVideoElement | HTMLAudioElement;
-
-function formatTime(milliseconds: number): string {
-  const seconds = Math.max(0, Math.floor(milliseconds / 1000));
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-}
 
 function transformStyle(clip: SocialProjectClip, playheadMs: number) {
   const transform = getSocialProjectClipTransform(clip, playheadMs);
@@ -35,6 +34,7 @@ export function SocialProjectPreview({
   project,
   assets,
   mediaPreviewService,
+  mediaService,
   playheadMs,
   seekRevision,
   onSeek,
@@ -44,12 +44,13 @@ export function SocialProjectPreview({
   project: SocialProject;
   assets: SocialMediaAsset[];
   mediaPreviewService?: SocialMediaPreviewService;
+  mediaService?: SocialMediaService;
   playheadMs: number;
   seekRevision: number;
   onSeek: (playheadMs: number) => void;
   onTimeChange: (playheadMs: number) => void;
 }) {
-  const { intl } = useZCodeIntl();
+  const { intl, locale } = useZCodeIntl();
   const [isPlaying, setIsPlaying] = useState(false);
   const [sourcesRevision, setSourcesRevision] = useState(0);
   const [previewErrorIds, setPreviewErrorIds] = useState<string[]>([]);
@@ -87,11 +88,6 @@ export function SocialProjectPreview({
     [],
   );
 
-  const handlePreviewError = useCallback((mediaId: string) => {
-    previewCache.current.delete(mediaId);
-    setPreviewErrorIds((current) => (current.includes(mediaId) ? current : [...current, mediaId]));
-  }, []);
-
   const requestPreview = useCallback(
     (mediaId: string, force = false) => {
       const cached = previewCache.current.get(mediaId);
@@ -120,6 +116,28 @@ export function SocialProjectPreview({
         });
     },
     [accountId, mediaPreviewService],
+  );
+
+  const proxy = useSocialMediaPreviewProxy({
+    accountId,
+    previewService: mediaPreviewService,
+    mediaService,
+    onCompleted(mediaId) {
+      requestPreview(mediaId, true);
+    },
+  });
+  const handlePreviewError = useCallback(
+    (mediaId: string) => {
+      const representation = previewCache.current.get(mediaId)?.representation;
+      previewCache.current.delete(mediaId);
+      setPreviewErrorIds((current) =>
+        current.includes(mediaId) ? current : [...current, mediaId],
+      );
+      // 原始视频解码失败才请求兼容预览；代理失败不能再次自动转码形成循环。
+      if (representation === "original" && assetById.get(mediaId)?.mediaKind === "video")
+        proxy.observeDecoderFailure(mediaId);
+    },
+    [assetById, proxy.observeDecoderFailure],
   );
 
   useEffect(() => {
@@ -367,26 +385,22 @@ export function SocialProjectPreview({
         ) : null}
       </div>
 
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
-        <Button type="button" size="sm" variant="outline" onClick={handlePlayToggle}>
-          {intl.formatMessage({
-            id: isPlaying ? "socialProject.preview.pause" : "socialProject.preview.play",
-          })}
-        </Button>
-        <input
-          type="range"
-          min={0}
-          max={endMs}
-          step={50}
-          value={Math.min(playheadMs, endMs)}
-          onChange={(event) => handleSeek(Number(event.currentTarget.value))}
-          aria-label={intl.formatMessage({ id: "socialProject.preview.scrubber" })}
-          className="w-full accent-foreground"
-        />
-        <span className="whitespace-nowrap text-ui-xs tabular-nums text-foreground-subtle">
-          {formatTime(playheadMs)} / {formatTime(endMs)}
-        </span>
-      </div>
+      <SocialMediaJobsList
+        jobs={proxy.jobs}
+        busyJobId={proxy.busyJobId}
+        intl={intl}
+        locale={locale}
+        onCancel={(jobId) => void proxy.changeJob(jobId, "cancel").catch(() => undefined)}
+        onRetry={(jobId) => void proxy.changeJob(jobId, "retry").catch(() => undefined)}
+      />
+
+      <SocialProjectPreviewControls
+        isPlaying={isPlaying}
+        playheadMs={playheadMs}
+        endMs={endMs}
+        onPlayToggle={handlePlayToggle}
+        onSeek={handleSeek}
+      />
     </section>
   );
 }

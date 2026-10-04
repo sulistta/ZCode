@@ -1,3 +1,4 @@
+import { verifyOnDemandPreviewProxyInElectron } from "./socialMediaPreviewProxyE2E.mjs";
 import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
@@ -12,6 +13,7 @@ export async function verifySocialProductionWorkflowsInElectron(page, options) {
     ...options,
     scenario: options.clipPreparationScenario,
   });
+  await verifyOnDemandPreviewProxyInElectron(page, options);
 }
 
 export function createClipPreparationScenario(runId) {

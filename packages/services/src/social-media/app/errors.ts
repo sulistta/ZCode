@@ -22,6 +22,13 @@ export class SocialMediaPreviewUnavailableError extends Error {
   }
 }
 
+export class SocialMediaPreviewProxyToolUnavailableError extends Error {
+  constructor() {
+    super("The bundled preview conversion tool is unavailable");
+    this.name = "SocialMediaPreviewProxyToolUnavailableError";
+  }
+}
+
 export class SocialMediaYouTubeSearchUnavailableError extends Error {
   constructor() {
     super("YouTube search is unavailable. Check the connection and try again.");

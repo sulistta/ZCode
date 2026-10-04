@@ -28,6 +28,7 @@
     "audit:bundle-size": "node scripts/audit-bundle-size.mjs",
     "test:deep-links": "node --experimental-test-module-mocks --import tsx --test src/main/desktopDeepLinkUrl.test.ts src/main/desktopOAuthCallbackRouter.test.ts src/main/desktopOAuthDeepLink.test.ts src/main/desktopSecondInstanceDeepLink.test.ts src/main/desktopLegacyOpenFolderCleanup.test.ts src/main/startupWorkspace.test.ts src/main/about.test.ts src/main/windowsCuaOperationIndicatorContent.test.ts",
     "test:social-harness-e2e": "node --import tsx test/socialHarnessAccountE2E.mjs",
+    "test:preview-proxy-e2e": "node --import tsx test/socialMediaPreviewProxySmokeE2E.mjs",
     "test:instagram-setup-e2e": "node test/socialInstagramSetupE2E.mjs",
     "test:convex-runtime": "node test/convexProvisionerRuntimeSmoke.mjs",
     "test:packaged-preview-smoke": "node test/socialHarnessPackagedPreviewSmoke.mjs",

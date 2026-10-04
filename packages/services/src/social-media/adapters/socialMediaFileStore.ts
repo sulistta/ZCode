@@ -24,12 +24,18 @@ import {
   writeSocialMediaCatalog,
 } from "./socialMediaCatalogPersistence.js";
 import { finalizeSocialMediaSourceUrlDownload } from "./socialMediaDownloadFinalizer.js";
-import { getManagedOriginalPath, readValidSubtitleContents } from "./socialMediaAssetFiles.js";
+import {
+  getManagedOriginalPath,
+  getManagedPreviewProxyPath,
+  readValidSubtitleContents,
+} from "./socialMediaAssetFiles.js";
 import {
   cleanupSocialMediaJobWorkingDirectory,
   createSocialMediaJobWorkingDirectory,
   discardSocialMediaNonResumableOutput,
 } from "./socialMediaJobDirectories.js";
+
+import { completeSocialMediaPreviewProxy } from "./socialMediaPreviewProxyPersistence.js";
 
 interface SocialMediaFileStoreOptions {
   catalogPath: string;
@@ -57,6 +63,7 @@ export function createSocialMediaFileStore(options: SocialMediaFileStoreOptions)
     const known = new Set<string>();
     for (const asset of assets.filter((item) => item.accountId === accountId)) {
       known.add(`${asset.mediaId}${asset.extension}`);
+      if (asset.previewProxy) known.add(`${asset.mediaId}.preview-v1.mp4`);
       for (const subtitle of asset.subtitleTracks ?? []) {
         known.add(`${asset.mediaId}.${subtitle.languageCode}.vtt`);
       }
@@ -153,13 +160,14 @@ export function createSocialMediaFileStore(options: SocialMediaFileStoreOptions)
         }
       });
     },
-    async createOrGetSourceUrlJob(job) {
+    async createOrGetJob(job) {
       return withFileLock(options.catalogPath, async () => {
         const catalog = await readSocialMediaCatalog(options.catalogPath);
         const sourceKey = job.sourceKey ?? job.sourceVideoId;
         const existing = catalog.jobs.find(
           (record) =>
             record.accountId === job.accountId &&
+            record.sourceKind === job.sourceKind &&
             (record.sourceKey ?? record.sourceVideoId) === sourceKey,
         );
         if (existing) return { job: existing, created: false };
@@ -229,7 +237,8 @@ export function createSocialMediaFileStore(options: SocialMediaFileStoreOptions)
         if (
           current.state !== "downloading" &&
           current.state !== "finalizing" &&
-          current.state !== "transcribing"
+          current.state !== "transcribing" &&
+          current.state !== "proxying"
         ) {
           return current;
         }
@@ -248,6 +257,7 @@ export function createSocialMediaFileStore(options: SocialMediaFileStoreOptions)
             job.state !== "downloading" &&
             job.state !== "finalizing" &&
             job.state !== "transcribing" &&
+            job.state !== "proxying" &&
             job.state !== "cancelling"
           ) {
             return job;
@@ -273,7 +283,12 @@ export function createSocialMediaFileStore(options: SocialMediaFileStoreOptions)
         const jobs = [...catalog.jobs];
         jobs[index] = socialMediaJobSchema.parse({
           ...jobs[index]!,
-          state: jobs[index]!.mediaId ? "transcribing" : "downloading",
+          state:
+            jobs[index]!.sourceKind === "preview-proxy"
+              ? "proxying"
+              : jobs[index]!.mediaId
+                ? "transcribing"
+                : "downloading",
           errorCode: null,
           updatedAt,
         });
@@ -300,6 +315,12 @@ export function createSocialMediaFileStore(options: SocialMediaFileStoreOptions)
     },
     getManagedOriginalPath(asset: SocialMediaAsset) {
       return getManagedOriginalPath(asset, options.originalsDir);
+    },
+    getManagedPreviewProxyPath(asset) {
+      return getManagedPreviewProxyPath(asset, options.originalsDir);
+    },
+    completePreviewProxy(input) {
+      return completeSocialMediaPreviewProxy({ ...options, jobsDir }, input);
     },
     readValidSubtitleContents(asset: SocialMediaAsset): Promise<SocialMediaSubtitleContent[]> {
       return readValidSubtitleContents(asset, options.originalsDir);

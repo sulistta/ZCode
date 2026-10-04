@@ -2,12 +2,18 @@ import { createSocialProjectCandidateHandoffScenarios } from "./socialHarnessCan
 import { exerciseSocialHarnessMediaIntake } from "./socialHarnessMediaIntakeE2E.mjs";
 import { seedSocialProjectClipCandidateAssets } from "./socialProjectClipCandidateFixtureE2E.mjs";
 import { seedSocialProjectVideoAsset } from "./socialProjectEffectsE2E.mjs";
+import { verifySocialAgentCandidateProjectsAfterRelaunch } from "./socialProjectAgentEditingE2E.mjs";
+import { verifyPreviewProxyAfterRelaunch } from "./socialMediaPreviewProxyE2E.mjs";
 
 export {
   createCandidateProjectsInElectron,
   verifySocialAgentCandidateHandoffsInElectron,
-  verifySocialAgentCandidateProjectsAfterRelaunch as verifyCandidateProjectsAfterRelaunch,
 } from "./socialProjectAgentEditingE2E.mjs";
+
+export async function verifyCandidateProjectsAfterRelaunch(page, provider) {
+  await verifySocialAgentCandidateProjectsAfterRelaunch(page, provider);
+  await verifyPreviewProxyAfterRelaunch(page);
+}
 
 export async function prepareAccountFixtures(input) {
   const { page, dataBaseDir, accountName, ffmpegExecutable, mediaIntakeFixtures, runId } = input;

@@ -26,6 +26,7 @@ export function SocialMediaJobsList({
     queued: "socialMedia.job.queued",
     downloading: "socialMedia.job.downloading",
     transcribing: "socialMedia.job.transcribing",
+    proxying: "socialMedia.job.proxying",
     finalizing: "socialMedia.job.finalizing",
     cancelling: "socialMedia.job.cancelling",
     completed: "socialMedia.job.completed",
@@ -44,13 +45,19 @@ export function SocialMediaJobsList({
       >
         {jobs.map((job) => {
           const progress =
-            job.totalBytes && job.totalBytes > 0
-              ? Math.min(100, Math.floor((job.downloadedBytes / job.totalBytes) * 100))
-              : null;
+            job.sourceKind === "preview-proxy" && job.durationSeconds
+              ? Math.min(100, Math.floor(((job.processedSeconds ?? 0) / job.durationSeconds) * 100))
+              : job.totalBytes && job.totalBytes > 0
+                ? Math.min(100, Math.floor((job.downloadedBytes / job.totalBytes) * 100))
+                : null;
           const isBusy = busyJobId === job.jobId;
-          const canCancel = ["queued", "downloading", "finalizing", "transcribing"].includes(
-            job.state,
-          );
+          const canCancel = [
+            "queued",
+            "downloading",
+            "finalizing",
+            "transcribing",
+            "proxying",
+          ].includes(job.state);
           const canRetry = job.state === "failed" || job.state === "cancelled";
           return (
             <li
@@ -58,14 +65,20 @@ export function SocialMediaJobsList({
               className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-background p-3 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0 flex-1">
-                <a
-                  className="block truncate text-ui-sm font-medium text-foreground underline-offset-4 hover:underline"
-                  href={job.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {job.sourceUrl}
-                </a>
+                {job.sourceKind === "preview-proxy" ? (
+                  <span className="block text-ui-sm font-medium text-foreground">
+                    {intl.formatMessage({ id: "socialMedia.job.previewProxy" })}
+                  </span>
+                ) : (
+                  <a
+                    className="block truncate text-ui-sm font-medium text-foreground underline-offset-4 hover:underline"
+                    href={job.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {job.sourceUrl}
+                  </a>
+                )}
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-ui-sm text-foreground-subtle">
                   <span>{intl.formatMessage({ id: statusMessageIds[job.state] })}</span>
                   {job.state === "downloading" ? (
@@ -82,7 +95,7 @@ export function SocialMediaJobsList({
                     </span>
                   ) : null}
                 </div>
-                {progress !== null && job.state === "downloading" ? (
+                {progress !== null && (job.state === "downloading" || job.state === "proxying") ? (
                   <div
                     className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface"
                     role="progressbar"
