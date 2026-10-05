@@ -186,7 +186,14 @@ test("the agent run-now API fails before claim without a dispatcher and dispatch
 
   try {
     const accountWorkspace = scope("account-agent");
-    const automationHost = createZCodeAgentService();
+    // 公共写入已要求 Host 校验账户 identity/cwd；夹具遗漏该端口，不能通过放宽生产边界修复。
+    const validateSocialAccountWorkspace = async (request: {
+      workspacePath: string;
+      workspaceIdentity?: string;
+    }) =>
+      request.workspacePath === accountWorkspace.workspacePath &&
+      request.workspaceIdentity === accountWorkspace.workspaceIdentity;
+    const automationHost = createZCodeAgentService({ validateSocialAccountWorkspace });
     services.push(automationHost);
     const automation = await automationHost.createAutomation({
       title: "Account source research",
@@ -213,6 +220,7 @@ test("the agent run-now API fails before claim without a dispatcher and dispatch
       run: { trigger: string; dispatchStatus: string };
     }> = [];
     const dispatchingHost = createZCodeAgentService({
+      validateSocialAccountWorkspace,
       onAutomationManualRunRequested: async ({ automation: claimedAutomation, run }) => {
         dispatches.push({
           automation: claimedAutomation,
