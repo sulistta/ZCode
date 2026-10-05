@@ -76,7 +76,8 @@ export async function verifyOnDemandPreviewProxyInElectron(page, options) {
   });
   await page.getByRole("button", { name: "Player", exact: true }).click();
   const projectName = `Proxy smoke ${options.runId}`;
-  await page.getByLabel("Project name", { exact: true }).fill(projectName);
+  // 已选项目的编辑器也有同名字段；创建命令只能填写新项目表单，不能全局匹配。
+  await page.getByPlaceholder("New Reel", { exact: true }).fill(projectName);
   await page.getByRole("button", { name: "Create project", exact: true }).click();
   await page.getByRole("button", { name: projectName }).waitFor();
   await page.getByRole("button", { name: "Take control", exact: true }).click();

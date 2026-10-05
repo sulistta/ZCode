@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
 import { verifyPreviewExportParityInElectron } from "./socialProjectPreviewExportE2E.mjs";
+import { fillSocialAgentDraft } from "./socialHarnessComposerDraftE2E.mjs";
 
 async function answerPermission(page, permissionList, approveToolNames) {
   const requestId = await permissionList.getAttribute("data-permission-request-id");
@@ -50,23 +51,7 @@ export async function sendSocialAgentPrompt(
   const prompt =
     promptText ??
     `${marker}: edit the existing text clip in ${projectName} to read "${captionText}".`;
-  // Lexical 挂载期间直接 fill contenteditable 只改 DOM，可能被下一次 editor update 清空；
-  // 等待测试桥接就绪并更新真实 Editor state，才能断言用户实际可提交的草稿。
-  await page.waitForFunction(() => {
-    const editor = document.querySelector('[data-testid="v4-composer-input"]');
-    return (
-      editor?.getAttribute("data-e2e-lexical-bridge") === "ready" &&
-      typeof editor.__zcodeLexicalInputE2E?.setText === "function"
-    );
-  });
-  await page.evaluate((text) => {
-    const editor = document.querySelector('[data-testid="v4-composer-input"]');
-    editor.__zcodeLexicalInputE2E.setText(text);
-  }, prompt);
-  await page.waitForFunction((expectedText) => {
-    const editor = document.querySelector('[data-testid="v4-composer-input"]');
-    return editor?.__zcodeLexicalInputE2E?.getText() === expectedText;
-  }, prompt);
+  await fillSocialAgentDraft(page, prompt);
   await page.waitForFunction(() => {
     const send = document.querySelector('[data-testid="v4-composer-send"]');
     return send instanceof HTMLButtonElement && !send.disabled;

@@ -21,7 +21,13 @@ const maxContextCharacters = 256_000;
 
 /** 摘要只携带本次请求已读事实；不能靠 mock 服务端缓存补造 tool 结果。 */
 export function serializeFixtureContext(request, results) {
-  const payload = JSON.stringify({ request, results })
+  const latest = new Map();
+  // 保留最后一次观察的时间顺序，不能让旧 retry 回包盖过随后完成的 job read。
+  for (const result of results) {
+    latest.delete(result.name);
+    latest.set(result.name, result);
+  }
+  const payload = JSON.stringify({ request, results: [...latest.values()] })
     .replaceAll("<", "\\u003c")
     .replaceAll(">", "\\u003e");
   if (payload.length > maxContextCharacters) throw new Error("Fixture summary exceeds its bound");

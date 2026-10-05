@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { sendSocialAgentPrompt } from "./socialProjectAgentEditingE2E.mjs";
+import { collectToolResults } from "./socialHarnessToolResultsE2E.mjs";
 
 export function planSocialProductionResponse(body, scenario, calls) {
   const messages = body.messages ?? [];
@@ -15,27 +16,8 @@ export function planSocialProductionResponse(body, scenario, calls) {
     if (!/\bexport\b/iu.test(instructions) || /ask the user to create/iu.test(instructions))
       return { content: "The saved automation requires manual project preparation." };
   }
-  const toolNames = new Map(
-    messages.flatMap((message) =>
-      (message.tool_calls ?? []).map((call) => [call.id, call.function.name]),
-    ),
-  );
-  const results = messages
-    .slice(start)
-    .filter((message) => message.role === "tool")
-    .map((message) => {
-      const raw =
-        typeof message.content === "string"
-          ? message.content
-          : message.content?.find((item) => item.type === "text")?.text;
-      let content;
-      try {
-        content = JSON.parse(raw);
-      } catch {
-        content = raw;
-      }
-      return { name: message.name ?? toolNames.get(message.tool_call_id), content };
-    });
+  // compact 之后实际 read facts 位于摘要；生产/准备场景必须和其他夹具使用同一读面。
+  const results = collectToolResults(messages.slice(start));
   const result = (name) => results.findLast((item) => item.name === name)?.content;
   const call = (name, args) => {
     assert.ok(

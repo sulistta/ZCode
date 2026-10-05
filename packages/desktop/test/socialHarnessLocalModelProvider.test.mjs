@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { startLocalOpenAiMock } from "./socialHarnessLocalModelProviderE2E.mjs";
+import { collectToolResults, serializeFixtureContext } from "./socialHarnessToolResultsE2E.mjs";
 
 test("quoted scenario markers in text-only compact requests do not plan execution tools", async (t) => {
   const marker = "SOCIAL_HARNESS_CANDIDATE_HANDOFF_ISOLATED";
@@ -151,4 +152,72 @@ test("compact continuation retains the current request and completed read facts"
     provider.candidateHandoffToolCalls.map((call) => call.name),
     ["SocialClipCandidates"],
   );
+});
+
+test("production continuation after compact retains account reads and the admitted import", async (t) => {
+  const marker = "PRODUCTION_COMPACT_CONTINUATION";
+  const provider = await startLocalOpenAiMock({ production: { marker } });
+  t.after(() => provider.close());
+  const send = async (messages) => {
+    const response = await fetch(`${provider.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        model: "mock-chat",
+        messages,
+        stream: false,
+        tools: ["SocialAgentGetContext", "SocialMediaList", "SocialMediaJobs"].map((name) => ({
+          type: "function",
+          function: { name, parameters: {} },
+        })),
+      }),
+    });
+    assert.equal(response.status, 200);
+    return (await response.json()).choices[0].message;
+  };
+  const history = [
+    { role: "user", content: `${marker}: prepare the source Reel.` },
+    {
+      role: "tool",
+      name: "SocialAgentGetContext",
+      content: JSON.stringify({ context: { projects: [] } }),
+    },
+    { role: "tool", name: "SocialMediaList", content: JSON.stringify({ assets: [] }) },
+  ];
+  const summary = await send([
+    ...history,
+    {
+      role: "user",
+      content:
+        "CRITICAL: Respond with TEXT ONLY. Do NOT call any tools.\nSummarize current progress.",
+    },
+  ]);
+  const continuation = await send([
+    { role: "user", content: summary.content },
+    {
+      role: "tool",
+      name: "SocialMediaImportUrl",
+      content: JSON.stringify({ job: { jobId: "owned-job" } }),
+    },
+  ]);
+  assert.equal(continuation.tool_calls?.[0]?.function.name, "SocialMediaJobs");
+  assert.deepEqual(JSON.parse(continuation.tool_calls[0].function.arguments), {
+    jobId: "owned-job",
+  });
+});
+
+test("fixture summaries retain latest job state in chronological order and reject oversized payloads", () => {
+  const summary = serializeFixtureContext("owned request", [
+    { name: "SocialAgentGetContext", content: { accountId: "owned" } },
+    { name: "SocialMediaJobs", content: { state: "failed" } },
+    { name: "SocialMediaJobCommand", content: { action: "retry" } },
+    { name: "SocialMediaJobs", content: { state: "downloading" } },
+    { name: "SocialMediaJobs", content: { state: "completed", mediaId: "owned-media" } },
+  ]);
+  assert.deepEqual(collectToolResults([{ role: "user", content: summary }]), [
+    { name: "SocialAgentGetContext", content: { accountId: "owned" } },
+    { name: "SocialMediaJobCommand", content: { action: "retry" } },
+    { name: "SocialMediaJobs", content: { state: "completed", mediaId: "owned-media" } },
+  ]);
+  assert.throws(() => serializeFixtureContext("x".repeat(256_001), []), /exceeds its bound/u);
 });

@@ -50,6 +50,16 @@ try {
   let page;
   ({ browser, page } = await support.connectToPage(port));
   await createAndEditAccount(page, runtime, accountName, editedName);
+  await page.getByRole("button", { name: "Player", exact: true }).click();
+  const existingName = `Existing selected project ${runId}`;
+  await page.getByPlaceholder("New Reel", { exact: true }).fill(existingName);
+  await page.getByRole("button", { name: "Create project", exact: true }).click();
+  await page.getByTestId("social-project-editor").waitFor({ state: "visible" });
+  await page
+    .getByTestId("social-project-editor")
+    .getByLabel("Project name", { exact: true })
+    .waitFor({ state: "visible" });
+  await page.getByRole("button", { name: "Accounts", exact: true }).click();
   await verifyOnDemandPreviewProxyInElectron(page, {
     dataBaseDir,
     firstAccountName: editedName,
