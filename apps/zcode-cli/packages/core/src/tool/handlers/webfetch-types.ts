@@ -1,4 +1,4 @@
-import type { WebFetchRedirect } from "@zcode/contracts";
+import type { WebFetchRedirect } from "@social-harness/contracts";
 
 export interface CachedFetchContent {
   artifactPath?: string;

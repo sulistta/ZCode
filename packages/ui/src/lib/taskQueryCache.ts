@@ -2,8 +2,8 @@ import type {
   ZCodeTaskListKind,
   ZCodeTaskListSortBy,
   ZCodeTaskListWorkspaceScope,
-} from "@zcode/services";
-import type { ZCodeTaskMeta } from "@zcode/shared";
+} from "@social-harness/services";
+import type { ZCodeTaskMeta } from "@social-harness/shared";
 import { resolveWorkspaceStateKey } from "@/store/zcodeSessionStoreSelectors.js";
 
 export type TaskEntityKey = string;

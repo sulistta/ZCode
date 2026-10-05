@@ -1,4 +1,4 @@
-import type { ZCodeWorkspaceTaskListChanged } from "@zcode/shared";
+import type { ZCodeWorkspaceTaskListChanged } from "@social-harness/shared";
 
 type TaskListMembershipWorkspaceEventReason =
   | "task_archived"

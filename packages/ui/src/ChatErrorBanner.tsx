@@ -12,7 +12,7 @@ import {
   TID_CHAT_ERROR_DETAILS_BUTTON,
   TID_CHAT_ERROR_BANNER,
   TID_CHAT_ERROR_HOOK_ICON,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { AnchorIcon, CopyIcon, InfoIcon, RocketIcon, SettingsIcon, X } from "lucide-react";
 import { useZCodeIntl } from "./i18n/IntlProvider.js";
 import type { IntlInstance } from "./i18n/IntlProvider.js";
@@ -50,8 +50,8 @@ const LOCALIZED_ERROR_CODES = new Set([
   MEDIA_BUDGET_CURRENT_VIDEO_TOO_LARGE_ERROR_CODE,
   // 服务层错误 message 是跨进程兜底，不能作为最终 UI 语言来源。
   // 历史任务模型不可用要按稳定 code 本地化，避免英文界面显示中文提示。
-  "ZCODE_RUNTIME_MODEL_UNAVAILABLE",
-  "ZCODE_BIGMODEL_TEAM_PLAN_MEMBER_REQUIRED",
+  "SOCIAL_HARNESS_RUNTIME_MODEL_UNAVAILABLE",
+  "SOCIAL_HARNESS_BIGMODEL_TEAM_PLAN_MEMBER_REQUIRED",
 ]);
 
 const MODEL_CONFIG_MISSING_CODES = new Set([
@@ -98,7 +98,7 @@ export function shouldSuppressChatErrorBanner(
   // 只有历史恢复残留的模型不可用提示才隐藏；当前发送/草稿报错需要展示，
   // 否则 registry 移除模型后用户会看到“请求没返回”而没有任何可操作反馈。
   return Boolean(
-    error.code === "ZCODE_RUNTIME_MODEL_UNAVAILABLE" &&
+    error.code === "SOCIAL_HARNESS_RUNTIME_MODEL_UNAVAILABLE" &&
     HISTORICAL_MODEL_UNAVAILABLE_MESSAGES.some((message) => error.message.includes(message)),
   );
 }
@@ -208,22 +208,24 @@ export function ChatErrorBanner({
 
         {modelConfigMissing ? (
           <>
-            <CodingPlanEntryButton
-              type="button"
-              variant="default"
-              size="sm"
-              onClick={onOpenUpgrade}
-              className={cn(
-                actionButtonClassName,
-                "button-gradient gap-1.5 text-white hover:bg-transparent hover:opacity-90 dark:bg-[#484A58] dark:hover:bg-[#484A58]",
-              )}
-              aria-label={intl.formatMessage({
-                id: "chat.quota.action.upgrade",
-              })}
-            >
-              <RocketIcon className="size-3.5" />
-              {intl.formatMessage({ id: "chat.quota.action.upgrade" })}
-            </CodingPlanEntryButton>
+            {onOpenUpgrade ? (
+              <CodingPlanEntryButton
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={onOpenUpgrade}
+                className={cn(
+                  actionButtonClassName,
+                  "button-gradient gap-1.5 text-white hover:bg-transparent hover:opacity-90 dark:bg-[#484A58] dark:hover:bg-[#484A58]",
+                )}
+                aria-label={intl.formatMessage({
+                  id: "chat.quota.action.upgrade",
+                })}
+              >
+                <RocketIcon className="size-3.5" />
+                {intl.formatMessage({ id: "chat.quota.action.upgrade" })}
+              </CodingPlanEntryButton>
+            ) : null}
             <Button
               type="button"
               variant="outline"

@@ -1,4 +1,4 @@
-import { ServiceChannels } from "@zcode/shared";
+import { ServiceChannels } from "@social-harness/shared";
 import type {
   TraceId,
   ZCodeAgentMcpServer,
@@ -16,7 +16,7 @@ import type {
   ZCodeSessionStateSnapshot,
   ZCodeStateUpdatedNotification,
   ZCodeWorkspacePresentation,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { createServiceDescriptor } from "#src/descriptors.js";
 
 export interface ZCodeSessionWorkspaceTarget {

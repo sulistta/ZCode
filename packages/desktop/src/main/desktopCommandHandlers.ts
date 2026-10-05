@@ -2,25 +2,21 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { app, BrowserWindow, dialog, session, shell } from "electron";
-import type { MessageBoxOptions } from "electron";
 import {
-  DEFAULT_ZCODE_ENDPOINT_ORIGIN,
   DesktopCommandIds,
   PlatformChannels,
   type AppSettings,
   type DesktopCommandId,
   type Locale,
-  resolveRuntimeZCodeEndpointOrigin,
-  ZCODE_ENV,
-  ZCODE_PRODUCT_FLAVOR,
-  buildZCodeEndpointUrls,
+  SOCIAL_HARNESS_PRODUCT_FLAVOR,
   getCommunityUrlFromConfigs,
   getFeedbackUrlFromConfig,
   resolveHelpAppConfig,
-  normalizeZCodeEndpointOrigin,
-  resolveZCodeEndpointOrigin,
-} from "@zcode/shared";
-import { readZCodeStdioTapDevState, setZCodeStdioTapDevEnabled } from "@zcode/services/node";
+} from "@social-harness/shared";
+import {
+  readZCodeStdioTapDevState,
+  setZCodeStdioTapDevEnabled,
+} from "@social-harness/services/node";
 import { showAboutDialog } from "./about.js";
 import { checkForUpdateMenuClick } from "./autoUpdater.js";
 import { exportLogs } from "./exportLogs.js";
@@ -38,10 +34,7 @@ import {
 } from "./desktopZoom.js";
 
 export const HELP_TOGGLE_DEV_TOOLS_MENU_ID = "help.toggle-dev-tools";
-export const HELP_TOGGLE_ZCODE_STDIO_TAP_MENU_ID = "help.toggle-zcode-stdio-tap";
-const ZCODE_ENDPOINT_PROMPT_WIDTH = 460;
-const ZCODE_ENDPOINT_PROMPT_HEIGHT = 210;
-const CODING_PLAN_WEBVIEW_PARTITION = "persist:zcode-coding-plan";
+export const HELP_TOGGLE_SOCIAL_HARNESS_STDIO_TAP_MENU_ID = "help.toggle-zcode-stdio-tap";
 
 function resolveTargetWindow(senderWindow?: BrowserWindow | null) {
   if (senderWindow && !senderWindow.isDestroyed()) {
@@ -70,14 +63,6 @@ function updateDesktopZoomLevel(
   return nextLevel;
 }
 
-function showMessageBoxWithOptionalParent(
-  parentWindow: BrowserWindow | null | undefined,
-  options: MessageBoxOptions,
-) {
-  return parentWindow
-    ? dialog.showMessageBox(parentWindow, options)
-    : dialog.showMessageBox(options);
-}
 async function clearAllDataAndRelaunch(options: {
   credentialsDir: string;
   logger: {
@@ -93,7 +78,7 @@ async function clearAllDataAndRelaunch(options: {
     title: "Clear All Data",
     message: "确定要清除所有数据吗？",
     detail:
-      "将删除 ~/.zcode/v2（配置、凭据、日志）和浏览器缓存（localStorage）。操作不可恢复，清除后应用将自动重启。",
+      "将删除 Social Harness 的配置、凭据和日志，以及浏览器缓存（localStorage）。操作不可恢复，清除后应用将自动重启。",
   });
   if (response !== 1) {
     return;
@@ -102,9 +87,12 @@ async function clearAllDataAndRelaunch(options: {
   const { rm } = await import("node:fs/promises");
   try {
     await rm(options.credentialsDir, { recursive: true, force: true });
-    options.logger.info("[clear-all-data] deleted ~/.zcode/v2");
+    options.logger.info("[clear-all-data] deleted Social Harness config directory");
   } catch (error) {
-    options.logger.error("[clear-all-data] failed to delete ~/.zcode/v2:", error);
+    options.logger.error(
+      "[clear-all-data] failed to delete Social Harness config directory:",
+      error,
+    );
   }
 
   for (const win of BrowserWindow.getAllWindows()) {
@@ -129,25 +117,6 @@ async function clearAllDataAndRelaunch(options: {
   app.exit(0);
 }
 
-export async function clearCodingPlanWebviewStorage(options: {
-  logger: {
-    info: (...args: unknown[]) => void;
-    warn: (...args: unknown[]) => void;
-  };
-}) {
-  try {
-    // Coding Plan webview 使用独立持久 partition，默认窗口 session.clearStorageData()
-    // 不会覆盖它；退出登录/清理数据时必须显式清除，避免旧账号 token 被下一次官网首屏读到。
-    await session.fromPartition(CODING_PLAN_WEBVIEW_PARTITION).clearStorageData();
-    options.logger.info("[coding-plan-webview] cleared persistent partition storage");
-  } catch (error) {
-    options.logger.warn(
-      "[coding-plan-webview] failed to clear persistent partition storage:",
-      error,
-    );
-  }
-}
-
 async function fetchRemoteAppConfig(fetchRemoteConfig?: () => Promise<unknown>): Promise<unknown> {
   if (!fetchRemoteConfig) throw new Error("Help config reader is unavailable");
   return fetchRemoteConfig();
@@ -167,7 +136,7 @@ function resolveLocalAppConfigPath(options?: {
   return join(options?.appPath ?? app.getAppPath(), "../../config/default.json");
 }
 
-async function readLocalAppConfig(readLocalConfig?: () => unknown): Promise<unknown> {
+export async function readLocalAppConfig(readLocalConfig?: () => unknown): Promise<unknown> {
   const localConfigPath = resolveLocalAppConfigPath();
   return readLocalConfig?.() ?? JSON.parse(await readFile(localConfigPath, "utf-8"));
 }
@@ -284,139 +253,6 @@ async function openCommunity(
   await shell.openExternal(communityUrl);
 }
 
-async function promptCustomZCodeEndpoint(
-  targetWindow: BrowserWindow | null | undefined,
-  currentValue: string,
-): Promise<string | undefined> {
-  return showZCodeEndpointPromptWindow({
-    currentValue,
-    parentWindow: targetWindow && !targetWindow.isDestroyed() ? targetWindow : undefined,
-  });
-}
-
-function escapeHtmlAttribute(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-function buildZCodeEndpointPromptHtml(currentValue: string): string {
-  const value = escapeHtmlAttribute(currentValue);
-  return `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>ZCode Endpoint</title>
-    <style>
-      :root { color-scheme: light dark; }
-      body { margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-      label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; }
-      input { box-sizing: border-box; width: 100%; height: 34px; padding: 6px 8px; font: inherit; }
-      .hint { margin-top: 8px; color: #6b7280; font-size: 12px; }
-      .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
-      button { min-width: 78px; height: 30px; font: inherit; }
-    </style>
-  </head>
-  <body>
-    <form id="form">
-      <label for="endpoint">ZCode endpoint origin</label>
-      <input id="endpoint" value="${value}" placeholder="https://endpoint.example.com" spellcheck="false" />
-      <div class="hint">Use an http or https origin, for example https://endpoint.example.com.</div>
-      <div class="actions">
-        <button id="cancel" type="button">Cancel</button>
-        <button type="submit">Save</button>
-      </div>
-    </form>
-    <script>
-      const input = document.getElementById("endpoint");
-      const submit = (value) => { document.title = "zcode-endpoint-submit:" + encodeURIComponent(value); };
-      document.getElementById("form").addEventListener("submit", (event) => {
-        event.preventDefault();
-        submit(input.value);
-      });
-      document.getElementById("cancel").addEventListener("click", () => {
-        document.title = "zcode-endpoint-cancel";
-      });
-      input.focus();
-      input.select();
-    </script>
-  </body>
-</html>`;
-}
-
-function showZCodeEndpointPromptWindow(options: {
-  currentValue: string;
-  parentWindow?: BrowserWindow;
-}): Promise<string | undefined> {
-  return new Promise((resolve) => {
-    let settled = false;
-    const promptWindow = new BrowserWindow({
-      width: ZCODE_ENDPOINT_PROMPT_WIDTH,
-      height: ZCODE_ENDPOINT_PROMPT_HEIGHT,
-      parent: options.parentWindow,
-      modal: Boolean(options.parentWindow),
-      resizable: false,
-      minimizable: false,
-      maximizable: false,
-      title: "ZCode Endpoint",
-      webPreferences: {
-        contextIsolation: true,
-        nodeIntegration: false,
-        sandbox: true,
-      },
-    });
-
-    const finish = (value: string | undefined) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      resolve(value);
-      if (!promptWindow.isDestroyed()) {
-        promptWindow.close();
-      }
-    };
-
-    promptWindow.on("closed", () => finish(undefined));
-    promptWindow.on("page-title-updated", (event, title) => {
-      if (title === "zcode-endpoint-cancel") {
-        event.preventDefault();
-        finish(undefined);
-        return;
-      }
-      if (!title.startsWith("zcode-endpoint-submit:")) {
-        return;
-      }
-      event.preventDefault();
-      finish(decodeURIComponent(title.slice("zcode-endpoint-submit:".length)));
-    });
-
-    // Electron 菜单命令在主进程触发，调用 renderer 的 window.prompt 可能被禁用或没有焦点，表现为点击无反应。
-    // 这里改为主进程创建受控 modal 输入窗，确保 Custom... 始终有可见交互入口。
-    void promptWindow.loadURL(
-      `data:text/html;charset=utf-8,${encodeURIComponent(
-        buildZCodeEndpointPromptHtml(options.currentValue),
-      )}`,
-    );
-  });
-}
-
-async function setZCodeEndpointOverride(options: {
-  value: string | undefined;
-  settingService: { update(patch: { zcodeEndpointOrigin?: string | undefined }): Promise<void> };
-  onZCodeEndpointChanged: () => Promise<void> | void;
-  logger: { warn: (...args: unknown[]) => void };
-}) {
-  if (ZCODE_ENV === "production") {
-    return;
-  }
-  const normalized = options.value ? normalizeZCodeEndpointOrigin(options.value) : undefined;
-  await options.settingService.update({ zcodeEndpointOrigin: normalized });
-  await options.onZCodeEndpointChanged();
-}
-
 async function persistDesktopZoomLevel(options: {
   zoomLevel: number;
   logger: { warn: (...args: unknown[]) => void };
@@ -445,35 +281,6 @@ function toggleZCodeStdioTapDevProxy(options: {
   });
 }
 
-function resolveChangelogUrl(
-  locale: Locale,
-  endpointOrigin = DEFAULT_ZCODE_ENDPOINT_ORIGIN,
-): string {
-  // 帮助菜单里的外链以前只有固定英文地址，切到中文界面后仍会落到英文 changelog。
-  // 这里统一收口到主进程按当前应用语言分流，避免菜单模板里手写分支后续再出现多处不一致。
-  const origin = buildZCodeEndpointUrls(endpointOrigin).origin;
-  return locale === "zh-CN" ? `${origin}/cn/changelog` : `${origin}/en/changelog`;
-}
-
-export async function openChangelog(
-  locale: Locale,
-  endpointOrigin = DEFAULT_ZCODE_ENDPOINT_ORIGIN,
-) {
-  await shell.openExternal(resolveChangelogUrl(locale, endpointOrigin));
-}
-
-async function resolveCurrentZCodeEndpointOrigin(settingService: {
-  get(): Promise<{ zcodeEndpointOrigin?: string }>;
-  envBaseOrigin?: string | null;
-}): Promise<string> {
-  const settings = await settingService.get();
-  return resolveZCodeEndpointOrigin({
-    env: ZCODE_ENV,
-    envBaseOrigin: settingService.envBaseOrigin,
-    overrideOrigin: settings.zcodeEndpointOrigin,
-  });
-}
-
 export async function executeDesktopCommand(options: {
   command: DesktopCommandId;
   fetchHelpConfig?: () => Promise<unknown>;
@@ -485,15 +292,11 @@ export async function executeDesktopCommand(options: {
   };
   updateZCodeStdioTapDevMenuState: () => void;
   onDesktopZoomChanged?: (zoomLevel: number) => Promise<void> | void;
-  onZCodeEndpointChanged: () => Promise<void> | void;
   onRelaunchApp: () => Promise<void>;
   settingService: {
-    get(): Promise<Pick<AppSettings, "zcodeEndpointOrigin" | "desktopZoomLevel">>;
-    update(
-      patch: Partial<Pick<AppSettings, "zcodeEndpointOrigin" | "desktopZoomLevel">>,
-    ): Promise<void>;
+    get(): Promise<Pick<AppSettings, "desktopZoomLevel">>;
+    update(patch: Partial<Pick<AppSettings, "desktopZoomLevel">>): Promise<void>;
   };
-  zcodeEndpointEnvBaseOrigin?: string | null;
   credentialsDir: string;
   currentApplicationLocale: Locale;
 }) {
@@ -503,12 +306,6 @@ export async function executeDesktopCommand(options: {
   );
 
   switch (options.command) {
-    case DesktopCommandIds.NewTask:
-      targetWindow?.webContents.send(PlatformChannels.NewTask);
-      return;
-    case DesktopCommandIds.OpenWorkspace:
-      targetWindow?.webContents.send(PlatformChannels.OpenWorkspace);
-      return;
     case DesktopCommandIds.CloseActiveContext:
       targetWindow?.webContents.send(PlatformChannels.CloseActiveContextRequest);
       return;
@@ -579,18 +376,9 @@ export async function executeDesktopCommand(options: {
     case DesktopCommandIds.ShowAbout:
       await showAboutDialog(targetWindow ?? undefined, options.currentApplicationLocale);
       return;
-    case DesktopCommandIds.OpenChangelog:
-      await openChangelog(
-        options.currentApplicationLocale,
-        await resolveCurrentZCodeEndpointOrigin({
-          ...options.settingService,
-          envBaseOrigin: options.zcodeEndpointEnvBaseOrigin,
-        }),
-      );
-      return;
     case DesktopCommandIds.CheckForUpdates:
       // 按产品身份而不是后端环境放行：生产后端的 Preview 同样没有更新器。
-      if (ZCODE_PRODUCT_FLAVOR === "production") {
+      if (SOCIAL_HARNESS_PRODUCT_FLAVOR === "production") {
         checkForUpdateMenuClick(targetWindow);
       } else {
         options.logger.info("[auto-update] Preview 已禁用手动更新检查");
@@ -624,63 +412,11 @@ export async function executeDesktopCommand(options: {
         updateZCodeStdioTapDevMenuState: options.updateZCodeStdioTapDevMenuState,
       });
       return;
-    case DesktopCommandIds.SetZCodeEndpointProduction:
-      await setZCodeEndpointOverride({
-        value: DEFAULT_ZCODE_ENDPOINT_ORIGIN,
-        settingService: options.settingService,
-        onZCodeEndpointChanged: options.onZCodeEndpointChanged,
-        logger: options.logger,
-      });
-      return;
-    case DesktopCommandIds.SetZCodeEndpointTest:
-      await setZCodeEndpointOverride({
-        value: options.zcodeEndpointEnvBaseOrigin ?? resolveRuntimeZCodeEndpointOrigin(),
-        settingService: options.settingService,
-        onZCodeEndpointChanged: options.onZCodeEndpointChanged,
-        logger: options.logger,
-      });
-      return;
-    case DesktopCommandIds.SetZCodeEndpointCustom: {
-      const current =
-        (await options.settingService.get()).zcodeEndpointOrigin ?? DEFAULT_ZCODE_ENDPOINT_ORIGIN;
-      const value = await promptCustomZCodeEndpoint(targetWindow, current);
-      if (!value) {
-        return;
-      }
-      try {
-        await setZCodeEndpointOverride({
-          value,
-          settingService: options.settingService,
-          onZCodeEndpointChanged: options.onZCodeEndpointChanged,
-          logger: options.logger,
-        });
-      } catch (error) {
-        await showMessageBoxWithOptionalParent(targetWindow, {
-          type: "error",
-          title: "ZCode Endpoint",
-          message: "Endpoint 无效",
-          detail: error instanceof Error ? error.message : String(error),
-        });
-      }
-      return;
-    }
-    case DesktopCommandIds.ResetZCodeEndpoint:
-      await setZCodeEndpointOverride({
-        value: undefined,
-        settingService: options.settingService,
-        onZCodeEndpointChanged: options.onZCodeEndpointChanged,
-        logger: options.logger,
-      });
-      return;
     case DesktopCommandIds.ClearAllData:
-      await clearCodingPlanWebviewStorage({ logger: options.logger });
       await clearAllDataAndRelaunch({
         credentialsDir: options.credentialsDir,
         logger: options.logger,
       });
-      return;
-    case DesktopCommandIds.ClearCodingPlanWebviewStorage:
-      await clearCodingPlanWebviewStorage({ logger: options.logger });
       return;
     case DesktopCommandIds.GetCuaOsSupport:
       return resolveCuaOsSupport();

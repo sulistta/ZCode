@@ -1,4 +1,4 @@
-import { DesktopCommandIds, type UpdateStatePayload } from "@zcode/shared";
+import { DesktopCommandIds, type UpdateStatePayload } from "@social-harness/shared";
 import { useEffect, useState } from "react";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import {

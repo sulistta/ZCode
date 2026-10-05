@@ -1,5 +1,5 @@
-import type { McpTrackedProcess } from "@zcode/adapters";
-import type { ZCodeProcessChildProcessesResult } from "@zcode/shared";
+import type { McpTrackedProcess } from "@social-harness/adapters";
+import type { ZCodeProcessChildProcessesResult } from "@social-harness/shared";
 import { resolveOfficialPluginNameByHostMcpServerName } from "../app/official-plugin-definitions.js";
 
 /**

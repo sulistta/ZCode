@@ -10,7 +10,7 @@ import {
   WebFetchOutputSchema,
   type WebFetchInput,
   type WebFetchOutput,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { ToolEntry, ToolExecutionContext, ToolHandler } from "../types.js";
 import {
   clearWebFetchCacheForTests as clearWebFetchContentCacheForTests,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ZCodeSkillReferenceCatalogEntry } from "@zcode/shared";
+import type { ZCodeSkillReferenceCatalogEntry } from "@social-harness/shared";
 import { useWorkspaceServicesResolution } from "@/hooks/useWorkspaceServices.js";
 import { logger } from "@/logger.js";
 

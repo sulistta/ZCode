@@ -22,7 +22,7 @@ import {
   resolveModelProviderFamilySpecByProviderId,
   TID_V4_MODEL_CONFIG,
   TID_V4_COMPOSER_INPUT,
-  ZCODE_AGENT_PROVIDER,
+  SOCIAL_HARNESS_AGENT_PROVIDER,
   type ProviderFamilyConnectionSelection,
   type ProviderFamilyConnectionSelectionSettings,
   type ProviderFamilyDomain,
@@ -31,12 +31,12 @@ import {
   type ZCodeProviderAccountAccess,
   type ZCodeConfigOption,
   type ZCodeProvider,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type {
   SessionConfigState,
   SessionPhase,
   SessionUsageState,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import { ModelConfigSelect, type ModelSelectGroup } from "@/ModelConfigSelect.js";
 import { Button } from "@/components/ui/button.js";
 import { ChatContextUsage } from "@/chat-input-toolbar/display.js";
@@ -62,7 +62,7 @@ import {
   setPendingSettingsUsageCodingPlanIntent,
 } from "@/lib/settingsNavigation.js";
 import { useTabStore } from "@/store/TabStoreProvider.js";
-import type { ModelSelectionView } from "@zcode/services";
+import type { ModelSelectionView } from "@social-harness/services";
 import type { ModelSelectionState } from "@/hooks/useModelSelectionView.js";
 import { useProviderSettingsView } from "@/hooks/useProviderSettingsView.js";
 import { useSettings } from "@/hooks/useSettingService.js";
@@ -78,7 +78,7 @@ import {
 } from "@/lib/codingPlanFunnelTelemetry.js";
 import { useShortcutCommandLabel } from "@/shortcuts/useShortcutBindings.js";
 import { logger } from "@/logger.js";
-import { useCodingPlanUpgradeDialog } from "@/settings/CodingPlanUpgradeDialogProvider.js";
+import { useOptionalCodingPlanUpgradeDialog } from "@/settings/CodingPlanUpgradeDialogProvider.js";
 import { useCodingPlanEntitlements } from "@/settings/model-provider-section/useCodingPlanEntitlements.js";
 import { decodeCustomModelValue, encodeCustomModelValue } from "@/lib/zcodeCustomModelValue.js";
 import { buildRegistryModelSelectGroups } from "@/lib/modelSelectionGroups.js";
@@ -382,8 +382,8 @@ function V4ComposerModelControlsImpl({
   onRecoverCustomModelSelection,
 }: V4ComposerToolbarProps) {
   const { intl, locale } = useZCodeIntl();
-  const { openCodingPlanUpgrade } = useCodingPlanUpgradeDialog();
-  const displayProvider = provider ?? ZCODE_AGENT_PROVIDER;
+  const codingPlanUpgradeDialog = useOptionalCodingPlanUpgradeDialog();
+  const displayProvider = provider ?? SOCIAL_HARNESS_AGENT_PROVIDER;
   // 配置面读取：workspace 缺省目录（taskId=null），不读旧会话态。
   const { error: configOptionsError } = useToolbarConfigOptions(
     workspacePath,
@@ -447,6 +447,8 @@ function V4ComposerModelControlsImpl({
 
   const handleOpenStartPlanUpgrade = useCallback(
     (providerId: string) => {
+      const openCodingPlanUpgrade = codingPlanUpgradeDialog?.openCodingPlanUpgrade;
+      if (!openCodingPlanUpgrade) return;
       openCodingPlanUpgrade({
         providerId,
         funnelContext: createCodingPlanFunnelContext({
@@ -462,7 +464,7 @@ function V4ComposerModelControlsImpl({
         }),
       });
     },
-    [intl, openCodingPlanUpgrade],
+    [codingPlanUpgradeDialog, intl],
   );
   const handleOpenUsageDetails = useCallback(
     (sourceId?: SidebarUsageCodingPlanSourceId) => {
@@ -515,7 +517,11 @@ function V4ComposerModelControlsImpl({
             onAccess: () => refreshCodingPlanEntitlements({ silent: true, reason: "access" }),
           }
         : {}),
-      onUpgradeClick: () => handleOpenStartPlanUpgrade(contextPlanConnection.providerId),
+      ...(codingPlanUpgradeDialog
+        ? {
+            onUpgradeClick: () => handleOpenStartPlanUpgrade(contextPlanConnection.providerId),
+          }
+        : {}),
       snapshot:
         entitlement?.snapshot?.provider?.id === contextPlanConnection.providerId
           ? entitlement.snapshot
@@ -523,6 +529,7 @@ function V4ComposerModelControlsImpl({
     };
   }, [
     contextPlanConnection,
+    codingPlanUpgradeDialog,
     enabledStartPlanProviderIds,
     entitlements,
     handleOpenStartPlanUpgrade,
@@ -1092,4 +1099,4 @@ function V4ComposerModelControlsImpl({
 }
 
 export const V4ComposerModelControls = memo(V4ComposerModelControlsImpl);
-import { isApiKeyAccess } from "@zcode/provider";
+import { isApiKeyAccess } from "@social-harness/provider";

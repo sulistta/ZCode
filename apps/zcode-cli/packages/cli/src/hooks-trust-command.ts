@@ -6,16 +6,16 @@ import type {
   grantWorkspaceHookTrust,
   inspectWorkspaceHookTrust,
   revokeWorkspaceHookTrustCli,
-} from "@zcode/bootstrap";
-import type { RunContext } from "@zcode/shared-types";
+} from "@social-harness/bootstrap";
+import type { RunContext } from "@social-harness/shared-types";
 import type { RunDependencies } from "./cli-types.js";
 
 const USAGE = `Usage:
-  zcode hooks trust status [--workspace <path-or-identity>] [--json]
-  zcode hooks trust review [--workspace <path-or-identity>] [--json]
-  zcode hooks trust grant --workspace <path-or-identity> --hook-digest <sha256> [--hook-digest <sha256> ...]
-  zcode hooks trust grant --workspace <path-or-identity> --all-current --bundle-digest <sha256>
-  zcode hooks trust revoke --workspace <path-or-identity> [--hook-digest <sha256> ... | --all]
+  social-harness hooks trust status [--workspace <path-or-identity>] [--json]
+  social-harness hooks trust review [--workspace <path-or-identity>] [--json]
+  social-harness hooks trust grant --workspace <path-or-identity> --hook-digest <sha256> [--hook-digest <sha256> ...]
+  social-harness hooks trust grant --workspace <path-or-identity> --all-current --bundle-digest <sha256>
+  social-harness hooks trust revoke --workspace <path-or-identity> [--hook-digest <sha256> ... | --all]
 `;
 
 type Inspect = typeof inspectWorkspaceHookTrust;
@@ -23,7 +23,7 @@ type Grant = typeof grantWorkspaceHookTrust;
 type Revoke = typeof revokeWorkspaceHookTrustCli;
 
 type HooksCommandDependencies = RunDependencies & {
-  loadBootstrapModule?: () => Promise<typeof import("@zcode/bootstrap")>;
+  loadBootstrapModule?: () => Promise<typeof import("@social-harness/bootstrap")>;
   inspectWorkspaceHookTrust?: Inspect;
   grantWorkspaceHookTrust?: Grant;
   revokeWorkspaceHookTrustCli?: Revoke;
@@ -54,7 +54,7 @@ export async function runHooksCommand(
     (deps.cwd ?? process.cwd)(),
     deps.userConfigPath,
   );
-  const bootstrap = deps.loadBootstrapModule ?? (() => import("@zcode/bootstrap"));
+  const bootstrap = deps.loadBootstrapModule ?? (() => import("@social-harness/bootstrap"));
   try {
     let status: WorkspaceHookTrustCliStatus;
     if (action === "status" || action === "review") {
@@ -148,9 +148,9 @@ function formatHuman(status: WorkspaceHookTrustCliStatus, action: string): strin
   if (status.reasonCode === "workspace_hooks_pending_trust" && status.bundleDigest) {
     lines.push(
       "Pretrust exact declarations with:",
-      `  zcode hooks trust grant --workspace ${quote(status.workspaceIdentity)} --hook-digest <sha256>`,
+      `  social-harness hooks trust grant --workspace ${quote(status.workspaceIdentity)} --hook-digest <sha256>`,
       "Or trust every currently enabled declaration in this exact bundle with:",
-      `  zcode hooks trust grant --workspace ${quote(status.workspaceIdentity)} --all-current --bundle-digest ${status.bundleDigest}`,
+      `  social-harness hooks trust grant --workspace ${quote(status.workspaceIdentity)} --all-current --bundle-digest ${status.bundleDigest}`,
     );
   }
   if (status.reasonCode === "workspace_hooks_trust_store_corrupt") {

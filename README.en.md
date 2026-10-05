@@ -1,7 +1,7 @@
-# ZCode
+# Social Harness
 
 <div align="center">
-  <img src="public/logo/icons/1024x1024.png" alt="ZCode" width="128" height="128" />
+  <img src="public/logo/icons/1024x1024.png" alt="Social Harness" width="128" height="128" />
 </div>
 <p align="center">
   <a href="https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=47ag983c-8fcb-4d6d-814b-5395193a712c&amp;qr_code=true">Feishu community</a> ·
@@ -11,13 +11,13 @@
   <a href="README.md">简体中文</a> | English
 </p>
 
-ZCode is an AI coding workspace with desktop, browser, and terminal interfaces. This repository contains the clients, backend services, shared UI, and Agent CLI and runtime source code.
+Social Harness is a desktop app for creating social video. Its Agent runtime is an internal headless process used by Desktop and server orchestration, not a standalone product.
 
-| Interface                    | Purpose                                                                                   | Development command            |
-| ---------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------ |
-| Desktop                      | Electron desktop application                                                              | `pnpm dev:desktop`             |
-| Web / ZCode CLI distribution | Terminal and browser workspace; packages the TUI, Web client, backend, and Agent together | `pnpm dev:web`                 |
-| Agent CLI                    | The `zcode` terminal interface, which also provides the Agent runtime for Desktop and Web | `pnpm --filter @zcode/cli dev` |
+| Interface                   | Purpose                                                         | Development command                     |
+| --------------------------- | --------------------------------------------------------------- | --------------------------------------- |
+| Desktop                     | Electron desktop application                                    | `pnpm dev:desktop`                      |
+| Web development environment | Web client and server development entry point                   | `pnpm dev:web`                          |
+| Internal Agent runtime      | Headless Agent process used by Desktop and server orchestration | `pnpm --filter @social-harness/cli dev` |
 
 ## Setup
 
@@ -56,10 +56,10 @@ pnpm dev:desktop:test
 
 `pnpm dev:desktop` defaults to `pnpm dev:desktop:prod` and uses production service configuration. The startup script prepares local runtime assets, builds the desktop Agent, then starts Electron and source watchers.
 
-Set `ZCODE_DATA_BASE_DIR` to use a separate development data directory. For example, on macOS / Linux:
+Set `SOCIAL_HARNESS_DATA_BASE_DIR` to use a separate development data directory. For example, on macOS / Linux:
 
 ```bash
-ZCODE_DATA_BASE_DIR="$HOME/.zcode-dev-home" pnpm dev:desktop:test
+SOCIAL_HARNESS_DATA_BASE_DIR="$HOME/.social-harness-dev-home" pnpm dev:desktop:test
 ```
 
 ### Web Development
@@ -70,63 +70,30 @@ Use development mode when editing Web or backend source code:
 pnpm dev:web
 
 # Set the backend workspace (macOS / Linux)
-ZCODE_SERVER_WORKSPACE=/path/to/project pnpm dev:web
+SOCIAL_HARNESS_SERVER_WORKSPACE=/path/to/project pnpm dev:web
 ```
 
-This starts both the Web development server (default: `http://localhost:5173`) and the backend (default: `http://localhost:3030`). Open the Web development server in your browser. `/ws` and general `/api` requests are proxied to the local backend; `/api/v1/oauth/token` is proxied separately to the configured product service.
+This starts both the Web development server (default: `http://localhost:5173`) and the backend (default: `http://localhost:3030`). Open the Web development server in your browser. `/ws` and general `/api` requests are proxied to the local backend. Retired `/share` and `/cn/share` links clear legacy callback parameters and show a local notice.
 
-After changing Agent source code, run `pnpm --filter @zcode/cli... build` and restart the service. To validate the complete distribution, extract and run it as described under Packaging → ZCode CLI distribution below.
+After changing the Agent runtime, use the internal build command below to generate the bundle used by Desktop and server orchestration.
 
-### ZCode CLI distribution
+### Internal Agent runtime
 
-The command-line distribution includes the TUI, Web client, and Agent behind one `zcode` command. With no arguments it starts the TUI; a leading `--web` starts Web mode; all other arguments go to the existing Agent CLI. Both modes run locally without Electron.
+After changing Agent runtime source code, build the internal bundle used by Desktop and server orchestration. This entry is not a user-facing CLI and does not produce a standalone installer:
 
 ```bash
-# Start the terminal UI by default
-zcode
-
-# Start the Web interface
-zcode --web
-
-# Set the project and port without opening a browser automatically
-zcode --web --workspace /path/to/project --port 3030 --no-open
-
-# Show CLI or Web options
-zcode --help
-zcode --web --help
+pnpm --filter @social-harness/cli... build
 ```
-
-In Web mode, it uses the current directory as the workspace, listens on `127.0.0.1` without token authentication by default, selects an available port, and opens a browser. Use the URL printed in the terminal and press `Ctrl+C` to stop the service. For LAN access, use `--host 0.0.0.0`; listening on a non-local address generates an access token by default. Use the token-bearing URL printed in the terminal. Set a token with `--token`, or disable token authentication with `--no-token`.
-
-When starting the general Web service's HTTP entry directly, configure API/WebSocket authentication with `ZCODE_SERVER_AUTH_TOKEN`. When creating the service programmatically, use the `authToken` option.
-
-See Packaging below for build instructions. `pnpm build:zcode` only creates the distribution; it does not replace an existing `zcode` on `PATH`. If the command still points to an older installation or another checkout, check it with `command -v zcode` on macOS / Linux or `where.exe zcode` on Windows.
-
-### CLI Source Development
-
-Use the source entry when developing the TUI or Agent:
-
-```bash
-pnpm --filter @zcode/cli dev --help
-pnpm --filter @zcode/cli dev
-
-# Build the CLI and its workspace dependencies
-pnpm --filter @zcode/cli... build
-node apps/zcode-cli/packages/cli/dist/zcode.cjs --help
-```
-
-This entry runs the Agent CLI directly and does not handle the distribution's `--web` switch. Use `pnpm dev:web` for Web development, or the extracted `bin/zcode.mjs` shown below to test the unified command.
 
 ## Configuration
 
 The root [.env.example](.env.example) provides sample service URLs and build configuration. Copy it to `.env` as needed and place local overrides in `.env.local`. Select the Desktop development environment with `dev:desktop:test` or `dev:desktop:prod`.
 
-| Setting                              | Purpose                                                                                 |
-| ------------------------------------ | --------------------------------------------------------------------------------------- |
-| `ZCODE_DATA_BASE_DIR`                | Base directory for application data, stored under its `.zcode/` subdirectory            |
-| `ZCODE_SERVER_WORKSPACE`             | Workspace path for the Web backend                                                      |
-| `ZCODE_BUILTIN_PROVIDER_CONFIG_FILE` | Path to a local provider configuration file; uses the built-in configuration when unset |
-| `ZCODE_DIST_BASE_URL`                | Download base URL used by the CLI distribution installer                                |
+| Setting                                       | Purpose                                                                                 |
+| --------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `SOCIAL_HARNESS_DATA_BASE_DIR`                | Base directory for app data, stored under `.social-harness/v1/`                         |
+| `SOCIAL_HARNESS_SERVER_WORKSPACE`             | Workspace path for the Web backend                                                      |
+| `SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_FILE` | Path to a local provider configuration file; uses the built-in configuration when unset |
 
 Runtime variables can be set explicitly in the environment of the startup command. See [config/README.md](config/README.md) for the default configuration shipped with the client.
 
@@ -147,51 +114,7 @@ pnpm bundle:desktop -- --help
 
 The default target is macOS arm64, and the default output directory is `packages/desktop/dist/`. `--os` accepts `mac`, `win`, or `linux`; `--arch` accepts `x64` or `arm64`. Packaging and signing require the tools and configuration for the target platform.
 
-### ZCode CLI distribution
-
-Run `pnpm build:zcode` to build the CLI/TUI, backend, and Web client, collect the TUI native libraries, workers, and runtime dependencies, then assemble the distribution. Running the distribution still requires Node.js; use the version specified in `mise.toml`.
-
-Before packaging, set the download base URL with `ZCODE_DIST_BASE_URL` in `.env`, `.env.local`, or the process environment, or pass it through `--base-url`. The URL below is a placeholder; replace it with your hosting URL when publishing:
-
-```bash
-pnpm build:zcode --base-url https://downloads.example.com/zcode/
-
-# When ZCODE_DIST_BASE_URL is already configured
-pnpm build:zcode
-
-# Repackage existing Agent, backend, and Web build outputs
-pnpm build:zcode --skip-build
-
-# Show options for the version, output directory, and more
-pnpm build:zcode --help
-```
-
-The version defaults to the root `package.json` version. Output is written to `dist/zcode/`:
-
-- `releases/<version>/zcode-<version>.tar.gz`: runtime package.
-- `releases/<version>/sha256.txt`: checksum file.
-- `latest.json` and `install.sh`: version index and installer.
-
-Upload the entire directory to the configured download base URL. The installer downloads the runtime package from that URL, installs it to `~/.zcode/runtime` by default, and creates the `zcode` command in `~/.local/bin`. Override these directories with `ZCODE_DIST_HOME` and `ZCODE_DIST_BIN_DIR`, respectively.
-
-Existing Lite users should switch to the new build command, environment variables, and installer. Installation does not remove old Lite directories or migrate/delete session data.
-
-To test a packaged build locally, extract and run it directly without uploading or installing it:
-
-```bash
-zcode_version=$(node -p "require('./dist/zcode/latest.json').version")
-mkdir -p dist/zcode/debug
-tar -xzf "dist/zcode/releases/$zcode_version/zcode-$zcode_version.tar.gz" \
-  -C dist/zcode/debug
-# Start the TUI by default
-node dist/zcode/debug/zcode/bin/zcode.mjs
-
-# Start Web mode
-node dist/zcode/debug/zcode/bin/zcode.mjs --web \
-  --workspace "$PWD" --port 3030 --no-open
-```
-
-Open `http://127.0.0.1:3030` to validate the complete flow, with one backend serving the Web pages and running the Agent. The port must be available; if `pnpm dev:web` is already running, choose another `--port`.
+Set `SOCIAL_HARNESS_PACKAGE_MAINTAINER_EMAIL` and `SOCIAL_HARNESS_PACKAGE_HOMEPAGE` when creating a desktop installer. They provide the maintainer contact and approved HTTPS homepage in installer metadata; packaging fails if either is missing, if the homepage is not HTTPS, or if the contact still uses the retired ZCode domain. The homepage is never inferred from the Git remote.
 
 ## Repository Structure
 
@@ -205,7 +128,7 @@ Open `http://127.0.0.1:3030` to validate the complete flow, with one backend ser
 | `packages/services`                                  | Business services and persistence                                                       |
 | `packages/shared`, `packages/rpc`, `packages/client` | Shared protocols and types, RPC framework, and Agent client SDK                         |
 | `packages/provider`, `packages/provider-node`        | Common provider capabilities and Node implementations                                   |
-| `apps/zcode-cli`                                     | Agent CLI, TUI, runtime, and tools                                                      |
+| `apps/zcode-cli`                                     | Internal headless Agent runtime and tools                                               |
 | `scripts`, `config`, `third-party`                   | Build and maintenance scripts, built-in configuration, and third-party notice materials |
 
 ## Project Notice

@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "@/components/ui/toast.js";
 import { nanoid } from "nanoid";
-import type { AttachmentRef } from "@zcode/shared/zcode-protocol-v4";
+import type { AttachmentRef } from "@social-harness/shared/zcode-protocol-v4";
+import { parseSocialAccountWorkspaceIdentity } from "@social-harness/shared";
 import { WORKSPACE_FILE_DRAG_MIME } from "@/lib/workspaceFileDrag.js";
 import {
   MAX_CHAT_ATTACHMENTS,
@@ -28,8 +29,8 @@ import {
 } from "@/lib/whiteboard.js";
 import { useWhiteboardStore } from "@/store/whiteboardStore.js";
 import type { ChatComposerPasteEvent } from "@/LexicalChatInput.js";
-import type { IPromptAttachmentTransferService } from "@zcode/services";
-import type { IPlatformService } from "@zcode/shared";
+import type { IPromptAttachmentTransferService } from "@social-harness/services";
+import type { IPlatformService } from "@social-harness/shared";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import { useServices } from "@/hooks/useServices.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
@@ -179,10 +180,13 @@ function progressPercent(uploadedBytes: number, totalBytes: number): number {
 function isRemoteAttachmentTarget(
   target: Pick<UploadTarget, "remoteSessionId" | "workspaceIdentity">,
 ) {
-  // 这里曾要求 workspaceIdentity 能被当前解析器识别。远端 identity 新增格式或
-  // 暂时非规范时，在 remoteSessionId 注入前会被误判为本地 workspace，使 host localPath
-  // 直接走零复制交给远端 Agent。identity 只承担隔离语义；任意非空值都必须按远端 fail closed。
-  return Boolean(target.remoteSessionId?.trim() || target.workspaceIdentity?.trim());
+  // 未知 identity 仍 fail closed，避免本地路径被误传给远端 Agent；只有 Host 生成且可
+  // 解析的 social-account identity 被明确标记为本地隔离 workspace。
+  const workspaceIdentity = target.workspaceIdentity?.trim();
+  return Boolean(
+    target.remoteSessionId?.trim() ||
+    (workspaceIdentity && parseSocialAccountWorkspaceIdentity(workspaceIdentity) === null),
+  );
 }
 
 export function useComposerAttachments(

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useMemo } from "react";
-import type { FileBinaryPreview } from "@zcode/shared";
+import type { FileBinaryPreview } from "@social-harness/shared";
 import { CodeBlock } from "@/components/ai-elements/code-block.js";
 import { MessageResponse } from "@/components/ai-elements/message.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
@@ -79,8 +79,6 @@ interface WorkflowArtifactBodyProps {
   onOpenBrowserUrl?: (url: string) => void;
   /** 本地文件系统上的绝对路径（desktop-local ∧ `sourcePath` 在场时才有）。 */
   localSourcePath?: string;
-  /** 「在工作区显示」：已绑定好路径的文件树 reveal；缺席即无渲染器的卡片上不出这个按钮。 */
-  onReveal?: () => void;
   /** 查看的是不是最新版——旧版的工作区原文件早就被覆盖了，html 预览因此只对最新版开放。 */
   isLatestVersion: boolean;
   /** 元数据（含预置看板的 spec）还在读；预置正文据此区分「还没到」与「真的没有」。 */
@@ -153,7 +151,6 @@ function WorkflowArtifactContent({
   theme,
   resolvedTheme,
   onOpenBrowserUrl,
-  onReveal,
   localSourcePath,
   isLatestVersion,
 }: WorkflowArtifactBodyProps & { bytes: Uint8Array<ArrayBuffer> }) {
@@ -283,7 +280,6 @@ function WorkflowArtifactContent({
         isLatestVersion={isLatestVersion}
         {...(localSourcePath === undefined ? {} : { localSourcePath })}
         {...(onOpenBrowserUrl === undefined ? {} : { onOpenBrowserUrl })}
-        {...(onReveal === undefined ? {} : { onReveal })}
       />
     );
   }
@@ -298,23 +294,13 @@ function WorkflowArtifactContent({
   }
 
   // 表外类型（`application/octet-stream` 与一切没人认得的东西）：给一张**元数据卡**，
-  // 不假装能渲染。卡上带「在工作区显示」——那是这种产物唯一能对它做的事（没有「下载」：
-  // renderer 没有任何把字节存成用户文件的宿主能力）。
+  // 不假装能渲染，也不向 renderer 暴露用户文件系统上的工作区路径。
   return (
     <ArtifactMetadataCard
       artifact={artifact}
       bytes={bytes.length}
       note={intl.formatMessage({ id: "chat.toolCall.workflow.run.artifacts.unsupported" })}
       testId="workflow-artifact-unsupported"
-      {...(onReveal === undefined
-        ? {}
-        : {
-            action: {
-              label: intl.formatMessage({ id: "chat.toolCall.workflow.run.artifacts.reveal" }),
-              onActivate: onReveal,
-              testId: "workflow-artifact-unsupported-reveal",
-            },
-          })}
     />
   );
 }

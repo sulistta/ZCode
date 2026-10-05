@@ -1,4 +1,4 @@
-import type { ZCodeProvider } from "@zcode/shared";
+import type { ZCodeProvider } from "@social-harness/shared";
 
 export function resolveWorkspaceHeaderProvider(
   activeTaskProvider: ZCodeProvider | null,

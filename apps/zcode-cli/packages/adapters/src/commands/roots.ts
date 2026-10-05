@@ -1,13 +1,13 @@
 import { stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
-import type { CustomCommandRoot, CustomCommandSource } from "@zcode/contracts";
+import type { CustomCommandRoot, CustomCommandSource } from "@social-harness/contracts";
 
 const COMMANDS_DIR = "commands";
 const GIT_MARKER = ".git";
 const HOME_PREFIX = "~/";
 const PRIORITY_STEP = 10;
-const ZCODE_DIR = ".zcode";
+const SOCIAL_HARNESS_DIR = ".zcode";
 const AGENTS_DIR = ".agents";
 
 export interface CustomCommandRootResolutionOptions {
@@ -99,7 +99,7 @@ function commandRootsForBase(
   // 合并而不是 fallback：兼容 `.agents` 命令和原生 `.zcode` 命令需要同时可见。
   // 同一级别 `.zcode` 先扫描，命令同名时仍按“先到先赢”处理。
   return [
-    root(join(baseDirectory, ZCODE_DIR, COMMANDS_DIR), scope, "zcode", nextPriority()),
+    root(join(baseDirectory, SOCIAL_HARNESS_DIR, COMMANDS_DIR), scope, "zcode", nextPriority()),
     root(join(baseDirectory, AGENTS_DIR, COMMANDS_DIR), scope, "agents", nextPriority()),
   ];
 }

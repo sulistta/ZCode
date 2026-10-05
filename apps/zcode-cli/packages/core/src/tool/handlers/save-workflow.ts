@@ -32,7 +32,7 @@ import {
   type SaveWorkflowInput,
   type SaveWorkflowOutput,
   type SavedWorkflowMeta,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type {
   ToolApprovalGate,
   ToolEntry,
@@ -43,6 +43,7 @@ import type {
 import { SAVE_WORKFLOW_TOOL_DESCRIPTION } from "./save-workflow-description.js";
 import {
   SAVED_WORKFLOW_SENTINEL,
+  assertAccountWorkflowSource,
   findSavedWorkflowShadowing,
   savedWorkflowExists,
   savedWorkflowPath,
@@ -123,9 +124,23 @@ function validateSaveWorkflowInput(input: unknown): ToolInputValidationResult {
 async function resolveSaveWorkflowInput(
   input: unknown,
   cwd: string,
+  workspaceIdentity?: string,
 ): Promise<ToolInputResolutionResult> {
   const parsed = SaveWorkflowInputSchema.safeParse(input);
   if (!parsed.success) return { result: true, input };
+
+  try {
+    assertAccountWorkflowSource(workspaceIdentity, {
+      scope: parsed.data.scope,
+      scriptPath: parsed.data.script_path,
+    });
+  } catch (error) {
+    return {
+      result: false,
+      errorCode: SAVE_WORKFLOW_FAILURE_CODE,
+      message: (error as Error).message,
+    };
+  }
 
   // `script_path` 先读成正文：确认窗要展示将要落盘的那串字节，而窗在 handler 之前。
   // 块被丢掉（只留正文）——元数据由本次调用的字段说了算，那才是用户批准的东西。
@@ -139,14 +154,14 @@ async function resolveSaveWorkflowInput(
   }
 
   const { scope, name } = parsed.data;
-  const shadowing = findSavedWorkflowShadowing({ cwd, name, scope });
+  const shadowing = await findSavedWorkflowShadowing({ cwd, name, scope, workspaceIdentity });
   return {
     result: true,
     input: {
       ...parsed.data,
       ...(script === undefined ? {} : { script }),
-      path: savedWorkflowPath(savedWorkflowRoot(cwd, scope), name),
-      overwrite: savedWorkflowExists({ cwd, name, scope }),
+      path: savedWorkflowPath(savedWorkflowRoot(cwd, scope, { workspaceIdentity }), name),
+      overwrite: await savedWorkflowExists({ cwd, name, scope, workspaceIdentity }),
       // 无同名时省略该键：一个 undefined 会给每次保存挂一个噪音字段。
       ...(shadowing === undefined ? {} : { shadowing }),
     } satisfies SaveWorkflowInput,
@@ -157,8 +172,17 @@ const saveWorkflowHandler: ToolHandler = async (input, context) => {
   const parsed = SaveWorkflowInputSchema.parse(input) as SaveWorkflowInput;
   const cwd = context.workingDirectory ?? ".";
   const scope = parsed.scope;
-  // 落点由归一化填好；缺席只可能是有人绕过了 executor 的生命周期，此时自己算一遍而不是崩。
-  const path = parsed.path ?? savedWorkflowPath(savedWorkflowRoot(cwd, scope), parsed.name);
+  assertAccountWorkflowSource(context.workspaceIdentity, {
+    scope,
+    scriptPath: parsed.script_path,
+  });
+  // path 仅供审批展示；最终落点重新从可信账户目录计算，hook 不能改写存储边界。
+  const path = savedWorkflowPath(
+    savedWorkflowRoot(cwd, scope, {
+      workspaceIdentity: context.workspaceIdentity,
+    }),
+    parsed.name,
+  );
   const script = parsed.script;
   if (script === undefined) {
     // 到不了：validateInput 挡掉「两个都不给」，resolveInput 会把 `script_path` 读成 `script`。
@@ -191,12 +215,13 @@ const saveWorkflowHandler: ToolHandler = async (input, context) => {
   // `overwritten` 由**写的那一刻**重新判定，不读入参里那个 `overwrite`：入参上的那个是给
   // 确认窗与 hook 看的事实，而 hook 能改写入参——让它改变落盘后的自述会把一个展示字段
   // 变成一个行为开关。
-  const written = saveSavedWorkflow({
+  const written = await saveSavedWorkflow({
     cwd,
     name: parsed.name,
     meta: toMeta(parsed),
     script,
     scope,
+    workspaceIdentity: context.workspaceIdentity,
   });
 
   const isGlobal = written.scope === "global";
@@ -264,7 +289,7 @@ export const saveWorkflowToolEntry: ToolEntry = {
   validateInput: (input) => validateSaveWorkflowInput(input),
   // 把落点与覆盖判定算进入参：确认窗与 hook 读的是同一份事实，且对所有客户端版本可见。
   resolveInput: (input, context) =>
-    resolveSaveWorkflowInput(input, context.workingDirectory ?? "."),
+    resolveSaveWorkflowInput(input, context.workingDirectory ?? ".", context.workspaceIdentity),
   prepareApproval: prepareSaveWorkflowApproval,
   inputSchema: SaveWorkflowInputJsonSchema,
   outputSchema: SaveWorkflowOutputJsonSchema,
@@ -305,7 +330,8 @@ export const saveWorkflowToolEntry: ToolEntry = {
   cancellation: {
     supported: false,
     cleanup: "none",
-    userVisibleMessage: "SaveWorkflow typechecks and writes synchronously and cannot be cancelled",
+    userVisibleMessage:
+      "SaveWorkflow typechecks and saves an approved definition and cannot be cancelled",
   },
   trace: {
     required: true,

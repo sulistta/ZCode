@@ -1,0 +1,43 @@
+{
+  "checkedOn": "2026-10-03",
+  "package": "boolbase@1.0.0",
+  "revision": "b566b40fabb9310c9e1e8bd5719afb6eece98425",
+  "archiveUrl": "https://registry.npmjs.org/boolbase/-/boolbase-1.0.0.tgz",
+  "archiveIntegrity": "sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==",
+  "archiveSha256": "69628ff8092c5ff940ea4a0f29da98d520615bae138755c9e059033606c6caa8",
+  "sourceVersion": "1.0.0",
+  "checks": [
+    {
+      "file": "index.js",
+      "identical": true,
+      "sourceSha256": "c62510fca8738c7444cdf5012bdd0ce214a1b6f7eaff7facb3a919e4656d7341",
+      "archiveSha256": "c62510fca8738c7444cdf5012bdd0ce214a1b6f7eaff7facb3a919e4656d7341"
+    },
+    {
+      "file": "package.json",
+      "identical": false,
+      "sourceSha256": "13a235c1d3370bd9d6e5b7cf1ffbba647ff6176de9d987c8f7908e9e9c7ccf4d",
+      "archiveSha256": "ca09c0dccbfc43be6be0ac89e9ffa19b64b30f9c74c64da27f719a7244a25e30"
+    },
+    {
+      "file": "README.md",
+      "identical": true,
+      "sourceSha256": "9cac5bfc290d30ccd13fa833923cb545584481e8ced66380bf758f1053f9d81d",
+      "archiveSha256": "9cac5bfc290d30ccd13fa833923cb545584481e8ced66380bf758f1053f9d81d"
+    }
+  ],
+  "licenseUrl": "https://raw.githubusercontent.com/fb55/boolbase/b566b40fabb9310c9e1e8bd5719afb6eece98425/LICENSE",
+  "licenseSha256": "cdf4d87ae0a6c160227263bf4e39a0a10e30e89ae7256e0f7ac7bde0836552c6",
+  "manifestDifferences": {
+    "scripts": {
+      "published": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+      },
+      "source": {
+        "test": "node tests.js"
+      }
+    }
+  },
+  "manifestEquivalentExceptDevelopmentScripts": true,
+  "method": "Verify exact registry SRI, compare all archive runtime/readme bytes with immutable publisher source; compare manifest semantically and retain the development test script difference."
+}

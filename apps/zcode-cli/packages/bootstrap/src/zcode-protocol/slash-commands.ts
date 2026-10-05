@@ -1,4 +1,4 @@
-import { BUILTIN_ZCODE_SLASH_COMMAND_HELP_ENTRIES, type ZCodeSlashCommand } from "@zcode/shared";
+import { BUILTIN_SOCIAL_HARNESS_SLASH_COMMAND_HELP_ENTRIES, type ZCodeSlashCommand } from "@social-harness/shared";
 import {
   listZCodeCustomCommands,
   type ListZCodeCustomCommandsOptions,
@@ -18,7 +18,7 @@ const DYNAMIC_WORKFLOW_SLASH_COMMAND_NAME = "workflow";
 export interface ListProtocolSlashCommandsOptions extends ListZCodeCustomCommandsOptions {
   /**
    * 动态工作流灰度门。**只有显式 false
-   * 才剔除** `workflow`：CLI 自身的目录装配（TUI / 未参与灰度的调用方）缺席该字段，
+   * 才剔除** `workflow`：CLI 自身的目录装配（未参与灰度的调用方）缺席该字段，
    * 必须保持原样。协议服务端一律从 appRuntimePreferences 传入显式布尔。
    */
   dynamicWorkflowEnabled?: boolean;
@@ -77,7 +77,7 @@ function pinWorkflowAfterGoal(commands: ZCodeSlashCommand[]): ZCodeSlashCommand[
 
 function listAppProtocolBuiltinSlashCommands(): ZCodeSlashCommand[] {
   const sharedBuiltins = APP_PROTOCOL_VISIBLE_BUILTIN_SLASH_COMMAND_NAMES.flatMap((name) => {
-    const command = BUILTIN_ZCODE_SLASH_COMMAND_HELP_ENTRIES.find((entry) => entry.name === name);
+    const command = BUILTIN_SOCIAL_HARNESS_SLASH_COMMAND_HELP_ENTRIES.find((entry) => entry.name === name);
     if (!command) return [];
     return [
       {

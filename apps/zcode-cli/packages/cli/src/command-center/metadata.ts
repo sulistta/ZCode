@@ -1,16 +1,16 @@
-import type { TuiPromptInput, TuiSubmitPromptResult } from "@zcode/tui";
+import type { CommandCenterPromptInput, CommandCenterSubmitPromptResult } from "./contracts.js";
 import type { CommandCenterApp, CommandCenterDeps } from "./types.js";
 
-export function normalizeTuiPromptInput(input: TuiPromptInput): Exclude<TuiPromptInput, string> {
+export function normalizeCommandCenterPromptInput(input: CommandCenterPromptInput): Exclude<CommandCenterPromptInput, string> {
   if (typeof input === "string") return { text: input };
   return input;
 }
 
 export function attachCurrentSessionMetadata(
-  result: TuiSubmitPromptResult,
+  result: CommandCenterSubmitPromptResult,
   deps: CommandCenterDeps,
   app?: CommandCenterApp,
-): TuiSubmitPromptResult {
+): CommandCenterSubmitPromptResult {
   return {
     ...result,
     locale: result.locale ?? app?.getLocale?.(),

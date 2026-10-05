@@ -1,15 +1,16 @@
-// Env Config Adapter - Parse the intentionally small ZCODE_* environment surface.
+// Env Config Adapter - Parse the intentionally small SOCIAL_HARNESS_* environment surface.
 
-import type { RuntimeConfigPatch } from "@zcode/contracts";
+import type { RuntimeConfigPatch } from "@social-harness/contracts";
+import { join } from "node:path";
 
 interface EnvConfigOptions {
   prefix?: string;
 }
 
-const DEFAULT_PREFIX = "ZCODE_";
+const DEFAULT_PREFIX = "SOCIAL_HARNESS_";
 
 /**
- * Parse ZCODE_* environment variables into config
+ * Parse SOCIAL_HARNESS_* environment variables into config
  */
 export function parseEnvConfig(
   env: Record<string, string | undefined> = process.env,
@@ -59,6 +60,19 @@ export function parseEnvConfig(
     }
   }
 
+  const dataBaseDir = env.SOCIAL_HARNESS_DATA_BASE_DIR?.trim();
+  if (dataBaseDir) {
+    const storageRoot = join(dataBaseDir, ".social-harness", "v1");
+    // Desktop/server data-base selection is the authoritative owner of local Agent state.
+    // Do not let inherited ZCode storage overrides send a fresh Social Harness install back
+    // into the legacy home directory.
+    config.storage = {
+      ...config.storage,
+      dir: storageRoot,
+      sessionDbPath: join(storageRoot, "cli", "db", "db.sqlite"),
+    };
+  }
+
   return config;
 }
 
@@ -67,7 +81,7 @@ export function parseEnvConfig(
  */
 export function getToolConcurrencyConfig(): { maxConcurrency: number } {
   return {
-    maxConcurrency: normalizeNumber(process.env.ZCODE_MAX_TOOL_CONCURRENCY ?? "10"),
+    maxConcurrency: normalizeNumber(process.env.SOCIAL_HARNESS_MAX_TOOL_CONCURRENCY ?? "10"),
   };
 }
 

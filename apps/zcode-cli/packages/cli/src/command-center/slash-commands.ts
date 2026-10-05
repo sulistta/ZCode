@@ -1,4 +1,4 @@
-import type { TuiSlashCommandSuggestion } from "@zcode/tui";
+import type { CommandCenterSlashCommandSuggestion } from "./contracts.js";
 import {
   findCustomCommandHelpEntry,
   formatAvailableCommandNames,
@@ -237,7 +237,7 @@ export function manualSkillCommandUsage(): string {
 
 export function listSlashCommandSuggestions(
   customCommands?: CommandCenterCustomCommandListOutcome,
-): TuiSlashCommandSuggestion[] {
+): CommandCenterSlashCommandSuggestion[] {
   return [
     ...SLASH_COMMAND_HELP_ENTRIES.map((entry) => ({
       ...(entry.aliases ? { aliases: entry.aliases } : {}),

@@ -4,11 +4,11 @@ import {
   TASK_LIST_SESSION_TYPES,
   isTaskListSessionType,
 } from "../zcode-protocol-v4/task-list-session-membership.js";
-import { resolveEffectiveBashShellSelection } from "@zcode/adapters/exec";
+import { resolveEffectiveBashShellSelection } from "@social-harness/adapters/exec";
 import { inputIntentMetadata } from "../zcode-protocol-v4/commands/input-intent.js";
 import { createModelExecutionContext } from "./model-execution.js";
 import type { SendInputOptions } from "../app/types.js";
-import { repairPersistedRemoteSessionPaths, type TurnAttachment } from "@zcode/core";
+import { repairPersistedRemoteSessionPaths, type TurnAttachment } from "@social-harness/core";
 import {
   CoreErrorType,
   SESSION_ENTRY_TARGET_COMPLETION_VERIFICATION,
@@ -39,10 +39,10 @@ import {
   type TurnId,
   type UsageStorePort,
   type WorkspaceId,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import {
-  DEFAULT_ZCODE_MODEL_CONTEXT_BUDGET_STRATEGY,
-  ZCODE_SESSION_RUNTIME_PREFERENCES_REQUEST_TIMEOUT_MS,
+  DEFAULT_SOCIAL_HARNESS_MODEL_CONTEXT_BUDGET_STRATEGY,
+  SOCIAL_HARNESS_SESSION_RUNTIME_PREFERENCES_REQUEST_TIMEOUT_MS,
   zcodeProtocolErrorCodes,
   zcodeProtocolMethods,
   zcodeSessionCancelBackgroundTaskParamsSchema,
@@ -69,6 +69,7 @@ import {
   zcodeWorkspaceGenerateTextParamsSchema,
   getConversationMessageProjectionPolicy,
   parseRemoteWorkspaceIdentity,
+  parseSocialAccountWorkspaceIdentity,
   type ZCodeSessionCreateParams,
   type ZCodeDeliveryKind,
   type IntegratedTerminalShellSelection,
@@ -81,7 +82,7 @@ import {
   type ZCodeSessionResumeParams,
   type ZCodeSessionPersistence,
   type ZCodeStateUpdatedNotification,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   buildSessionSnapshot,
   buildWorkspaceRef,
@@ -108,6 +109,8 @@ import { createProtocolInteractionBroker } from "./interaction-broker.js";
 import { createProtocolAutomationPort } from "./automation-port.js";
 import { createProtocolOffPeakPort } from "./offpeak-port.js";
 import { createProtocolBrowserControlBroker } from "./browser-control-broker.js";
+import { createProtocolSocialProjectPort } from "./social-project-port.js";
+import { createProtocolSocialAgentPort } from "./social-agent-port.js";
 import { mapComputerUseOperationEvent } from "./computer-use-operation-event.js";
 import { protocolMcpServersToRuntimeMcpConfig } from "./protocol-mcp-config.js";
 import { projectIdFromDirectory } from "../app/paths.js";
@@ -3171,7 +3174,7 @@ async function requestSessionRuntimePreferences(
       { sessionId, scope },
       zcodeSessionRuntimePreferencesResultSchema,
       {
-        timeoutMs: ZCODE_SESSION_RUNTIME_PREFERENCES_REQUEST_TIMEOUT_MS,
+        timeoutMs: SOCIAL_HARNESS_SESSION_RUNTIME_PREFERENCES_REQUEST_TIMEOUT_MS,
         ...(trace ? { trace } : {}),
       },
     );
@@ -3215,7 +3218,7 @@ async function requestSessionRuntimePreferences(
       return {
         askUserQuestionAutoResolutionEnabled: true,
         memoryEnabled: false,
-        modelContextBudgetStrategy: DEFAULT_ZCODE_MODEL_CONTEXT_BUDGET_STRATEGY,
+        modelContextBudgetStrategy: DEFAULT_SOCIAL_HARNESS_MODEL_CONTEXT_BUDGET_STRATEGY,
         nativeSearchEnhancementsEnabled: true,
       };
     }
@@ -3233,7 +3236,7 @@ async function resolveSessionStartupPreferences(
     const inheritedShellSelection = source.parent.app.runtime.getSessionShellSelection();
     return {
       memoryEnabled: source.parent.memoryEnabled,
-      modelContextBudgetStrategy: DEFAULT_ZCODE_MODEL_CONTEXT_BUDGET_STRATEGY,
+      modelContextBudgetStrategy: DEFAULT_SOCIAL_HARNESS_MODEL_CONTEXT_BUDGET_STRATEGY,
       nativeSearchEnhancementsEnabled: source.parent.nativeSearchEnhancementsEnabled,
       resolveInitialBashShellSelection: async () => inheritedShellSelection,
     };
@@ -3251,7 +3254,7 @@ async function resolveSessionStartupPreferences(
   );
   return {
     memoryEnabled: runtimePreferences.memoryEnabled,
-    modelContextBudgetStrategy: DEFAULT_ZCODE_MODEL_CONTEXT_BUDGET_STRATEGY,
+    modelContextBudgetStrategy: DEFAULT_SOCIAL_HARNESS_MODEL_CONTEXT_BUDGET_STRATEGY,
     nativeSearchEnhancementsEnabled: runtimePreferences.nativeSearchEnhancementsEnabled,
     resolveInitialBashShellSelection: async () => {
       const executionPreferences = await requestSessionRuntimePreferences(
@@ -3332,7 +3335,7 @@ async function createRecord(
       // 动态工作流灰度门：与 offPeakPort
       // 同一套读法——本次 create/resume 参数优先，缺席时读 Host 同步到进程的 workspace 级
       // 结论；两者都没有就是 false（fail-closed）。这里**必须写出显式布尔**，不能省成
-      // undefined：core 把「缺席」定义为「不参与灰度、保留全部工具」（TUI / headless /
+      // undefined：core 把「缺席」定义为「不参与灰度、保留全部工具」（headless /
       // workflow_child 的语义），受信 Host 创建的会话不能落进那条豁免。
       dynamicWorkflowEnabled:
         ("dynamicWorkflowEnabled" in params && params.dynamicWorkflowEnabled === true) ||
@@ -3346,12 +3349,12 @@ async function createRecord(
       // Memory Settings 是现有 CLI features.memory/use 之外的总开关。只在关闭时
       // 写入 override，避免开启值反向覆盖用户已有的 CLI 禁用配置。
       ...(startupPreferences.memoryEnabled ? {} : { memory: { enabled: false } }),
-      // desktop-continuous session/create 由 UI 先解析 ~/.zcode/.agents 的 enabled MCP，
+      // desktop-continuous session/create 由 UI 先解析 Social Harness 全局配置中的 enabled MCP，
       // 但 protocol app-server 自己不会读取 UI/main 侧的 MCP store；之前 createRecord 没把
       // params.mcpServers 注入 runtimeConfig，导致日志里 runtimeHasMcpConfig=false，工具永远不启动。
       // MCP 是 runtime 启动期配置，因此必须在 session 创建/恢复边界一次性写入 runtimeConfig.mcp。
       ...(runtimeMcp ? { mcp: runtimeMcp } : {}),
-      // 之前只有 TUI 路径（tui-prompt-handler）注入 titleGeneration，
+      // 以前只有 headless prompt 路径注入 titleGeneration，
       // ZCode Protocol app-server 创建的 session（desktop/web/mobile）没有传，导致
       // shouldAttemptSessionTitleGeneration 的 `if (!config.titleGeneration) return false`
       // 永远命中，模型生成 title 的请求从不触发，侧边栏标题一直停在 first_input 的用户 query。
@@ -3368,6 +3371,12 @@ async function createRecord(
     // 这里把阻塞交互转换成 server-to-client JSON-RPC request，由 app 通过 response 释放 runtime。
     permissionBroker: createProtocolInteractionBroker(context),
     automationPort: createProtocolAutomationPort(context, () => ownSessionRecord),
+    ...(parseSocialAccountWorkspaceIdentity(workspace.workspaceIdentity)
+      ? {
+          socialProjectPort: createProtocolSocialProjectPort(context, () => ownSessionRecord),
+          socialAgentPort: createProtocolSocialAgentPort(context, () => ownSessionRecord),
+        }
+      : {}),
     // 只接入 Host 已开放的工具面；缺省不注入。复用现行异步工厂，
     // 不恢复旧 deferred ModelAdapter/Registry overlay，也不改变 Session Selection。
     ...(("offPeakToolEnabled" in params && params.offPeakToolEnabled === true) ||

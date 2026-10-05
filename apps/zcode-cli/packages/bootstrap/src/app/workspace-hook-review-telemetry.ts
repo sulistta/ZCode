@@ -1,13 +1,13 @@
-import type { Logger, WorkspaceHookReasonCode } from "@zcode/contracts";
+import type { Logger, WorkspaceHookReasonCode } from "@social-harness/contracts";
 import {
   emitWorkspaceHookTelemetry,
   type WorkspaceHookReviewTarget,
   type WorkspaceHookRuntimeAdmissionPort,
-} from "@zcode/core";
+} from "@social-harness/core";
 import type {
   WorkspaceHookReviewDecision,
   WorkspaceHookReviewRequestPayload,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 
 export class WorkspaceHookReviewTelemetry {
   constructor(

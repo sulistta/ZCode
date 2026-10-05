@@ -6,22 +6,22 @@ import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
-import { Emitter } from "@zcode/rpc";
+import { Emitter } from "@social-harness/rpc";
 import {
   parseZCodeProcessDiagnostic,
-  ZCODE_AGENT_LIFECYCLE_LOG_MARKER,
-  ZCODE_PROCESS_DIAGNOSTIC_NAME_MAX_CHARS,
-  ZCODE_PROCESS_DIAGNOSTIC_MESSAGE_MAX_CHARS,
-  ZCODE_PROCESS_DIAGNOSTIC_STACK_MAX_CHARS,
-} from "@zcode/shared/process-diagnostic";
+  SOCIAL_HARNESS_AGENT_LIFECYCLE_LOG_MARKER,
+  SOCIAL_HARNESS_PROCESS_DIAGNOSTIC_NAME_MAX_CHARS,
+  SOCIAL_HARNESS_PROCESS_DIAGNOSTIC_MESSAGE_MAX_CHARS,
+  SOCIAL_HARNESS_PROCESS_DIAGNOSTIC_STACK_MAX_CHARS,
+} from "@social-harness/shared/process-diagnostic";
 import {
-  ZCODE_AGENT_RUNTIME,
-  ZCODE_AGENT_PROVIDER,
-  ZCODE_RUNTIME_ENV_KEY,
+  SOCIAL_HARNESS_AGENT_RUNTIME,
+  SOCIAL_HARNESS_AGENT_PROVIDER,
+  SOCIAL_HARNESS_RUNTIME_ENV_KEY,
   resolveWorkspaceKey,
   resolveZCodeRuntimeEnv,
   sanitizeZCodeRuntimeEnv,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   findZCodeAgentRuntimeBinary,
   findZCodeAgentRuntimeNodeBundle,
@@ -182,8 +182,8 @@ if (coverageDirectory) {
 `;
 
 function buildE2EAgentCoverageEnv(env: NodeJS.ProcessEnv = process.env): Record<string, string> {
-  const artifactDir = env.ZCODE_E2E_ARTIFACT_DIR?.trim();
-  if (env.ZCODE_E2E_COVERAGE !== "1" || !artifactDir) {
+  const artifactDir = env.SOCIAL_HARNESS_E2E_ARTIFACT_DIR?.trim();
+  if (env.SOCIAL_HARNESS_E2E_COVERAGE !== "1" || !artifactDir) {
     return {};
   }
   const directory = resolve(artifactDir, "coverage", "raw", "cli");
@@ -300,7 +300,7 @@ function parseArgsJson(raw: string | undefined): string[] | undefined {
   }
   const parsed = JSON.parse(trimmed) as unknown;
   if (!Array.isArray(parsed) || parsed.some((item) => typeof item !== "string")) {
-    throw new Error("ZCODE_AGENT_SERVER_ARGS_JSON must be a JSON string array");
+    throw new Error("SOCIAL_HARNESS_AGENT_SERVER_ARGS_JSON must be a JSON string array");
   }
   return parsed;
 }
@@ -353,10 +353,10 @@ async function buildZCodeAgentSpawnPreflight(
 function resolveBundledWorkspaceZCodeAgentCommand(
   context: ZCodeAgentCommandResolverContext,
 ): ZCodeAgentCommand | null {
-  const distEntrypoint = findUpward("apps/zcode-cli/packages/cli/dist/zcode.cjs");
+  const distEntrypoint = findUpward("apps/zcode-cli/packages/cli/dist/social-harness.cjs");
   if (distEntrypoint) {
     const useBytecode =
-      process.versions.electron && process.env.ZCODE_DESKTOP_AGENT_BYTECODE === "1";
+      process.versions.electron && process.env.SOCIAL_HARNESS_DESKTOP_AGENT_BYTECODE === "1";
     const entrypoint = useBytecode
       ? join(dirname(distEntrypoint), "zcode.bytecode.cjs")
       : distEntrypoint;
@@ -391,12 +391,12 @@ function resolveBundledWorkspaceZCodeAgentCommand(
 function resolveDeployedZCodeAgentBinaryCommand(
   context: ZCodeAgentCommandResolverContext,
 ): ZCodeAgentCommand | null {
-  // 旧 resolver 只识别 ZCODE_AGENT_SERVER_COMMAND env 和 monorepo 源码树。
-  // SSH 远端把 zcode-server.cjs 单文件部署到 ~/.zcode/server/，宿主进程的 cwd 不在仓库内、
-  // env 也不会被 ssh exec 继承，即使 zcode-agent 已经部署到 ~/.zcode/server/agents/glm/，
+  // 旧 resolver 只识别 SOCIAL_HARNESS_AGENT_SERVER_COMMAND env 和 monorepo 源码树。
+  // SSH 远端把 zcode-server.cjs 单文件部署到 ~/.social-harness/v1/server/，宿主进程的 cwd 不在仓库内、
+  // env 也不会被 ssh exec 继承，即使 zcode-agent 已经部署到 ~/.social-harness/v1/server/agents/glm/，
   // resolver 也找不到，第一次 getClient 就抛 "ZCode agent server command is not configured"。
   // 这里复用 findZCodeAgentRuntimeBinary 的候选链（含 GLM_BINARY_PATH env、
-  // packagedResourcesPath、~/.zcode/server/agents/glm、bundled-agents 等），
+  // packagedResourcesPath、~/.social-harness/v1/server/agents/glm、bundled-agents 等），
   // 把已部署的原生 binary 当成最终兜底，远端/桌面打包形态都能命中。
   const binaryPath = findZCodeAgentRuntimeBinary();
   if (!binaryPath) {
@@ -404,7 +404,7 @@ function resolveDeployedZCodeAgentBinaryCommand(
   }
   return {
     command: binaryPath,
-    args: ZCODE_AGENT_RUNTIME.spawnArgs,
+    args: SOCIAL_HARNESS_AGENT_RUNTIME.spawnArgs,
     cwd: context.workspacePath,
   };
 }
@@ -414,7 +414,7 @@ function resolveElectronRuntimeZCodeAgentCommand(
 ): ZCodeAgentCommand | null {
   // 桌面打包态：host 跑在 Electron utility process 里，process.execPath 指向 Electron Helper，
   // 它内置的 Node runtime 与 zcode-cli 目标版本一致（Electron 41 = Node 24.x）。
-  // 这里直接用 app 自带的 Electron Node 执行打进 resources/glm 的 zcode.cjs，
+  // 这里直接用 app 自带的 Electron Node 执行打进 resources/glm 的 social-harness.cjs，
   // 不再随包内置一份独立 Node 二进制（体积从 ~180MB 降到 ~16MB，且跨平台同一份 JS）。
   // 用 process.versions.electron 作为闸门：远端 SSH/WSL host 由系统 Node 运行、没有 electron，
   // 会跳过这里继续走原生二进制兜底，桌面/远端两条链路互不影响。
@@ -427,7 +427,7 @@ function resolveElectronRuntimeZCodeAgentCommand(
   }
   return {
     command: process.execPath,
-    args: [bundlePath, ...ZCODE_AGENT_RUNTIME.spawnArgs],
+    args: [bundlePath, ...SOCIAL_HARNESS_AGENT_RUNTIME.spawnArgs],
     storagePreparationEntry: bundlePath,
     cwd: context.workspacePath,
     // 关键：必须以纯 Node 模式启动，否则子进程会被当成 Electron/Chromium 子进程卡在 GPU 初始化。
@@ -438,20 +438,23 @@ function resolveElectronRuntimeZCodeAgentCommand(
 export function resolveDefaultZCodeAgentCommand(
   context: ZCodeAgentCommandResolverContext,
 ): ZCodeAgentCommand | null {
-  const command = process.env.ZCODE_AGENT_SERVER_COMMAND?.trim();
+  const command = process.env.SOCIAL_HARNESS_AGENT_SERVER_COMMAND?.trim();
   if (command) {
     return applyPresentationSurfaceToCommand(
       {
         command,
-        args: parseArgsJson(process.env.ZCODE_AGENT_SERVER_ARGS_JSON) ?? ["app-server", "--stdio"],
-        cwd: process.env.ZCODE_AGENT_SERVER_CWD?.trim() || context.workspacePath,
+        args: parseArgsJson(process.env.SOCIAL_HARNESS_AGENT_SERVER_ARGS_JSON) ?? [
+          "app-server",
+          "--stdio",
+        ],
+        cwd: process.env.SOCIAL_HARNESS_AGENT_SERVER_CWD?.trim() || context.workspacePath,
       },
       context.presentationSurface,
     );
   }
 
   // 顺序：env 显式覆盖 → monorepo dev 源码/dist（dev 改源码立刻生效，不会被远端历史装的 native binary
-  // 抢先匹配）→ 桌面打包态 Electron Node runtime 跑 zcode.cjs → 已部署 native binary（远端 SSH 兜底）。
+  // 抢先匹配）→ 桌面打包态 Electron Node runtime 跑 social-harness.cjs → 已部署 native binary（远端 SSH 兜底）。
   const bundled =
     resolveBundledWorkspaceZCodeAgentCommand(context) ??
     resolveElectronRuntimeZCodeAgentCommand(context);
@@ -720,7 +723,7 @@ export class ZCodeAgentProcessManager {
     this.reportProcessLifecycle((reporter) =>
       reporter.onReady?.({
         pid: managed.child.pid!,
-        provider: ZCODE_AGENT_PROVIDER,
+        provider: SOCIAL_HARNESS_AGENT_PROVIDER,
         ...(this.lane ? { lane: this.lane } : {}),
         workspacePath: managed.workspace.workspacePath,
         readyAt: managed.readyAt!,
@@ -961,7 +964,7 @@ export class ZCodeAgentProcessManager {
     const resolveCommandDurationMs = Date.now() - resolveCommandStartedAt;
     if (!command) {
       throw new Error(
-        "ZCode agent server command is not configured. Set ZCODE_AGENT_SERVER_COMMAND before integration.",
+        "ZCode agent server command is not configured. Set SOCIAL_HARNESS_AGENT_SERVER_COMMAND before integration.",
       );
     }
     if (admissionSignal.aborted) {
@@ -1008,7 +1011,7 @@ export class ZCodeAgentProcessManager {
     if ((this.restartGenerationByWorkspaceKey.get(workspaceKey) ?? 0) !== startGeneration) {
       throw new Error("ZCode agent process start was cancelled.");
     }
-    // app 以本地开发方式启动时，让 agent 子进程也带上 ZCODE_RUNTIME_ENV=development；
+    // app 以本地开发方式启动时，让 agent 子进程也带上 SOCIAL_HARNESS_RUNTIME_ENV=development；
     // 不再传 NODE_ENV，避免用户 shell/runtime 变量影响 ZCode 运行模式或泄漏到 Bash 工具。
     const runtimeEnv = resolveZCodeRuntimeEnv(process.env);
     log("ZCode agent spawn preflight", {
@@ -1023,7 +1026,7 @@ export class ZCodeAgentProcessManager {
       detached: shouldSpawnInDetachedProcessGroup(),
       env: {
         ...sanitizeZCodeRuntimeEnv(process.env),
-        [ZCODE_RUNTIME_ENV_KEY]: runtimeEnv,
+        [SOCIAL_HARNESS_RUNTIME_ENV_KEY]: runtimeEnv,
         ...spawnEnv,
         ...effectiveCommand.env,
         // 身份/隔离语义使用 workspaceIdentity；cwd 继续使用 workspacePath。
@@ -1043,7 +1046,7 @@ export class ZCodeAgentProcessManager {
           this.reportProcessLifecycle((reporter) =>
             reporter.onException?.({
               pid: child.pid!,
-              provider: ZCODE_AGENT_PROVIDER,
+              provider: SOCIAL_HARNESS_AGENT_PROVIDER,
               ...(this.lane ? { lane: this.lane } : {}),
               workspacePath: params.workspacePath,
               runtimeGeneration,
@@ -1053,17 +1056,17 @@ export class ZCodeAgentProcessManager {
                 // 脱敏占位符可能比原文长，必须再次限长，避免 IPC schema 拒绝合法异常。
                 name: redactAgentDiagnostic(diagnostic.name).slice(
                   0,
-                  ZCODE_PROCESS_DIAGNOSTIC_NAME_MAX_CHARS,
+                  SOCIAL_HARNESS_PROCESS_DIAGNOSTIC_NAME_MAX_CHARS,
                 ),
                 message: redactAgentDiagnostic(diagnostic.message).slice(
                   0,
-                  ZCODE_PROCESS_DIAGNOSTIC_MESSAGE_MAX_CHARS,
+                  SOCIAL_HARNESS_PROCESS_DIAGNOSTIC_MESSAGE_MAX_CHARS,
                 ),
                 ...(diagnostic.stack !== undefined
                   ? {
                       stack: redactAgentDiagnostic(diagnostic.stack).slice(
                         0,
-                        ZCODE_PROCESS_DIAGNOSTIC_STACK_MAX_CHARS,
+                        SOCIAL_HARNESS_PROCESS_DIAGNOSTIC_STACK_MAX_CHARS,
                       ),
                     }
                   : {}),
@@ -1157,7 +1160,7 @@ export class ZCodeAgentProcessManager {
         this.reportProcessLifecycle((reporter) =>
           reporter.onSpawn({
             pid: child.pid!,
-            provider: ZCODE_AGENT_PROVIDER,
+            provider: SOCIAL_HARNESS_AGENT_PROVIDER,
             ...(this.lane ? { lane: this.lane } : {}),
             workspacePath: params.workspacePath,
             command: effectiveCommand.command,
@@ -1179,7 +1182,7 @@ export class ZCodeAgentProcessManager {
     });
     child.once("error", (error) => {
       errorLog(
-        `ZCode agent process error${this.processLifecycleReporter?.onError ? ` ${ZCODE_AGENT_LIFECYCLE_LOG_MARKER}` : ""}`,
+        `ZCode agent process error${this.processLifecycleReporter?.onError ? ` ${SOCIAL_HARNESS_AGENT_LIFECYCLE_LOG_MARKER}` : ""}`,
         {
           workspaceKey,
           pid: child.pid,
@@ -1194,7 +1197,7 @@ export class ZCodeAgentProcessManager {
       this.reportProcessLifecycle((reporter) =>
         reporter.onError?.({
           pid: typeof child.pid === "number" ? child.pid : null,
-          provider: ZCODE_AGENT_PROVIDER,
+          provider: SOCIAL_HARNESS_AGENT_PROVIDER,
           ...(this.lane ? { lane: this.lane } : {}),
           workspacePath: params.workspacePath,
           command: effectiveCommand.command,
@@ -1242,7 +1245,7 @@ export class ZCodeAgentProcessManager {
         // 和长期运行的 Agent 自行 exit 0 同样是非预期退出。
         // 已有独立生命周期事件，显式标记包装日志，避免 Electron 将其再计为 JS 异常。
         errorLog(
-          `ZCode agent process exited unexpectedly${this.processLifecycleReporter ? ` ${ZCODE_AGENT_LIFECYCLE_LOG_MARKER}` : ""}`,
+          `ZCode agent process exited unexpectedly${this.processLifecycleReporter ? ` ${SOCIAL_HARNESS_AGENT_LIFECYCLE_LOG_MARKER}` : ""}`,
           {
             ...exitContext,
             stderr,
@@ -1253,7 +1256,7 @@ export class ZCodeAgentProcessManager {
         this.reportProcessLifecycle((reporter) =>
           reporter.onExit({
             pid: child.pid!,
-            provider: ZCODE_AGENT_PROVIDER,
+            provider: SOCIAL_HARNESS_AGENT_PROVIDER,
             ...(this.lane ? { lane: this.lane } : {}),
             workspacePath: params.workspacePath,
             exitCode: code,
@@ -1365,7 +1368,7 @@ export class ZCodeAgentProcessManager {
         : {
             available: false,
             workspaceKey,
-            reason: "ZCODE_AGENT_SERVER_COMMAND is not configured",
+            reason: "SOCIAL_HARNESS_AGENT_SERVER_COMMAND is not configured",
           };
     } catch (error) {
       return {

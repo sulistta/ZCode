@@ -1,4 +1,7 @@
-import { createMemoryDiagnosticsRegistry, type MemoryDiagnosticsRegistry } from "@zcode/shared";
+import {
+  createMemoryDiagnosticsRegistry,
+  type MemoryDiagnosticsRegistry,
+} from "@social-harness/shared";
 
 /**
  * main 进程内存诊断计数器注册表。

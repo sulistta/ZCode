@@ -7,7 +7,7 @@ import {
   isFileSystemPortError,
   type ReadVideoOutput,
   type TraceContext,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { ToolExecutionContext } from "../types.js";
 import type { VideoInputMimeType } from "../../runtime/helpers/attachment-video.js";
 

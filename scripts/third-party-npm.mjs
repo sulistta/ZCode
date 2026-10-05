@@ -10,8 +10,23 @@ export const hashBytes = (bytes) => createHash("sha256").update(bytes).digest("h
 const unsupportedCanvas = new Set([
   "@napi-rs/canvas-android-arm64",
   "@napi-rs/canvas-linux-arm-gnueabihf",
+  "@napi-rs/canvas-linux-arm64-musl",
+  "@napi-rs/canvas-linux-x64-musl",
   "@napi-rs/canvas-linux-riscv64-gnu",
 ]);
+const supportedEsbuild = new Set([
+  "@esbuild/darwin-arm64",
+  "@esbuild/darwin-x64",
+  "@esbuild/linux-arm64",
+  "@esbuild/linux-x64",
+  "@esbuild/win32-arm64",
+  "@esbuild/win32-x64",
+]);
+function unsupportedOptional(name) {
+  return (
+    unsupportedCanvas.has(name) || (name.startsWith("@esbuild/") && !supportedEsbuild.has(name))
+  );
+}
 const noticeName =
   /(?:^|[._-])(?:licen[sc]es?|copying|notice|copyright|unlicense|third.party|ofl)(?:[._-]|$)/iu;
 
@@ -51,7 +66,11 @@ function productionPackages(projects) {
   function dependencies(deps) {
     for (const [alias, info] of Object.entries(deps ?? {})) {
       const name = info.name ?? alias;
-      if (!own.has(name) && !name.startsWith("@zcode/") && !info.version.startsWith("link:")) {
+      if (
+        !own.has(name) &&
+        !name.startsWith("@social-harness/") &&
+        !info.version.startsWith("link:")
+      ) {
         required.set(`${name}@${info.version}`, { name, version: info.version });
       }
       dependencies(info.dependencies);
@@ -69,7 +88,7 @@ export function assertProductionGraphs(lockedProjects, installedProjects) {
   const locked = productionPackages(lockedProjects);
   const installed = productionPackages(installedProjects);
   const missing = [...locked].filter(
-    ([key, item]) => !installed.has(key) && !unsupportedCanvas.has(item.name),
+    ([key, item]) => !installed.has(key) && !unsupportedOptional(item.name),
   );
   const stale = [...installed.keys()].filter((key) => !locked.has(key));
   if (missing.length || stale.length) {
@@ -152,7 +171,7 @@ export async function scanInstalledPackages(root, projects) {
 export function missingProductionPackages(required, installed) {
   const missing = [...required].filter(([key]) => !installed.has(key)).map(([, item]) => item);
   for (const item of missing) {
-    if (!unsupportedCanvas.has(item.name))
+    if (!unsupportedOptional(item.name))
       throw new Error(`Missing installed dependency: ${item.name}@${item.version}`);
   }
   return missing;
@@ -203,6 +222,7 @@ export async function collectNpmNotices(root, overrides) {
   return {
     packages,
     notInstalled,
+    installedPackageKeys: [...installed.keys()].sort((a, b) => a.localeCompare(b, "en")),
     workspaceManifests: projects.map((project) =>
       relative(root, join(project.path, "package.json")).replaceAll("\\", "/"),
     ),

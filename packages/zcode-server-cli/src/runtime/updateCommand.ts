@@ -1,6 +1,6 @@
 import { updatePreparationResultSchema } from "../contracts.js";
 import { requestControl } from "../ipc/controlClient.js";
-import { createServiceLogger } from "@zcode/services/node";
+import { createServiceLogger } from "@social-harness/services/node";
 import type { ServerLayout } from "./paths.js";
 import { prepareOnlineUpdate } from "./updatePreparation.js";
 

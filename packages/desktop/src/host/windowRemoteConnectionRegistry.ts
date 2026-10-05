@@ -5,7 +5,7 @@ import {
   type RemoteTarget,
   type WindowHostAttachmentScope,
   type WindowHostRemoteWorkspaceDescriptor,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 
 interface WindowRemoteAssetDirs {
   mockCdnDir?: string;

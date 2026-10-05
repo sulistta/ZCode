@@ -14,8 +14,8 @@ import {
   type ZCodePermissionOption,
   type ZCodePermissionRequest,
   type ZCodeProvider,
-} from "@zcode/shared";
-import { MAX_PERMISSION_FEEDBACK_CHARS } from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared";
+import { MAX_PERMISSION_FEEDBACK_CHARS } from "@social-harness/shared/zcode-protocol-v4";
 import { Button } from "@/components/ui/button.js";
 import { cn } from "@/components/lib/utils.js";
 import { Textarea } from "@/components/ui/textarea.js";
@@ -732,6 +732,7 @@ export function PermissionDialog({
             <div
               role="listbox"
               aria-label={intl.formatMessage({ id: "chat.permission.title" })}
+              data-permission-request-id={request.requestId}
               className="space-y-1"
             >
               {orderedOptions.map((option, index) => {

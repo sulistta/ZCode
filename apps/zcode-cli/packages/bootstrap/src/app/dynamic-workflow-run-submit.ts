@@ -15,7 +15,7 @@ import type {
   DynamicWorkflowRunSubmitRequest,
   DynamicWorkflowRunSubmitResult,
   TraceContext,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import {
   buildAskSpecs,
   collectDiagnostics,
@@ -30,9 +30,9 @@ import {
   type ImportedRunCache,
   type RunSettlement,
   type WorkflowProgram,
-} from "@zcode/dynamic-workflow";
-import { formatModelPickerValue } from "@zcode/shared/model-selection";
-import type { ModelSelection } from "@zcode/shared/model-selection";
+} from "@social-harness/dynamic-workflow";
+import { formatModelPickerValue } from "@social-harness/shared/model-selection";
+import type { ModelSelection } from "@social-harness/shared/model-selection";
 import {
   buildImportedCache,
   preflightAmendImport,
@@ -52,6 +52,8 @@ import {
 import { isResumableRecord, type RunRegistryEntry } from "./dynamic-workflow-run-observation.js";
 import type { DynamicWorkflowRunServiceDeps } from "./dynamic-workflow-run-service.js";
 import type { WorkflowEscalationRegistry } from "./workflow-escalation-registry.js";
+import { canonicalJson } from "@social-harness/dynamic-workflow";
+import { resolveAccountWorkflowAdmission } from "./account-workflow-admission.js";
 
 /**
  * 两条入口要用的 service 内部状态。全是**引用**而不是副本：注册表与停驻表是 service 的那一份，
@@ -79,8 +81,10 @@ export async function submitDynamicWorkflowRun(
   ctx: DynamicWorkflowRunEntryContext,
   request: DynamicWorkflowRunSubmitRequest,
 ): Promise<DynamicWorkflowRunSubmitResult> {
+  const admission = resolveAccountWorkflowAdmission(ctx, request);
+  if (admission?.replayed) return { ok: true, runId: admission.runId, replayed: true };
   const runId = startNewRun(ctx, {
-    runId: mintRunId(),
+    runId: admission?.runId ?? mintRunId(),
     scriptText: request.scriptText,
     cwd: request.cwd,
     ...(request.name === undefined ? {} : { name: request.name }),
@@ -88,6 +92,7 @@ export async function submitDynamicWorkflowRun(
     ...(request.parentSessionId === undefined ? {} : { parentSessionId: request.parentSessionId }),
     ...(request.toolCallId === undefined ? {} : { toolCallId: request.toolCallId }),
     ...(request.launchInputId === undefined ? {} : { launchInputId: request.launchInputId }),
+    ...(request.admissionKey === undefined ? {} : { admissionKey: request.admissionKey }),
     ...(request.phaseNames === undefined ? {} : { phaseNames: request.phaseNames }),
     ...(request.maxConcurrency === undefined ? {} : { maxConcurrency: request.maxConcurrency }),
     ...(request.subagentModel === undefined ? {} : { subagentModel: request.subagentModel }),
@@ -212,6 +217,7 @@ interface StartNewRunInput {
   parentSessionId?: string;
   toolCallId?: string;
   launchInputId?: string;
+  admissionKey?: string;
   /** 脚本声明的阶段表（submit 与 amend 都传：修订用**新脚本**的阶段表）。 */
   phaseNames?: string[];
   /** 请求的并发上界；缺席即天花板。钳制在 {@link DynamicWorkflowRunEntryContext.caps} 里。 */
@@ -295,6 +301,9 @@ function startNewRun(ctx: DynamicWorkflowRunEntryContext, input: StartNewRunInpu
     cwd: input.cwd,
     ...(input.name === undefined ? {} : { name: input.name }),
     scriptText: input.scriptText,
+    ...(input.admissionKey === undefined
+      ? {}
+      : { admissionArgsJson: canonicalJson(input.args ?? {}) }),
     // 生效的并发上界（= 落库那一份）。同一条间隙论证：`AmendWorkflow` 的 resolveInput 读
     // getTask 判「沿用什么」，而修订一个刚起步的 run 恰好会落在这个间隙里。
     maxConcurrency: caps.maxConcurrency,
@@ -375,7 +384,7 @@ export async function resumeDynamicWorkflowRun(
 
   // 老 run 的 journal 原文是按**当时**的 facade 写的，重构后
   // 可能不再通过类型检查。compileOnce 对脏脚本是硬失败（那是接线错误的通道），resume 撞上它却是
-  // 一条用户可预期的业务分支——结构化拒绝 + 有界诊断，UI / TUI / 工具面据此指向 AmendWorkflow，
+  // 一条用户可预期的业务分支——结构化拒绝 + 有界诊断，UI / 工具面据此指向 AmendWorkflow，
   // 而不是一条泛化的「执行失败」。诊断与随后的编译共用同一个 Program，仍是「编译一次」。
   const workflow = createWorkflowProgram(record.scriptText);
   const diagnostics = collectDiagnostics(workflow.program);

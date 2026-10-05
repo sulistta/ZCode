@@ -18,8 +18,8 @@ import type {
   ModelSelection,
   TurnFileChangeSummary,
   TurnInputIntentMetadata,
-} from "@zcode/contracts";
-import type { EventId, SessionEvent, SessionId, TraceId, TurnId } from "@zcode/contracts";
+} from "@social-harness/contracts";
+import type { EventId, SessionEvent, SessionId, TraceId, TurnId } from "@social-harness/contracts";
 import {
   CompactTimelineStatus,
   CompactTrigger,
@@ -29,12 +29,12 @@ import {
   parseCompletedToolPartMetadata,
   SessionEventType,
   STREAM_RECOVERY_DISCARDED_ERROR_NAME,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import {
   getConversationModelOnlyTurnTriggerSource,
   getConversationMessageProjectionPolicy,
   isConversationRealUserTurnStarter,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   conversationInputIntentSchema,
   errorAttributionSchema,
@@ -42,7 +42,7 @@ import {
   workflowNotificationMetaSchema,
   type ErrorAttribution,
   type WorkflowLaunchMeta,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import { shouldHideInvalidToolCallFromProduct } from "../tool-call-product-visibility.js";
 import { HYDRATION_TRACE_ID } from "./projection-state.js";
 
@@ -1743,7 +1743,7 @@ export function synthesizeEventsFromMessages(
         SessionEventType.TurnStarted,
         {
           turnNumber,
-          // 文本仍进 userInput.text（旧客户端 / TUI 的降级呈现）；GUI 用元数据画启动卡。
+          // 文本仍进 userInput.text（旧客户端的降级呈现）；GUI 用元数据画启动卡。
           input: launchText,
           // 持久 messageId 是该轮权威 target，与活投影同用，否则 productTurn 身份冷热分叉。
           messageId: String(message.info.id),

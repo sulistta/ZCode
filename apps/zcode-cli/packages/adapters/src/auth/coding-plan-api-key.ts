@@ -1,9 +1,9 @@
-import type { HttpClientPort, HttpClientRunOptions, TraceContext } from "@zcode/contracts";
-import { resolveBigModelApiOrigin } from "@zcode/shared";
+import type { HttpClientPort, HttpClientRunOptions, TraceContext } from "@social-harness/contracts";
+import { resolveBigModelApiOrigin } from "@social-harness/shared";
 
 const ZAI_API_HOST = "https://api.z.ai";
 const JSON_CONTENT_TYPE = "application/json";
-const ZCODE_API_KEY_NAME = "zcode-api-key";
+const SOCIAL_HARNESS_API_KEY_NAME = "zcode-api-key";
 const DEFAULT_ORG_NAME = "默认机构";
 const DEFAULT_PROJECT_NAME = "默认项目";
 
@@ -170,11 +170,11 @@ async function resolveBizApiKey(
       runOptions,
     )) ?? [];
   const keyEntry =
-    keys.find((item) => item.name === ZCODE_API_KEY_NAME) ??
+    keys.find((item) => item.name === SOCIAL_HARNESS_API_KEY_NAME) ??
     (await requestRemoteData<RemoteApiKeySummary>(
       input.httpClient,
       {
-        body: new TextEncoder().encode(JSON.stringify({ name: ZCODE_API_KEY_NAME })),
+        body: new TextEncoder().encode(JSON.stringify({ name: SOCIAL_HARNESS_API_KEY_NAME })),
         headers: createBizAuthHeaders(input.authorization),
         method: "POST",
         trace: input.trace,

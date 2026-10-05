@@ -1,4 +1,4 @@
-import { LOCAL_TTFT_MAX_PENDING, localTtftNow, type LocalTtftDetail } from "@zcode/shared";
+import { LOCAL_TTFT_MAX_PENDING, localTtftNow, type LocalTtftDetail } from "@social-harness/shared";
 
 type PreparationStage =
   | Exclude<LocalTtftDetail["stage"], "attempt" | "retry_wait" | "user_confirmation">

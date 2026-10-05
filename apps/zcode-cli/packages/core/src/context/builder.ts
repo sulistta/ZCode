@@ -2,7 +2,7 @@
 // Context Builder - System prompt assembly
 // ============================================================
 
-import type { ModelInputMessage } from "@zcode/contracts";
+import type { ModelInputMessage } from "@social-harness/contracts";
 import type {
   ContextMetaUserAttachment,
   ContextSection,
@@ -13,7 +13,12 @@ import type {
 import type { ToolRegistry } from "../tool/registry.js";
 import { estimateTokens } from "./utils.js";
 import { buildCliPrefixSection } from "./sections/cli-prefix.js";
-import { buildIdentitySection } from "./sections/identity.js";
+import {
+  buildIdentitySection,
+  buildSocialAgentIdentitySection,
+  buildSocialAgentPrefixSection,
+} from "./sections/identity.js";
+import { buildSocialAccountGuidanceSection } from "./sections/social-account-guidance.js";
 import { buildWorkflowActorIdentitySection } from "./sections/workflow-actor.js";
 import { buildEnvInfoSection, buildGitSystemContextSection } from "./sections/env-info.js";
 import { buildSkillsSection } from "./sections/skills.js";
@@ -101,7 +106,12 @@ export class ContextBuilder {
     // 「You are ZCode, an interactive coding agent」对一个
     // 只对脚本说话、可能连读文件工具都没有的子代理是错的身份，且走在正确身份段前面。
     if (!isWorkflowActor) {
-      sections.push(buildCliPrefixSection());
+      // 社交账号 runtime 复用 Agent 核心；旧 CLI 前缀会把内容任务标成编程代理，账号身份由该 runtime 标记统一决定。
+      sections.push(
+        this.config.socialAccountRuntime
+          ? buildSocialAgentPrefixSection()
+          : buildCliPrefixSection(),
+      );
     }
 
     // 2. Stable agent behavior or custom prompt body
@@ -118,7 +128,16 @@ export class ContextBuilder {
     } else if (workflowActor !== undefined) {
       sections.push(buildWorkflowActorIdentitySection(workflowActor));
     } else {
-      sections.push(buildIdentitySection(activeOutputStyle));
+      sections.push(
+        this.config.socialAccountRuntime
+          ? buildSocialAgentIdentitySection(activeOutputStyle)
+          : buildIdentitySection(activeOutputStyle),
+      );
+    }
+
+    // Social account instructions are product invariants and remain active with custom prompts.
+    if (this.config.socialAccountRuntime) {
+      sections.push(buildSocialAccountGuidanceSection());
     }
 
     // 3. Dynamic system context

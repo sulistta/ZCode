@@ -7,7 +7,7 @@ import type {
   SessionTitleSource,
   TraceContext,
 } from "../deps.js";
-import type { AgentTelemetryCausation } from "@zcode/contracts";
+import type { AgentTelemetryCausation } from "@social-harness/contracts";
 import type { AgentRuntimeInternal } from "../internal.js";
 import {
   persistFallbackGoalSummaryTitle,

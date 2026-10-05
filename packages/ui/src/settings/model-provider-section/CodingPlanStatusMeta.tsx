@@ -1,4 +1,4 @@
-import type { UsageEntitlementSubscriptionDetail } from "@zcode/shared";
+import type { UsageEntitlementSubscriptionDetail } from "@social-harness/shared";
 import { Loader2Icon, RefreshCwIcon } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button.js";

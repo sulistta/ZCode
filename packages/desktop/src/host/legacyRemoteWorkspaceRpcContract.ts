@@ -1,4 +1,4 @@
-import type { IServiceAccessor } from "@zcode/services";
+import type { IServiceAccessor } from "@social-harness/services";
 
 /**
  * 只把既有远端 RPC client 收进窗口 Host，不改变 zcode-server wire。
@@ -9,7 +9,6 @@ const LEGACY_REMOTE_WORKSPACE_RPC_CHANNELS = [
   "gitService",
   "gitCheckpointService",
   "systemService",
-  "terminalService",
   "zcodeTaskService",
   "zcodeAgentService",
   "zcodeSessionService",

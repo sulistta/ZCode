@@ -8,7 +8,7 @@ import {
   TID_WORKFLOW_LAUNCH_TARGET,
   testId,
   type ZCodeSavedWorkflowEntry,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { Button } from "@/components/ui/button.js";
 import {
   Dialog,

@@ -1,7 +1,6 @@
-import type { AssistantTextRow, UserInputRow } from "@zcode/shared/zcode-protocol-v4";
+import type { AssistantTextRow, UserInputRow } from "@social-harness/shared/zcode-protocol-v4";
 import type { ChatSearchResultHighlightRequest } from "@/v4/legacyChatViewTypes.js";
 import type { ConversationTurnRenderUnit } from "@/v4/conversationTurnRenderUnits.js";
-import { projectAssistantCodeComments } from "@/lib/assistantCodeComment.js";
 
 export type ConversationFindRowKind = "userInput" | "assistantText";
 
@@ -44,26 +43,12 @@ function addTargetsForUnit(
   targets: ConversationFindTarget[],
   unit: ConversationTurnRenderUnit,
   unitIndex: number,
-  projectCodeComments: boolean,
 ) {
-  const latestAssistantState = unit.latestAssistantTextRow?.state;
-  const projectUnitCodeComments =
-    projectCodeComments &&
-    (unit.isRunning ||
-      latestAssistantState === "complete" ||
-      latestAssistantState === "interrupted");
   for (const row of unit.visibleUserInputs) {
     targets.push(createTarget(unitIndex, row));
   }
   for (const row of unit.assistantTextRows) {
-    targets.push({
-      ...createTarget(unitIndex, row),
-      text: projectUnitCodeComments
-        ? projectAssistantCodeComments(row.text, {
-            streaming: row.state === "streaming",
-          }).visibleText
-        : row.text,
-    });
+    targets.push(createTarget(unitIndex, row));
   }
 }
 
@@ -82,13 +67,10 @@ function createTarget(
 export function buildConversationFindIndex(
   units: readonly ConversationTurnRenderUnit[],
   query: string,
-  options: { projectAssistantCodeComments?: boolean } = {},
 ): ConversationFindIndex {
   const normalizedQuery = normalizeConversationFindQuery(query);
   const targets: ConversationFindTarget[] = [];
-  units.forEach((unit, unitIndex) =>
-    addTargetsForUnit(targets, unit, unitIndex, options.projectAssistantCodeComments === true),
-  );
+  units.forEach((unit, unitIndex) => addTargetsForUnit(targets, unit, unitIndex));
 
   if (!normalizedQuery) {
     return {

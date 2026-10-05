@@ -1,17 +1,17 @@
 import { join } from "node:path";
-import { createNodeContextSourceAdapter } from "@zcode/adapters/context";
-import { createNodeExecutionAdapter } from "@zcode/adapters/exec";
-import { createNodeFileSystemAdapter } from "@zcode/adapters/fs";
-import { createNodeWebFetchHttpClientAdapter } from "@zcode/adapters/http";
-import { createNodeSkillAdapter } from "@zcode/adapters/skills";
-import type { ConfigResult } from "@zcode/adapters/config";
+import { createNodeContextSourceAdapter } from "@social-harness/adapters/context";
+import { createNodeExecutionAdapter } from "@social-harness/adapters/exec";
+import { createNodeFileSystemAdapter } from "@social-harness/adapters/fs";
+import { createNodeWebFetchHttpClientAdapter } from "@social-harness/adapters/http";
+import { createNodeSkillAdapter } from "@social-harness/adapters/skills";
+import type { ConfigResult } from "@social-harness/adapters/config";
 import {
   AgentRuntime,
   type AgentRuntimeConfig,
   type AgentRuntimeDeps,
   type ChildClientPortsContext,
   type PermissionService,
-} from "@zcode/core";
+} from "@social-harness/core";
 import {
   type AgentExecutionTelemetryPort,
   type ContextSourcePort,
@@ -30,7 +30,7 @@ import {
   type WorkflowAgentCallInput,
   type WorkflowEscalatePort,
   type WorkflowSubmitPort,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import { collectDisabledPaths } from "../skill-command-overrides.js";
 import { parseProviderQualifiedModelSelection } from "./provider-registry-selection.js";
 import type { ZCodeAppOptions } from "./types.js";
@@ -123,6 +123,16 @@ export function createScriptWorkflowAgentRuntime(input: {
       toolAllowlist: input.request.opts?.tools,
       workingDirectory: input.deps.workingDirectory,
       ...input.configOverrides,
+      // persona 覆盖不能放宽账户身份与权限；旧 yolo 默认会让账户 actor 绕过父会话工具确认。
+      ...(inheritedConfig.workspaceIdentity?.toString().startsWith("social-account:")
+        ? {
+            mode: input.deps.runtime.getMode(),
+            planEnabled: input.deps.runtime.getPlanEnabled(),
+            taskType: "workflow_child",
+            workspaceIdentity: inheritedConfig.workspaceIdentity,
+            workingDirectory: input.deps.workingDirectory,
+          }
+        : {}),
     },
     {
       ...createRuntimeDeps(input.deps, input.traceContext, input.childSessionId, {
@@ -142,9 +152,7 @@ export function createScriptWorkflowAgentRuntime(input: {
       ...(input.workflowSubmitPort && input.workflowSubmitSchema
         ? { workflowSubmitSchema: input.workflowSubmitSchema }
         : {}),
-      ...(input.workflowEscalatePort
-        ? { workflowEscalatePort: input.workflowEscalatePort }
-        : {}),
+      ...(input.workflowEscalatePort ? { workflowEscalatePort: input.workflowEscalatePort } : {}),
       ...(input.modelRequestAdmission
         ? { modelRequestAdmission: input.modelRequestAdmission }
         : {}),
@@ -222,6 +230,8 @@ function createRuntimeDeps(
     ...deps.runtime.createChildClientPorts(clientPortsContext),
     permissionService: deps.permissionService,
     sessionStore: deps.sessionStore,
+    socialAgentPort: deps.appOptions.socialAgentPort,
+    socialProjectPort: deps.appOptions.socialProjectPort,
     skillPort:
       deps.configResult.config.features.skill && deps.configResult.config.skills.enabled
         ? (deps.appOptions.skillPort ??

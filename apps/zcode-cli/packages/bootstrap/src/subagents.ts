@@ -1,12 +1,12 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { migrateUserSubagentMarkdown, migrateSubagentStateFile } from "@zcode/shared/node";
+import { migrateUserSubagentMarkdown, migrateSubagentStateFile } from "@social-harness/shared/node";
 import {
   parseAgentProfileFromMarkdown,
   type AgentProfile,
   type AgentProfileParseDiagnostic,
-} from "@zcode/core";
-import type { Logger, PluginMetadata } from "@zcode/contracts";
+} from "@social-harness/core";
+import type { Logger, PluginMetadata } from "@social-harness/contracts";
 import {
   createAgentStateId,
   createPluginAgentStateId,
@@ -15,7 +15,7 @@ import {
   type BuiltInSubagentModelSelectionOverrides,
   type BuiltInSubagentName,
   type PluginSubagentModelSelectionOverrides,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 
 interface LoadZCodeAgentProfilesInput {
   logger?: Logger;

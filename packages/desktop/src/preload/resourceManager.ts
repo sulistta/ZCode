@@ -1,14 +1,14 @@
 import { contextBridge, ipcRenderer } from "electron";
-import { PlatformChannels, formatZCodeRendererProcessName } from "@zcode/shared";
+import { PlatformChannels, formatZCodeRendererProcessName } from "@social-harness/shared";
 import type {
   ResourceUsageSnapshot,
   StorageCleanRequest,
   StorageCleanResult,
   StorageManagementBridge,
   StorageUsageSnapshot,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 
-process.title = formatZCodeRendererProcessName("Resource Manager");
+process.title = formatZCodeRendererProcessName("Social Harness Resource Manager");
 
 const storage: StorageManagementBridge = {
   startScan: (): Promise<{ jobId: string }> =>

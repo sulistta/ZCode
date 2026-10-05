@@ -1,4 +1,4 @@
-import { createHttpClientError } from "@zcode/contracts";
+import { createHttpClientError } from "@social-harness/contracts";
 
 export async function readResponseBody(
   response: Response,

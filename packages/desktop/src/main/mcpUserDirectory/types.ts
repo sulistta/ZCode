@@ -2,7 +2,7 @@
  * MCP 用户目录模块 - 类型和常量定义
  */
 
-import type { CliMcpSource, McpFileFormat } from "@zcode/shared";
+import type { CliMcpSource, McpFileFormat } from "@social-harness/shared";
 
 /**
  * MCP 配置键名类型
@@ -22,7 +22,7 @@ export interface McpSourceDescriptor {
 export const MCP_SOURCE_DESCRIPTORS: McpSourceDescriptor[] = [
   {
     source: "zcodeagentmcp",
-    configDirSegments: [".zcode", "cli"],
+    configDirSegments: [".social-harness", "v1", "cli"],
     fileName: "config.json",
     format: "json",
     configKeyName: "mcp.servers",

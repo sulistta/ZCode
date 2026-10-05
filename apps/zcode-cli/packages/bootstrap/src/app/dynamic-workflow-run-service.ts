@@ -38,7 +38,8 @@
 //      关闭之后 submit / amend / resume 直接抛——常驻池的关闭闸门本就挡住了命令，走到这里是
 //      接线错误，不该让 contracts 的拒绝枚举为它变宽（同不变式 1 的论证）。
 
-import type { DwfRunSessionListItem } from "@zcode/adapters/storage";
+import type { DwfRunSessionListItem } from "@social-harness/adapters/storage";
+import { createSocialWorkflowRunAccess } from "./social-workflow-run-access.js";
 import type {
   TraceContext,
   DynamicWorkflowRunEvent,
@@ -70,16 +71,16 @@ import type {
   ToolArtifactStorePort,
   WorkflowEscalatePort,
   WorkflowSubmitPort,
-} from "@zcode/contracts";
-import type { AgentRuntime } from "@zcode/core";
-import { WORKFLOW_RUNS_LIMITS } from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/contracts";
+import type { AgentRuntime } from "@social-harness/core";
+import { WORKFLOW_RUNS_LIMITS } from "@social-harness/shared/zcode-protocol-v4";
 import type {
   ActorSubmitProfile,
   ActorRef,
   Caps,
   JournalStorePort,
   PersonaSpec,
-} from "@zcode/dynamic-workflow";
+} from "@social-harness/dynamic-workflow";
 import { toProtocolEvent } from "./dynamic-workflow-run-launch.js";
 import { readWorkflowArtifactBytes } from "./dynamic-workflow-run-artifact-read.js";
 import { replayRunProgress } from "./dynamic-workflow-run-replay.js";
@@ -180,6 +181,8 @@ export interface DynamicWorkflowActorRuntimeInput {
 }
 
 export interface DynamicWorkflowRunServiceDeps {
+  capabilityScope?: "social-account";
+  accountWorkspacePath?: string;
   /** durable journal（dwf_* 表）。缺失即不构造本服务，见文件头不变式 3。 */
   journal: JournalStorePort;
   /**
@@ -304,6 +307,12 @@ export function createDynamicWorkflowRunService(
   deps: DynamicWorkflowRunServiceDeps,
 ): DynamicWorkflowRunService {
   const runs = new Map<string, RunRegistryEntry>();
+  const accountAccess = createSocialWorkflowRunAccess({
+    capabilityScope: deps.capabilityScope,
+    accountWorkspacePath: deps.accountWorkspacePath,
+    parentSessionId: deps.parentSessionId,
+    findRun: (id) => runs.get(id) ?? deps.journal.getRun(id),
+  });
   /**
    * 升级问答的停驻表。**一张，跨本服务名下所有在飞 run**：
    * qid 全局唯一正是为此——`resolveQuestion` 只收一个不透明 token，多 run 并发时让模型自己配对
@@ -379,11 +388,15 @@ export function createDynamicWorkflowRunService(
       request: DynamicWorkflowRunSubmitRequest,
     ): Promise<DynamicWorkflowRunSubmitResult> {
       assertOpen();
+      accountAccess.assertSubmit(request);
       return submitDynamicWorkflowRun(entryContext, request);
     },
 
     async amend(request: DynamicWorkflowRunAmendRequest): Promise<DynamicWorkflowRunAmendResult> {
       assertOpen();
+      accountAccess.assertSubmit(request);
+      if (!accountAccess.allowsMutation(request.predecessorRunId))
+        return { ok: false, reason: "run_not_found" };
       return amendDynamicWorkflowRun(entryContext, request);
     },
 
@@ -396,6 +409,7 @@ export function createDynamicWorkflowRunService(
 
     async resume(runId: string): Promise<DynamicWorkflowRunResumeResult> {
       assertOpen();
+      if (!accountAccess.allowsMutation(runId)) return { ok: false, reason: "not_found" };
       return resumeDynamicWorkflowRun(entryContext, runId);
     },
 
@@ -419,7 +433,9 @@ export function createDynamicWorkflowRunService(
       }
       // 活条目一并交给摘要：会话枚举面与快照 / 列表 / 详情共用同一条优先级（规则三），
       // 否则这一面会独自显示一个被外来写入标死的 run。
-      return rows.map((row) => toSessionSummary(row, runs.get(row.runId)));
+      return rows
+        .filter((row) => accountAccess.allowsRead(row.runId))
+        .map((row) => toSessionSummary(row, runs.get(row.runId)));
     },
 
     async replayProgressForSession(input: {
@@ -444,6 +460,7 @@ export function createDynamicWorkflowRunService(
       const payloads: DynamicWorkflowRunProgressPayload[] = [];
       // 枚举面最近更新在前；回放要最旧优先，reducer 的淘汰才与 live 时的到达顺序同形。
       for (const row of [...rows].reverse()) {
+        if (!accountAccess.allowsRead(row.runId)) continue;
         // 调用方内存里已有事件的 run（本进程跑过）与注册表在飞的 run 都不回放：
         // 它们的事件全在内存 store 里，再喂一遍只会让 run-started 把相位打回起点。
         if (input.excludeRunIds.has(row.runId) || runs.has(row.runId)) continue;
@@ -454,6 +471,7 @@ export function createDynamicWorkflowRunService(
     },
 
     async getTask(taskId: string): Promise<DynamicWorkflowRunSnapshot | undefined> {
+      if (!accountAccess.allowsRead(taskId)) return undefined;
       noteForeignTerminalRow(taskId);
       return snapshotOf(
         taskId,
@@ -471,6 +489,7 @@ export function createDynamicWorkflowRunService(
      * 对「这个 run 在跑什么」不会有两个答案。
      */
     async getScript(runId: string): Promise<string | undefined> {
+      if (!accountAccess.allowsRead(runId)) return undefined;
       return runs.get(runId)?.scriptText ?? deps.journal.getRun(runId)?.scriptText;
     },
 
@@ -478,6 +497,7 @@ export function createDynamicWorkflowRunService(
       taskId: string,
       options?: { signal?: AbortSignal },
     ): Promise<DynamicWorkflowRunSnapshot | undefined> {
+      if (!accountAccess.allowsRead(taskId)) return undefined;
       const entry = runs.get(taskId);
       // 不在注册表里：可能是本进程之前的 run（journal 有记录）或全然未知。两种都不可等待。
       if (entry === undefined) {
@@ -520,6 +540,7 @@ export function createDynamicWorkflowRunService(
       runId: string,
       initiator: DynamicWorkflowRunCancelInitiator = "user",
     ): Promise<boolean> {
+      if (!accountAccess.allowsMutation(runId)) return false;
       const entry = runs.get(runId);
       // 未知 run（或已结算）没有可中止的东西。返回 false 让上层归一成结构化的 not_found，
       // 而不是报告一次没发生的取消。
@@ -536,6 +557,7 @@ export function createDynamicWorkflowRunService(
       runId: string,
       options: DynamicWorkflowRunEventPage,
     ): Promise<DynamicWorkflowRunEvent[]> {
+      if (!accountAccess.allowsRead(runId)) return [];
       const page = deps.journal.listEvents(runId, {
         ...(options.afterSequence === undefined ? {} : { afterSequence: options.afterSequence }),
         ...(options.limit === undefined ? {} : { limit: options.limit }),
@@ -557,6 +579,7 @@ export function createDynamicWorkflowRunService(
      * 未知 runId 与「本 journal 没有产物读面」都回 `undefined`：对调用方是同一个业务事实。
      */
     async listArtifacts(runId: string): Promise<readonly DynamicWorkflowRunArtifact[] | undefined> {
+      if (!accountAccess.allowsRead(runId)) return undefined;
       return artifactsOf(runId, deps.journal).artifacts;
     },
 
@@ -569,6 +592,7 @@ export function createDynamicWorkflowRunService(
       artifactId: string,
       page: DynamicWorkflowRunArtifactItemPage,
     ): Promise<readonly DynamicWorkflowRunArtifactItem[]> {
+      if (!accountAccess.allowsRead(runId)) return [];
       return listArtifactItemsFrom(deps.journal, runId, artifactId, {
         ...(page.afterSequence === undefined ? {} : { afterSequence: page.afterSequence }),
         limit: page.limit,
@@ -588,6 +612,7 @@ export function createDynamicWorkflowRunService(
       artifactId: string,
       version: number,
     ): Promise<DynamicWorkflowRunArtifactBytes | undefined> {
+      if (!accountAccess.allowsRead(runId)) return undefined;
       return readWorkflowArtifactBytes(
         {
           journal: deps.journal,
@@ -608,6 +633,7 @@ export function createDynamicWorkflowRunService(
     async listWorkspaceNodes(
       runId: string,
     ): Promise<readonly DynamicWorkflowRunWorkspaceNode[] | undefined> {
+      if (!accountAccess.allowsRead(runId)) return undefined;
       return listWorkspaceNodesFrom(
         { journal: deps.journal, parentSessionId: deps.parentSessionId },
         runId,
@@ -620,6 +646,7 @@ export function createDynamicWorkflowRunService(
       ordinal: number,
       query: DynamicWorkflowRunWorkspaceNodeResultQuery,
     ): Promise<DynamicWorkflowRunWorkspaceNodeResult | undefined> {
+      if (!accountAccess.allowsRead(runId)) return undefined;
       return readWorkspaceNodeResultFrom(
         { journal: deps.journal, parentSessionId: deps.parentSessionId },
         runId,
@@ -638,6 +665,8 @@ export function createDynamicWorkflowRunService(
           runs,
           escalations,
           concurrencyCeiling,
+          allowsRun: accountAccess.allowsRead,
+          allowsWorkspace: accountAccess.allowsWorkspace,
         })),
   };
 }

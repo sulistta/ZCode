@@ -2,7 +2,7 @@ import {
   ProviderConfigService,
   type ProviderConfigLayerSnapshot,
   type ProviderConfigLayerUpdate,
-} from "@zcode/provider";
+} from "@social-harness/provider";
 import { NodeZCodeBuiltinProviderConfigSource } from "./zcode-builtin-provider-config-source.js";
 import {
   EndpointScopedZCodeBuiltinSource,
@@ -95,7 +95,7 @@ export class NodeProviderConfigRuntime {
       : this.#zcodeBuiltinSource.resolveActiveFilePath();
   }
 
-  get personalRepository(): import("@zcode/provider").PersonalProviderConfigRepository {
+  get personalRepository(): import("@social-harness/provider").PersonalProviderConfigRepository {
     return this.#personalRepository;
   }
 

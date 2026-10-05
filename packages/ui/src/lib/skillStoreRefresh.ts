@@ -1,9 +1,9 @@
-import type { ISkillsService } from "@zcode/services";
+import type { ISkillsService } from "@social-harness/services";
 import {
   normalizeAgentProviderToZCodeAgent,
-  ZCODE_AGENT_PROVIDER,
+  SOCIAL_HARNESS_AGENT_PROVIDER,
   type ZCodeProvider,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { useSkillStore } from "@/store/skillStore.js";
 
 export async function refreshSharedSkillStoreForWorkspace(params: {
@@ -19,7 +19,7 @@ export async function refreshSharedSkillStoreForWorkspace(params: {
   const skillStore = useSkillStore.getState();
   const normalizedWorkspaceIdentity = params.workspaceIdentity?.trim() || null;
   const normalizedProvider = normalizeAgentProviderToZCodeAgent(
-    params.provider ?? ZCODE_AGENT_PROVIDER,
+    params.provider ?? SOCIAL_HARNESS_AGENT_PROVIDER,
   );
   const refreshes: Promise<void>[] = [];
 

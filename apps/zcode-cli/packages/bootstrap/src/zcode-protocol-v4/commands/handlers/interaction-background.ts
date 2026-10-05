@@ -1,4 +1,4 @@
-import { PERMISSION_FULL_ACCESS_OPTION_ID } from "@zcode/shared/zcode-protocol-v4";
+import { PERMISSION_FULL_ACCESS_OPTION_ID } from "@social-harness/shared/zcode-protocol-v4";
 // 权限/后台命令组：resolveInteraction / cancelBackgroundWork。
 // - resolveInteraction：前向命令收口反向请求（permission/AskUserQuestion），经
 //   host.interactions（V4InteractionRegistry）投递给 broker 侧等待中的 deferred。
@@ -9,13 +9,13 @@ import type {
   CommandResult,
   SavedWorkflowStartRejectionReason,
   WorkflowRunSettingsRejectionReason,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import {
   BACKGROUND_WORK_CANCEL_REJECTED_FAULT_PREFIX,
   SAVED_WORKFLOW_START_REJECTED_FAULT_PREFIX,
   WORKFLOW_RUN_RESUME_REJECTED_FAULT_PREFIX,
   WORKFLOW_RUN_SETTINGS_REJECTED_FAULT_PREFIX,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import { requireRecord } from "../record-access.js";
 import type { V4CommandCoreHost } from "../types.js";
 
@@ -259,8 +259,12 @@ async function startSavedWorkflow(
   // 注意：方法必须经 app 调用（不可解构，实现可能依赖 this 绑定）。
   const result = await record.app.startSavedWorkflow({
     name: payload.name,
+    launchInputId: envelope.commandId,
     ...(payload.scope === undefined ? {} : { scope: payload.scope }),
     ...(payload.args === undefined ? {} : { args: payload.args }),
+    ...(payload.approvedSnapshot === undefined
+      ? {}
+      : { approvedSnapshot: payload.approvedSnapshot }),
   });
   if (!result.ok) throw new V4SavedWorkflowStartRejectedError(result.reason, result.message);
   return { type: "startSavedWorkflow", runId: result.runId, toolCallId: result.toolCallId };

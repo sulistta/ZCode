@@ -9,7 +9,7 @@ import {
   type WebSearchOutput,
   type WebSearchResultItem,
   type WebSearchSource,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 
 const MAX_SOURCE_LINKS = 20;
 

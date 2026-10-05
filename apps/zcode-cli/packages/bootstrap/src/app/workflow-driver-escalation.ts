@@ -14,14 +14,14 @@ import type {
   SessionId,
   WorkflowEscalateOutcome,
   WorkflowEscalatePort,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import {
   refToString,
   WorkflowError,
   type ActorRef,
   type PersonaSpec,
   type RunEvent,
-} from "@zcode/dynamic-workflow";
+} from "@social-harness/dynamic-workflow";
 import {
   ESCALATION_BUDGET_EXHAUSTED,
   MAX_ESCALATIONS_PER_ASK,

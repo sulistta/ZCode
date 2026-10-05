@@ -13,7 +13,6 @@ import { cjk } from "@streamdown/cjk";
 import { code } from "@streamdown/code";
 import { createMathPlugin } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
-import type { EditorInfo, FileStat, OpenInEditorOptions } from "@zcode/shared";
 import type { UIMessage } from "ai";
 import { ChevronLeftIcon, ChevronRightIcon, CopyIcon, ExternalLinkIcon } from "lucide-react";
 import remarkCjkFriendlyGfmStrikethrough from "remark-cjk-friendly-gfm-strikethrough";
@@ -71,7 +70,6 @@ import {
 import { STREAMDOWN_CONTROLS } from "@/components/ai-elements/streamdown-controls.js";
 import { resolveMessageLinkOpenTarget } from "@/embeddedBrowserHelpers.js";
 import type { CodeViewerSource } from "@/lib/codeViewer.js";
-import { persistLastSelectedEditorId, readLastSelectedEditorId } from "@/lib/editorPreference.js";
 import {
   FileDisplayIcon,
   FOLDER_FILE_ICON_SRC,
@@ -84,24 +82,20 @@ import {
 } from "@/lib/markdownFileLink.js";
 import { stripBalancedAssistantPathQuotes } from "@/lib/assistantPathQuotes.js";
 import { getPathLeaf } from "@/lib/path.js";
-import { getWorkspaceFileRelativePath } from "@/workspace-file-tree/model.js";
-import { resolveWorkspaceEditorSelection } from "@/lib/workspaceEditorSelection.js";
-import { sortInstalledEditorsForFileTree } from "@/workspace-file-tree/helpers.js";
+import { getWorkspaceFileRelativePath } from "@/lib/workspacePaths.js";
 import type { CodePreviewSettings } from "@/lib/codePreviewSettings.js";
 import { DEFAULT_CODE_PREVIEW_SETTINGS } from "@/lib/codePreviewSettings.js";
 import { useZCodeStore } from "@/store/StoreProvider.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
-import { useOptionalPlatform, usePlatform } from "@/hooks/usePlatform.js";
+import { useOptionalPlatform } from "@/hooks/usePlatform.js";
 import { useFileContextActions } from "@/hooks/useFileContextActions.js";
-import { useWorkspaceOpenInEditorTarget } from "@/hooks/useWorkspaceOpenInEditorTarget.js";
-import { useOptionalServices } from "@/hooks/useServices.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 import type { Theme } from "@/useTheme.js";
 import { createZCodeFileCitationRemarkPlugin } from "@/lib/zcodeFileCitationRemarkPlugin.js";
 import { windowsFileLinkEscapeRemarkPlugin } from "@/lib/windowsFileLinkEscapeRemarkPlugin.js";
 import { projectZCodeFileCitations } from "@/lib/zcodeFileCitation.js";
-import { rewriteMarkdownArtifactImageSources } from "@zcode/shared";
+import { rewriteMarkdownArtifactImageSources } from "@social-harness/shared";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
@@ -390,7 +384,7 @@ export interface MessageFileLinkTarget {
   path: string;
   label: string;
   /** 仅用于显式尾随斜杠的目录展示提示；打开第三方应用前必须重新 stat。 */
-  pathKind?: NonNullable<OpenInEditorOptions["pathKind"]>;
+  pathKind?: "file" | "directory";
   relativePath?: string;
   workspacePath?: string;
   workspaceIdentity?: string;
@@ -956,33 +950,6 @@ export function buildMessageFileLinkTarget(input: {
   };
 }
 
-export async function openMessageFileLinkInEditor({
-  editorId,
-  fileLink,
-  openInEditor,
-  remoteTarget,
-  statFile,
-}: {
-  editorId: string;
-  fileLink: MessageFileLinkTarget;
-  openInEditor: (
-    editorId: string,
-    path: string,
-    options: OpenInEditorOptions,
-  ) => Promise<{ success: boolean; error?: string }>;
-  remoteTarget?: OpenInEditorOptions["remoteTarget"];
-  statFile: (params: { path: string }) => Promise<Pick<FileStat, "type">>;
-}) {
-  // Markdown 渲染层无法从名称可靠判断文件/目录。这里在动作发生时通过
-  // 当前 workspace scope 的 file service 取真实类型，stat 失败时不会调用本机应用。
-  const fileStat = await statFile({ path: fileLink.path });
-  return openInEditor(editorId, fileLink.path, {
-    pathKind: fileStat.type,
-    remoteTarget,
-    workspaceIdentity: fileLink.workspaceIdentity,
-  });
-}
-
 function trimCodeFenceTrailingNewlines(codeText: string): string {
   return codeText.replace(/\n+$/, "");
 }
@@ -1115,95 +1082,9 @@ interface MessageFileLinkProps {
 
 function MessageFileLink({ className, fileIconSrc, fileLink, onOpen }: MessageFileLinkProps) {
   const { intl } = useZCodeIntl();
-  const platform = usePlatform();
-  const services = useOptionalServices();
   const fileActions = useFileContextActions();
-  const openInEditorContext = useWorkspaceOpenInEditorTarget({
-    workspacePath: fileLink.workspacePath,
-    workspaceIdentity: fileLink.workspaceIdentity,
-    workspaceRemoteSessionId: fileLink.workspaceRemoteSessionId,
-  });
-  const [editors, setEditors] = useState<EditorInfo[]>([]);
-  const [editorsLoaded, setEditorsLoaded] = useState(false);
-  const [loadingEditors, setLoadingEditors] = useState(false);
-  const sortedEditors = useMemo(
-    () =>
-      openInEditorContext.isRemoteWorkspace && !openInEditorContext.remoteTarget
-        ? []
-        : resolveWorkspaceEditorSelection({
-            installedEditors: editors,
-            selectedEditorId: null,
-            remoteTarget: openInEditorContext.remoteTarget,
-          }).availableEditors,
-    [editors, openInEditorContext],
-  );
-  const selectedEditor = useMemo(() => {
-    const selectedEditorId = readLastSelectedEditorId();
-    return (
-      sortedEditors.find((editor) => editor.id === selectedEditorId) ?? sortedEditors[0] ?? null
-    );
-  }, [sortedEditors]);
-
-  const loadEditors = useCallback(async () => {
-    if (editorsLoaded || loadingEditors) {
-      return;
-    }
-
-    setLoadingEditors(true);
-    try {
-      const installedEditors = await platform.getInstalledEditors();
-      setEditors(installedEditors);
-      setEditorsLoaded(true);
-    } catch (error) {
-      logger.warn("[MessageResponse] 获取 markdown 链接打开方式失败", {
-        path: fileLink.path,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    } finally {
-      setLoadingEditors(false);
-    }
-  }, [editorsLoaded, fileLink.path, loadingEditors, platform]);
-
-  const handleOpenInEditor = (editor: EditorInfo) => {
-    if (!services) {
-      logger.warn("[MessageResponse] 无法确认 markdown 链接文件类型", {
-        editorId: editor.id,
-        path: fileLink.path,
-        error: "workspace-file-service-unavailable",
-      });
-      return;
-    }
-
-    persistLastSelectedEditorId(editor.id);
-    void openMessageFileLinkInEditor({
-      editorId: editor.id,
-      fileLink,
-      openInEditor: (editorId, path, options) => platform.openInEditor(editorId, path, options),
-      remoteTarget: openInEditorContext.remoteTarget,
-      statFile: (params) => services.fileService.stat(params),
-    })
-      .then((result) => {
-        if (result.success) {
-          return;
-        }
-
-        logger.warn("[MessageResponse] 第三方 App 打开 markdown 文件链接失败", {
-          editorId: editor.id,
-          path: fileLink.path,
-          error: result.error ?? "unknown-error",
-        });
-      })
-      .catch((error) => {
-        logger.warn("[MessageResponse] 无法确认 markdown 链接文件类型", {
-          editorId: editor.id,
-          path: fileLink.path,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      });
-  };
-
   return (
-    <ContextMenu onOpenChange={(open) => open && void loadEditors()}>
+    <ContextMenu>
       <ContextMenuTrigger asChild>
         <MessageFileLinkButton
           className={className}
@@ -1218,21 +1099,6 @@ function MessageFileLink({ className, fileIconSrc, fileLink, onOpen }: MessageFi
         <ContextMenuItem onSelect={onOpen}>
           {intl.formatMessage({ id: "common.open" })}
         </ContextMenuItem>
-        <ContextMenuSeparator />
-        {selectedEditor ? (
-          sortedEditors.map((editor) => (
-            <ContextMenuItem key={editor.id} onSelect={() => handleOpenInEditor(editor)}>
-              <img src={editor.iconDataUrl} alt={editor.name} className="size-4 shrink-0" />
-              <span>{editor.name}</span>
-            </ContextMenuItem>
-          ))
-        ) : (
-          <ContextMenuItem disabled>
-            {intl.formatMessage({
-              id: loadingEditors ? "common.loading" : "chat.previewCards.noOpenApps",
-            })}
-          </ContextMenuItem>
-        )}
         <ContextMenuSeparator />
         <ContextMenuItem
           onSelect={() => void fileActions.copyAbsolutePath({ path: fileLink.path })}

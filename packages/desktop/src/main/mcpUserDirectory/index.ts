@@ -14,10 +14,11 @@ import type {
   SettingsDirectorySource,
   NativeMcpServerRecord,
   SaveCliMcpToUserDirectoryRequest,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type { McpConfigKeyName } from "./types.js";
 import { isRecord, readJsonObject, writeTextAtomic } from "./utils.js";
 import { migrateLegacyCommonMcp } from "./legacy.js";
+import { getSocialHarnessDataRootDir } from "@social-harness/services/node";
 
 // 重新导出类型和函数
 export type { McpConfigKeyName, McpSourceDescriptor } from "./types.js";
@@ -34,10 +35,10 @@ interface DirectoryMcpDescriptor {
   configKeyName: McpConfigKeyName;
 }
 
-const ZCODE_MCP_DESCRIPTOR: DirectoryMcpDescriptor = {
+const SOCIAL_HARNESS_MCP_DESCRIPTOR: DirectoryMcpDescriptor = {
   source: "zcodeagentmcp",
   directorySource: "zcode",
-  userConfigDirSegments: [".zcode", "cli"],
+  userConfigDirSegments: ["cli"],
   workspaceConfigDirSegments: [".zcode"],
   fileName: "config.json",
   format: "json",
@@ -65,7 +66,7 @@ function resolveUserHomeDir(): string {
 }
 
 const DIRECTORY_MCP_DESCRIPTORS: readonly DirectoryMcpDescriptor[] = [
-  ZCODE_MCP_DESCRIPTOR,
+  SOCIAL_HARNESS_MCP_DESCRIPTOR,
   AGENTS_MCP_DESCRIPTOR,
 ];
 
@@ -74,7 +75,12 @@ function buildDirectoryConfigPath(
   scope: Exclude<McpScope, "common">,
   workspacePath?: string,
 ): string {
-  const baseDir = scope === "user" ? resolveUserHomeDir() : workspacePath;
+  const baseDir =
+    scope === "user"
+      ? descriptor.directorySource === "zcode"
+        ? getSocialHarnessDataRootDir()
+        : resolveUserHomeDir()
+      : workspacePath;
   if (!baseDir) {
     throw new Error(
       `Missing workspace path for ${descriptor.directorySource} workspace MCP config`,
@@ -86,7 +92,7 @@ function buildDirectoryConfigPath(
 }
 
 function getUserCliConfigPath(): string {
-  return buildDirectoryConfigPath(ZCODE_MCP_DESCRIPTOR, "user");
+  return buildDirectoryConfigPath(SOCIAL_HARNESS_MCP_DESCRIPTOR, "user");
 }
 
 function buildDirectoryMcpLocation(
@@ -336,7 +342,7 @@ async function readDirectoryServersFromPreferredSources(
   workspacePath?: string,
 ): Promise<NativeMcpServerRecord[]> {
   const zcodeServers = await readDirectoryServersFromFile(
-    ZCODE_MCP_DESCRIPTOR,
+    SOCIAL_HARNESS_MCP_DESCRIPTOR,
     scope,
     workspacePath,
   );
@@ -352,9 +358,9 @@ async function writeZCodeServersToFile(
   servers: Record<string, Record<string, unknown>>,
   workspacePath?: string,
 ): Promise<void> {
-  const filePath = buildDirectoryConfigPath(ZCODE_MCP_DESCRIPTOR, scope, workspacePath);
+  const filePath = buildDirectoryConfigPath(SOCIAL_HARNESS_MCP_DESCRIPTOR, scope, workspacePath);
   const current = (await readJsonObject(filePath)) ?? {};
-  const next = writeServerMapToJson(current, ZCODE_MCP_DESCRIPTOR.configKeyName, servers);
+  const next = writeServerMapToJson(current, SOCIAL_HARNESS_MCP_DESCRIPTOR.configKeyName, servers);
   await writeTextAtomic(filePath, `${JSON.stringify(next, null, 2)}\n`);
 }
 
@@ -385,7 +391,7 @@ export async function saveCliMcpToUserDirectory(
     const scope: Exclude<McpScope, "common"> = payload.projectPath ? "workspace" : "user";
     const location =
       payload.location ??
-      buildDirectoryMcpLocation(ZCODE_MCP_DESCRIPTOR, scope, payload.projectPath);
+      buildDirectoryMcpLocation(SOCIAL_HARNESS_MCP_DESCRIPTOR, scope, payload.projectPath);
     await writeServerEnabledToFile(
       findDescriptorByLocation(location),
       location,
@@ -398,7 +404,7 @@ export async function saveCliMcpToUserDirectory(
 
   const scope: Exclude<McpScope, "common"> = payload.projectPath ? "workspace" : "user";
   const existingServers = await readDirectoryServersFromFile(
-    ZCODE_MCP_DESCRIPTOR,
+    SOCIAL_HARNESS_MCP_DESCRIPTOR,
     scope,
     payload.projectPath,
   );

@@ -1,4 +1,4 @@
-import type { Locale } from "@zcode/shared";
+import type { Locale } from "@social-harness/shared";
 
 /**
  * Windows CUA 操作提示条的呈现层：文案、尺寸与 HTML。
@@ -13,8 +13,8 @@ export const INDICATOR_SHADOW_INSET = { top: 6, right: 8, bottom: 12, left: 8 } 
 
 function indicatorCopy(locale: Locale): { text: string; width: number } {
   return locale === "zh-CN"
-    ? { text: "ZCode 正在操作电脑", width: 234 }
-    : { text: "ZCode is controlling your computer", width: 308 };
+    ? { text: "Social Harness 正在操作电脑", width: 300 }
+    : { text: "Social Harness is controlling your computer", width: 368 };
 }
 
 export function indicatorWindowSize(locale: Locale): { width: number; height: number } {

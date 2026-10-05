@@ -21,6 +21,15 @@ import { bashOutputDisplaySchema } from "../bash-output-display.js";
 export * from "../background-bash-output.js";
 import { executionOutputPreviewSchema } from "../execution-output-preview.js";
 import { z } from "zod";
+import {
+  approvedWorkflowScriptSchema,
+  approvedWorkflowSnapshotSchema,
+} from "../approved-workflow-snapshot.js";
+import {
+  zcodeSavedWorkflowArgsDeclarationSchema,
+  zcodeSavedWorkflowMetaSchema,
+} from "../saved-workflow-metadata.js";
+export * from "../saved-workflow-metadata.js";
 export * from "../process-diagnostic.js";
 import { errorAttributionSchema } from "../zcode-protocol-v4/snapshot.js";
 import { modelSelectionSchema } from "../model-selection.js";
@@ -38,6 +47,14 @@ import { browserCommandResultSchema } from "../browser-use/result.js";
 import { integratedTerminalShellSelectionSchema } from "../validationAppSettings.js";
 import { zcodeTaskModeSchema } from "../zcode-task-mode-schema.js";
 import { OFFICIAL_MCP_AUTH_PORT_FAILURE_REASONS } from "../official-mcp-auth.js";
+import {
+  socialProjectCommandResultSchema,
+  socialProjectIdSchema,
+  socialProjectOperationSchema,
+  socialProjectReadModelSchema,
+  socialProjectSummarySchema,
+} from "../social-project.js";
+import { socialAgentQueryParamsSchema, socialAgentQueryResultSchema } from "../social-agent.js";
 import {
   zcodeDeliveryKindSchema,
   zcodeMessageVisibilitySchema,
@@ -69,10 +86,10 @@ export {
   type HookInvocationRow,
 } from "../zcode-protocol-v4/rows.js";
 
-export const ZCODE_PROTOCOL_NAME = "ZCode Protocol" as const;
-export const ZCODE_PROTOCOL_VERSION = 1 as const;
+export const SOCIAL_HARNESS_PROTOCOL_NAME = "ZCode Protocol" as const;
+export const SOCIAL_HARNESS_PROTOCOL_VERSION = 1 as const;
 // V4 wire 与 legacy 主协议并存；禁止为了 V4 physical framing 改写 legacy 版本。
-export const ZCODE_PROTOCOL_V4_WIRE_VERSION = 3 as const;
+export const SOCIAL_HARNESS_PROTOCOL_V4_WIRE_VERSION = 3 as const;
 export const zcodeRuntimeCapabilitiesSchema = z.object({
   independentPlanState: z.boolean().optional(),
 });
@@ -452,7 +469,7 @@ export const zcodeMcpTelemetryEventSchema = z.discriminatedUnion("kind", [
 export type ZCodeMcpTelemetryEvent = z.infer<typeof zcodeMcpTelemetryEventSchema>;
 
 /** MCP 每五分钟只探测一次，周期由生产者与设备总量过期判据共用。 */
-export const ZCODE_MCP_RESOURCE_SAMPLE_INTERVAL_MS = 5 * 60_000;
+export const SOCIAL_HARNESS_MCP_RESOURCE_SAMPLE_INTERVAL_MS = 5 * 60_000;
 
 export const zcodeMcpResourceSampleSchema = z
   .object({
@@ -1016,8 +1033,8 @@ export const zcodeSessionStateSnapshotSchema = z
   .object({
     protocol: z
       .object({
-        name: z.literal(ZCODE_PROTOCOL_NAME),
-        version: z.literal(ZCODE_PROTOCOL_VERSION),
+        name: z.literal(SOCIAL_HARNESS_PROTOCOL_NAME),
+        version: z.literal(SOCIAL_HARNESS_PROTOCOL_VERSION),
       })
       .strict(),
     session: zcodeSessionInfoSchema,
@@ -1681,7 +1698,7 @@ export type ZCodeSessionRuntimePreferencesScope = z.infer<
   typeof zcodeSessionRuntimePreferencesScopeSchema
 >;
 
-export const ZCODE_SESSION_RUNTIME_PREFERENCES_REQUEST_TIMEOUT_MS = 15_000;
+export const SOCIAL_HARNESS_SESSION_RUNTIME_PREFERENCES_REQUEST_TIMEOUT_MS = 15_000;
 
 export const zcodeSessionRequestRuntimePreferencesParamsSchema = z
   .object({
@@ -1693,7 +1710,7 @@ export type ZCodeSessionRequestRuntimePreferencesParams = z.infer<
   typeof zcodeSessionRequestRuntimePreferencesParamsSchema
 >;
 
-export const DEFAULT_ZCODE_MODEL_CONTEXT_BUDGET_STRATEGY = "preflight-v1" as const;
+export const DEFAULT_SOCIAL_HARNESS_MODEL_CONTEXT_BUDGET_STRATEGY = "preflight-v1" as const;
 
 // 3.12.2：legacy 仅为旧协议接收兼容；Runtime 一律归一为上面的共享默认策略。
 export const zcodeModelContextBudgetStrategySchema = z.enum(["legacy", "preflight-v1"]);
@@ -1707,7 +1724,7 @@ export const zcodeSessionRuntimePreferencesResultSchema = z
     integratedTerminalShell: integratedTerminalShellSelectionSchema.optional(),
     // 兼容旧 Host：缺少字段时在协议解析边界使用当前默认策略。
     modelContextBudgetStrategy: zcodeModelContextBudgetStrategySchema.default(
-      DEFAULT_ZCODE_MODEL_CONTEXT_BUDGET_STRATEGY,
+      DEFAULT_SOCIAL_HARNESS_MODEL_CONTEXT_BUDGET_STRATEGY,
     ),
   })
   .strict();
@@ -2147,7 +2164,7 @@ export const zcodeProviderUpdateAccountConfigParamsSchema = z
   .object({
     revision: nonEmptyString,
     basedOnZCodeBuiltinRevision: nonEmptyString,
-    // Provider Config 的字段校验由 @zcode/provider 负责；协议层只约束可传输信封。
+    // Provider Config 的字段校验由 @social-harness/provider 负责；协议层只约束可传输信封。
     providers: z.record(z.string(), z.unknown()),
     // 账号状态与 Overlay 必须一起传递，否则 Worker 会丢失非当前套餐的执行门禁。
     states: z.record(
@@ -2477,7 +2494,7 @@ export type ZCodeOfficialMcpAuthHeadersResponse = z.infer<
 >;
 
 // ── Plugin management (list + enable/disable) ──
-// 镜像 @zcode/contracts 的 PluginMetadata, 仅保留 UI 需要的可序列化字段。
+// 镜像 @social-harness/contracts 的 PluginMetadata, 仅保留 UI 需要的可序列化字段。
 export const zcodePluginOptionValueSchema = z.union([z.string(), z.number(), z.boolean()]);
 export type ZCodePluginOptionValue = z.infer<typeof zcodePluginOptionValueSchema>;
 export const zcodePluginScopeSchema = z.enum(["user", "workspace"]);
@@ -2684,38 +2701,10 @@ export type ZCodeSkillsReferenceCatalogResult = z.infer<
 
 // ── 已保存工作流的 GUI 中枢──
 // workspace 级、无会话的五个方法，照 skills/referenceCatalog 的先例：每次调用现扫
-// `<cwd>/.zcode/workflows/`（挂载时快照会漏掉手改的文件）。形状与 @zcode/contracts 的
+// `<cwd>/.zcode/workflows/`（挂载时快照会漏掉手改的文件）。形状与 @social-harness/contracts 的
 // saved-workflow.ts 逐字对齐——依赖方向是 contracts → shared，所以这里结构化地再声明一遍，
 // 而不是 import；两边的 strict 形状由 bootstrap 侧的协议测试互相钉住。
-export const zcodeSavedWorkflowArgTypeSchema = z.enum(["string", "number", "boolean", "json"]);
-export type ZCodeSavedWorkflowArgType = z.infer<typeof zcodeSavedWorkflowArgTypeSchema>;
-export const zcodeSavedWorkflowArgDeclarationSchema = z
-  .object({
-    type: zcodeSavedWorkflowArgTypeSchema,
-    description: z.string().optional(),
-    required: z.boolean().optional(),
-    default: z.unknown().optional(),
-  })
-  .strict();
-export type ZCodeSavedWorkflowArgDeclaration = z.infer<
-  typeof zcodeSavedWorkflowArgDeclarationSchema
->;
-export const zcodeSavedWorkflowArgsDeclarationSchema = z.record(
-  z.string(),
-  zcodeSavedWorkflowArgDeclarationSchema,
-);
-export type ZCodeSavedWorkflowArgsDeclaration = z.infer<
-  typeof zcodeSavedWorkflowArgsDeclarationSchema
->;
-export const zcodeSavedWorkflowMetaSchema = z
-  .object({
-    description: nonEmptyString,
-    whenToUse: nonEmptyString.optional(),
-    args: zcodeSavedWorkflowArgsDeclarationSchema.optional(),
-  })
-  .strict();
-export type ZCodeSavedWorkflowMeta = z.infer<typeof zcodeSavedWorkflowMetaSchema>;
-// 作用域两档：项目档落 `<cwd>/.zcode/workflows/`、全局档落 agent 机器的 `~/.zcode/workflows/`。作用域由文件所在目录推得，frontmatter 不存 scope。
+// 作用域两档：项目档落 `<cwd>/.zcode/workflows/`、全局档落 Social Harness 数据根。作用域由文件所在目录推得，frontmatter 不存 scope。
 export const zcodeSavedWorkflowScopeSchema = z.enum(["project", "global"]);
 export type ZCodeSavedWorkflowScope = z.infer<typeof zcodeSavedWorkflowScopeSchema>;
 export const zcodeSavedWorkflowEntrySchema = z
@@ -2752,7 +2741,7 @@ const zcodeSavedWorkflowFailureSchema = z
 export const zcodeWorkflowsListParamsSchema = z
   .object({
     workspace: zcodeWorkspaceRefSchema,
-    // 缺省即 `project`（本项目档）。给 `global` 时改扫本机 `~/.zcode/workflows/`；此时 `workspace`
+    // 缺省即 `project`（本项目档）。给 `global` 时改扫本机 Social Harness 全局 workflow 根；此时 `workspace`
     // 仍必填，但只是**载体运行时**——协议处理器对全局档不读它的路径。
     scope: zcodeSavedWorkflowScopeSchema.optional(),
   })
@@ -2793,6 +2782,55 @@ export const zcodeWorkflowsGetResultSchema = z.union([
 ]);
 export type ZCodeWorkflowsGetResult = z.infer<typeof zcodeWorkflowsGetResultSchema>;
 
+export const zcodeWorkflowsSaveParamsSchema = z
+  .object({
+    workspace: zcodeWorkspaceRefSchema,
+    name: nonEmptyString,
+    scope: zcodeSavedWorkflowScopeSchema.optional(),
+    meta: zcodeSavedWorkflowMetaSchema,
+    script: approvedWorkflowScriptSchema,
+  })
+  .strict();
+export type ZCodeWorkflowsSaveParams = z.infer<typeof zcodeWorkflowsSaveParamsSchema>;
+export const zcodeWorkflowsSaveResultSchema = z.union([
+  z
+    .object({
+      ok: z.literal(true),
+      path: nonEmptyString,
+      scope: zcodeSavedWorkflowScopeSchema,
+      overwritten: z.boolean(),
+    })
+    .strict(),
+  zcodeSavedWorkflowFailureSchema,
+  z
+    .object({
+      ok: z.literal(false),
+      reason: z.literal("compile_failed"),
+      detail: z.string().max(8_192),
+    })
+    .strict(),
+]);
+export type ZCodeWorkflowsSaveResult = z.infer<typeof zcodeWorkflowsSaveResultSchema>;
+
+export const zcodeWorkflowsValidateParamsSchema = z
+  .object({
+    workspace: zcodeWorkspaceRefSchema,
+    approvedSnapshot: approvedWorkflowSnapshotSchema,
+  })
+  .strict();
+export type ZCodeWorkflowsValidateParams = z.infer<typeof zcodeWorkflowsValidateParamsSchema>;
+export const zcodeWorkflowsValidateResultSchema = z.union([
+  z.object({ ok: z.literal(true), approvedSnapshot: approvedWorkflowSnapshotSchema }).strict(),
+  z
+    .object({
+      ok: z.literal(false),
+      reason: z.enum(["invalid_name", "not_found", "invalid_args", "compile_failed"]),
+      message: z.string().max(8_192),
+    })
+    .strict(),
+]);
+export type ZCodeWorkflowsValidateResult = z.infer<typeof zcodeWorkflowsValidateResultSchema>;
+
 export const zcodeWorkflowsUpdateMetaParamsSchema = z
   .object({
     workspace: zcodeWorkspaceRefSchema,
@@ -2824,13 +2862,13 @@ export const zcodeWorkflowsDeleteResultSchema = z.union([
 ]);
 export type ZCodeWorkflowsDeleteResult = z.infer<typeof zcodeWorkflowsDeleteResultSchema>;
 
-export const ZCODE_WORKFLOWS_RUNS_MAX_LIMIT = 50;
+export const SOCIAL_HARNESS_WORKFLOWS_RUNS_MAX_LIMIT = 50;
 export const zcodeWorkflowsRunsParamsSchema = z
   .object({
     workspace: zcodeWorkspaceRefSchema,
     /** 只要这个名字的 run（`dwf_run.name` 字面等值）；缺省即本项目全部 run。 */
     name: nonEmptyString.optional(),
-    limit: z.number().int().min(1).max(ZCODE_WORKFLOWS_RUNS_MAX_LIMIT),
+    limit: z.number().int().min(1).max(SOCIAL_HARNESS_WORKFLOWS_RUNS_MAX_LIMIT),
     // 缺省 `project`：只查 `dwf_run.cwd === workspacePath` 的 run。`global` 时**不**按 cwd 过滤，
     // 跨所有项目取该名字的运行历史（全局工作流在任何项目里跑，历史因此跨 cwd）；结果行带 `cwd`
     // 供 GUI 标项目。`workspace` 语义同 list（全局档只当载体）。
@@ -3349,7 +3387,9 @@ export const zcodeAutomationProtocolSchema = z
     automationId: nonEmptyString,
     title: z.string(),
     cronExpr: nonEmptyString,
-    prompt: nonEmptyString,
+    prompt: z.string(),
+    recipeSnapshot: approvedWorkflowSnapshotSchema.optional(),
+    recipeSnapshotError: z.literal("invalid_recipe_snapshot").optional(),
     modelSelection: modelSelectionSchema.optional(),
     mode: zcodeTaskModeSchema.optional(),
     targetTaskId: nonEmptyString.optional(),
@@ -3557,6 +3597,31 @@ export const zcodeOffPeakListResultSchema = z
   .strict();
 export type ZCodeOffPeakListProtocolResult = z.infer<typeof zcodeOffPeakListResultSchema>;
 
+export const zcodeSocialProjectListParamsSchema = z.object({}).strict();
+export const zcodeSocialProjectListResultSchema = z
+  .object({ projects: z.array(socialProjectSummarySchema) })
+  .strict();
+export const zcodeSocialProjectGetParamsSchema = z
+  .object({ projectId: socialProjectIdSchema })
+  .strict();
+export const zcodeSocialProjectGetResultSchema = z
+  .object({ project: socialProjectReadModelSchema.nullable() })
+  .strict();
+export const zcodeSocialProjectCommandParamsSchema = z
+  .object({
+    projectId: socialProjectIdSchema,
+    commandId: socialProjectIdSchema,
+    expectedRevision: z.number().int().nonnegative(),
+    operation: socialProjectOperationSchema,
+  })
+  .strict();
+export const zcodeSocialProjectCommandResultSchema = z
+  .object({ result: socialProjectCommandResultSchema })
+  .strict();
+// 准备命令与只读查询共享严格协议；账户 scope 始终由 Host 验证，不接受模型覆盖。
+export const zcodeSocialAgentQueryParamsSchema = socialAgentQueryParamsSchema;
+export const zcodeSocialAgentQueryResultSchema = socialAgentQueryResultSchema;
+
 export const zcodeProtocolMethods = {
   runtimeCapabilities: "runtime/capabilities",
   computerUseOperationEvent: "computer-use/operation-event",
@@ -3618,6 +3683,8 @@ export const zcodeProtocolMethods = {
   // 已保存工作流的 GUI 中枢：workspace 级、无会话。
   workflowsList: "workflows/list",
   workflowsGet: "workflows/get",
+  workflowsSave: "workflows/save",
+  workflowsValidate: "workflows/validate",
   workflowsUpdateMeta: "workflows/updateMeta",
   workflowsDelete: "workflows/delete",
   workflowsRuns: "workflows/runs",
@@ -3643,6 +3710,10 @@ export const zcodeProtocolMethods = {
   automationCheckTaskBinding: "automation/checkTaskBinding",
   automationList: "automation/list",
   automationDelete: "automation/delete",
+  socialProjectList: "socialProject/list",
+  socialProjectGet: "socialProject/get",
+  socialProjectCommand: "socialProject/command",
+  socialAgentQuery: "socialAgent/query",
   // Off-Peak 会话内创建：与 automation 兄弟并列的独立方法族。
   offPeakCreate: "offPeak/create",
   offPeakList: "offPeak/list",
@@ -3685,6 +3756,22 @@ export const zcodeProtocolSessionMethodContracts = {
   [zcodeProtocolMethods.interactionBrowserExecute]: {
     params: zcodeBrowserExecuteParamsSchema,
     result: zcodeBrowserExecuteResultSchema,
+  },
+  [zcodeProtocolMethods.socialProjectList]: {
+    params: zcodeSocialProjectListParamsSchema,
+    result: zcodeSocialProjectListResultSchema,
+  },
+  [zcodeProtocolMethods.socialProjectGet]: {
+    params: zcodeSocialProjectGetParamsSchema,
+    result: zcodeSocialProjectGetResultSchema,
+  },
+  [zcodeProtocolMethods.socialProjectCommand]: {
+    params: zcodeSocialProjectCommandParamsSchema,
+    result: zcodeSocialProjectCommandResultSchema,
+  },
+  [zcodeProtocolMethods.socialAgentQuery]: {
+    params: zcodeSocialAgentQueryParamsSchema,
+    result: zcodeSocialAgentQueryResultSchema,
   },
 } as const satisfies Partial<
   Record<ZCodeProtocolMethod, { params: z.ZodTypeAny; result: z.ZodTypeAny }>

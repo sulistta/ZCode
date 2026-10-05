@@ -21,8 +21,8 @@ export interface ServerLayout {
 }
 
 function getDefaultServerDataRoot(): string {
-  const configured = process.env.ZCODE_DATA_BASE_DIR?.trim();
-  return join(configured || homedir(), ".zcode", "server");
+  const configured = process.env.SOCIAL_HARNESS_DATA_BASE_DIR?.trim();
+  return join(configured || homedir(), ".social-harness", "v1", "server");
 }
 
 export function resolveServerLayout(serverRoot = getDefaultServerDataRoot()): ServerLayout {
@@ -79,8 +79,11 @@ export async function resolveCanonicalServerLayout(
 
 function inferDataBaseDir(serverRoot: string): string {
   const parent = dirname(serverRoot);
-  if (basename(serverRoot) === "server" && basename(parent) === ".zcode") {
-    return dirname(parent);
+  if (basename(serverRoot) === "server" && basename(parent) === "v1") {
+    const socialHarnessDir = dirname(parent);
+    if (basename(socialHarnessDir) === ".social-harness") {
+      return dirname(socialHarnessDir);
+    }
   }
   // 非标准的显式 server root 仍保持隔离，不向其父目录扩散 Agent/SQLite 数据。
   return serverRoot;

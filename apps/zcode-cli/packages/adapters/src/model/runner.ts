@@ -6,7 +6,7 @@ import {
   ModelErrorCode,
   ModelProtocolError,
   getCurrentModelInvocationContext,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type {
   Logger,
   Model,
@@ -17,8 +17,8 @@ import type {
   ModelStatusSink,
   ModelStreamEvent,
   ModelTextResult,
-} from "@zcode/contracts";
-import type { RegistryModelConfig, RegistryProviderConfig } from "@zcode/provider";
+} from "@social-harness/contracts";
+import type { RegistryModelConfig, RegistryProviderConfig } from "@social-harness/provider";
 import {
   AiSdkModelExecution,
   type AiSdkResolvedModel,

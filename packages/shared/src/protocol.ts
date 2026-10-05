@@ -97,15 +97,6 @@ export type IntegratedTerminalShellSelection =
       path: string;
     };
 
-/** 当前 host 可识别的 Windows shell 选项。 */
-export interface IntegratedTerminalShellOption {
-  dialect: IntegratedTerminalShellDialect;
-  id: string;
-  label: string;
-  path: string;
-  source: "system" | "path";
-}
-
 /** 默认语言 */
 export const DEFAULT_LOCALE: Locale = "zh-CN";
 
@@ -247,10 +238,6 @@ export interface AppSettings {
   shortcutBindings?: Record<string, string[]>;
   /** 界面语言偏好；locale 保存偏好解析后的实际语言，供 main/menu/远控等非浏览器上下文使用。 */
   localePreference?: LocalePreference;
-  /** 是否尽量继承系统终端 profile、shell 环境和字体 */
-  terminalInheritSystemProfile?: boolean;
-  /** 用户显式覆盖的终端字体；为空时从系统终端配置自动探测 */
-  terminalFontFamily?: string;
   /** Windows 下 Bash 工具使用的本机 shell；未配置时自动选择。 */
   integratedTerminalShell?: IntegratedTerminalShellSelection;
   /** HTTP/HTTPS 出口代理，例如 http://127.0.0.1:7890；为空时直连。下次启动 app/agent 生效。 */
@@ -346,7 +333,7 @@ export interface AppSettings {
   lastActiveTabIndex?: number;
   /** 每个 workspace 的最后活跃 taskId，下次打开自动恢复 */
   lastActiveTaskByWorkspace?: Record<string, string>;
-  /** 数据目录的根路径（替代 homedir），默认为 os.homedir()；.zcode/v2 后缀不变 */
+  /** Data base directory; defaults to os.homedir(), with Social Harness state under .social-harness/v1. */
   dataBaseDir?: string;
   /** 自动更新安装完成后，等待首次启动展示的版本说明 */
   pendingPostUpdateReleaseNotes?: {
@@ -364,6 +351,4 @@ export interface AppSettings {
   skippedElectronUpdateVersions?: Partial<Record<ElectronReleaseChannel, string>>;
   /** 首次启动设置同步提示是否已消费；只表示弹窗不再出现，不代表导入成功。 */
   settingsSyncFirstRunPromptHandled?: boolean;
-  /** 设置页里的临时 endpoint override；正式/测试默认 base url 由 ZCODE_BASE_URL env 管理。 */
-  zcodeEndpointOrigin?: string;
 }

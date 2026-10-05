@@ -1,0 +1,29 @@
+{
+  "name": "@social-harness/social-auth-bridge",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/app.ts",
+    "./contract": "./src/contract.ts"
+  },
+  "scripts": {
+    "build": "tsup src/server.ts --format esm --target node24 --platform node --out-dir dist",
+    "start": "node dist/server.js",
+    "test": "node --import tsx --test test/mediaStores.test.ts test/metaInstagramOAuthClient.test.ts test/instagramAuthBridge.test.ts && vitest run test/convexBridge.test.ts",
+    "lint": "oxlint"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.11",
+    "convex": "1.46.0",
+    "hono": "^4.12.9",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "convex-test": "^0.0.60",
+    "tsup": "^8.4.0",
+    "tsx": "^4.19.4",
+    "typescript": "^6.0.2",
+    "vitest": "^5.0.3"
+  }
+}

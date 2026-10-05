@@ -25,14 +25,14 @@ import type {
   TraceId,
   ToolCallId,
   TurnId,
-} from "@zcode/contracts";
-import type { PendingTurnInput } from "@zcode/contracts";
+} from "@social-harness/contracts";
+import type { PendingTurnInput } from "@social-harness/contracts";
 import {
   createTurnId,
   createCoreError,
   CoreErrorType,
   modelMessageContentToText,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 
 // -----------------------------------------------
 // Turn Machine

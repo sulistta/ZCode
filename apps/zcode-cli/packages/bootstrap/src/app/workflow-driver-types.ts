@@ -17,8 +17,8 @@ import type {
   ToolArtifactStorePort,
   WorkflowEscalatePort,
   WorkflowSubmitPort,
-} from "@zcode/contracts";
-import type { AgentRuntime } from "@zcode/core";
+} from "@social-harness/contracts";
+import type { AgentRuntime } from "@social-harness/core";
 import type {
   ActorSubmitProfile,
   ActorRef,
@@ -28,7 +28,7 @@ import type {
   PersonaSpec,
   RunEvent,
   SessionRef,
-} from "@zcode/dynamic-workflow";
+} from "@social-harness/dynamic-workflow";
 import type { ActorTranscriptStore } from "./workflow-actor-transcript.js";
 import type { WorkflowConcurrencyPort } from "./workflow-concurrency-governor.js";
 import type { ActorModelActivity, WorkflowClock } from "./workflow-driver-concurrency.js";
@@ -89,6 +89,7 @@ export type ActorRuntimeFactory = (input: {
 
 /** 构造 AgentRuntime-backed driver 所需的依赖（journal 与 emit 由调用方/harness 提供并持有）。 */
 export interface AgentRuntimeWorkflowDriverDeps {
+  capabilityScope?: "social-account";
   journal: JournalStorePort;
   emit: (event: RunEvent) => void;
   /** world-read（files.glob / files.read / files.grep）落到的文件系统端口。 */

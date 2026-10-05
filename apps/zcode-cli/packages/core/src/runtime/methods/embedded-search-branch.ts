@@ -5,6 +5,8 @@ import { resolveEmbeddedSearchBranchCapability } from "../../embedded-search/cap
 import {
   resolveBuiltInToolAllowlist,
   resolveRuntimeDynamicWorkflowToolsIncluded,
+  resolveRuntimeDisallowedTools,
+  isSocialAccountRuntime,
 } from "../helpers/tool-allowlist.js";
 import { isToolNameDisallowed } from "../../tool/tool-visibility.js";
 
@@ -37,9 +39,10 @@ export function refreshBranchAwareBuiltInTools(runtime: AgentRuntimeInternal): v
     // silentDuplicateWarnings 还把告警吞掉，所以全程无声）。推导因此必须与 runtime-tools.ts
     // 共用同一个 helper，不能在这里重写一遍判断。
     includeDynamicWorkflow: resolveRuntimeDynamicWorkflowToolsIncluded(runtime.config),
+    socialAccountRecipes: isSocialAccountRuntime(runtime.config),
     agentProfiles: runtime.config.subagents?.profiles,
     allowedTools: resolveBuiltInToolAllowlist(runtime.config),
-    disallowedTools: runtime.config.toolDisallowlist,
+    disallowedTools: resolveRuntimeDisallowedTools(runtime.config),
     silentDuplicateWarnings: true,
   });
   runtime.cachedTools = null;

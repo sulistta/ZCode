@@ -1,4 +1,4 @@
-import { isCodingPlanModelProviderId } from "@zcode/shared";
+import { isCodingPlanModelProviderId } from "@social-harness/shared";
 import { type CodingPlanProviderId } from "@/settings/model-provider-section/constants.js";
 
 type CodingPlanPurchaseAuthStatus =

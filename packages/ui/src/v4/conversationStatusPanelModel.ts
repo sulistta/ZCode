@@ -1,4 +1,3 @@
-import type { GitRepositorySummary } from "@zcode/shared";
 import type {
   BackgroundWorkSummary,
   GoalState,
@@ -6,20 +5,9 @@ import type {
   RunningSubagentSummary,
   ToolCallRow,
   WorkflowRunState,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import { extractPlanToolCallContent, getPlanDirectoryTitle } from "@/lib/planToolCall.js";
 import { workflowRunStepCounts } from "@/v4/workflowRunCardJoin.js";
-
-export interface ConversationStatusPanelGitModel {
-  branchName: string | null;
-  headRefType: GitRepositorySummary["headRefType"];
-  dirtyFileCount: number;
-  added: number;
-  removed: number;
-  ahead: number;
-  behind: number;
-  isClean: boolean;
-}
 
 export interface ConversationStatusPanelPlanModel {
   items: PlanState["items"];
@@ -108,7 +96,6 @@ export function workflowRunOpenTarget(
 
 export interface ConversationStatusPanelModel {
   hasContent: boolean;
-  git: ConversationStatusPanelGitModel | null;
   goal: GoalState | null;
   sessionPlans: ConversationStatusPanelSessionPlansModel | null;
   plan: ConversationStatusPanelPlanModel | null;
@@ -118,10 +105,6 @@ export interface ConversationStatusPanelModel {
 }
 
 interface BuildConversationStatusPanelModelInput {
-  isOfficeMode?: boolean;
-  gitSummary?: GitRepositorySummary | null;
-  gitDirtyFileCount?: number;
-  gitWorktreeChangeSummary?: { added: number; removed: number } | null;
   goal?: GoalState | null;
   sessionPlans?: readonly ToolCallRow[];
   workspacePath?: string;
@@ -129,43 +112,6 @@ interface BuildConversationStatusPanelModelInput {
   backgroundWorks?: readonly BackgroundWorkSummary[];
   runningSubagents?: readonly RunningSubagentSummary[];
   workflowRuns?: readonly WorkflowRunState[];
-}
-
-function buildGitModel({
-  gitSummary,
-  gitDirtyFileCount = 0,
-  gitWorktreeChangeSummary,
-}: Pick<
-  BuildConversationStatusPanelModelInput,
-  "gitSummary" | "gitDirtyFileCount" | "gitWorktreeChangeSummary"
->): ConversationStatusPanelGitModel | null {
-  if (!gitSummary?.isGitAvailable || !gitSummary.isRepository) {
-    return null;
-  }
-  const added = gitWorktreeChangeSummary?.added ?? 0;
-  const removed = gitWorktreeChangeSummary?.removed ?? 0;
-  // v4 之前只要是 Git repository 就创建 Git model，导致 clean repo
-  // 也挂出右上角状态卡；旧 ChatView 只在 worktree 有行级变化时展示 Git Tools。
-  if (added + removed <= 0) {
-    return null;
-  }
-  const isClean =
-    !gitSummary.isDirty &&
-    gitDirtyFileCount === 0 &&
-    added === 0 &&
-    removed === 0 &&
-    gitSummary.ahead === 0;
-
-  return {
-    branchName: gitSummary.branchName,
-    headRefType: gitSummary.headRefType,
-    dirtyFileCount: gitDirtyFileCount,
-    added,
-    removed,
-    ahead: gitSummary.ahead,
-    behind: gitSummary.behind,
-    isClean,
-  };
 }
 
 function buildPlanModel(plan: PlanState | null | undefined) {
@@ -296,7 +242,6 @@ export function resolveSoleRunningWorkflowRunTarget(
 export function buildConversationStatusPanelModel(
   input: BuildConversationStatusPanelModelInput,
 ): ConversationStatusPanelModel {
-  const git = input.isOfficeMode ? null : buildGitModel(input);
   const goal = input.goal ?? null;
   const sessionPlans = buildSessionPlansModel(input.sessionPlans, input.workspacePath);
   const plan = buildPlanModel(input.plan);
@@ -363,7 +308,6 @@ export function buildConversationStatusPanelModel(
   const runningWorkflowRuns = buildRunningWorkflowRuns(input.workflowRuns, workflowWorkByWorkId);
 
   return {
-    git,
     goal,
     sessionPlans,
     plan,
@@ -371,7 +315,6 @@ export function buildConversationStatusPanelModel(
     runningSubagentWorks,
     runningWorkflowRuns,
     hasContent: Boolean(
-      git ||
       goal ||
       sessionPlans ||
       plan ||

@@ -11,21 +11,12 @@ import {
   useRef,
   useState,
 } from "react";
-import type { EditorInfo } from "@zcode/shared";
-import {
-  ChevronRightIcon,
-  Ellipsis,
-  EyeIcon,
-  ExternalLinkIcon,
-  FileCode2Icon,
-  CopyIcon,
-} from "lucide-react";
-import { nanoid } from "nanoid";
+import { ChevronRightIcon, Ellipsis, EyeIcon, FileCode2Icon, CopyIcon } from "lucide-react";
 import { Button } from "@/components/ui/button.js";
 import { toast } from "@/components/ui/toast.js";
 import { cn } from "@/components/lib/utils.js";
-import type { FileBinaryPreview, FileMediaPreview, FileTextSlice } from "@zcode/shared";
-import { TID_PREVIEW_PANE } from "@zcode/shared";
+import type { FileBinaryPreview, FileMediaPreview, FileTextSlice } from "@social-harness/shared";
+import { TID_PREVIEW_PANE } from "@social-harness/shared";
 import { useWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { usePptxFileWatch } from "@/hooks/usePptxFileWatch.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
@@ -45,12 +36,9 @@ import { normalizeCodeViewerSource } from "@/lib/codeViewerSource.js";
 import { FileDisplayIcon, resolveFileDisplayDescriptor } from "@/lib/fileDisplay.js";
 import { getPathLeaf, isAbsoluteFilePath } from "@/lib/path.js";
 import { decodeBase64ToArrayBuffer, getOfficeFilePreviewKind } from "@/lib/officeFilePreview.js";
-import { usePlatform } from "@/hooks/usePlatform.js";
 import { useFileContextActions } from "@/hooks/useFileContextActions.js";
-import { useWorkspaceOpenInEditorTarget } from "@/hooks/useWorkspaceOpenInEditorTarget.js";
 import { logger } from "@/logger.js";
 import { useZCodeStore } from "@/store/StoreProvider.js";
-import { useCodeCommentPreviewStore } from "@/store/codeCommentPreviewStore.js";
 import { resolveTheme } from "@/useTheme.js";
 import {
   DropdownMenu,
@@ -63,17 +51,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.js";
-import { readLastSelectedEditorId } from "@/lib/editorPreference.js";
 import { PreviewPaneContent } from "@/previewPaneContent.js";
-import {
-  dispatchCodeCommentAddToChat,
-  dispatchCodeCommentRemoveFromChat,
-  isCodeCommentMarkedRemoved,
-  type CodeCommentPreview,
-  type CodeCommentRange,
-} from "@/lib/codeCommentContext.js";
-import { getWorkspaceFileRelativePath } from "@/workspace-file-tree/model.js";
-import { resolveWorkspaceEditorSelection } from "@/lib/workspaceEditorSelection.js";
+import { getWorkspaceFileRelativePath } from "@/lib/workspacePaths.js";
 import {
   assertPptxPreviewDataComplete,
   isPptxPreviewIncompleteFileError,
@@ -99,7 +78,6 @@ const BREADCRUMB_MASK_CLASS_BY_STATE: Record<BreadcrumbMaskState, string> = {
 const PREVIEW_PANE_DEFERRED_PLACEHOLDER_LINE_WIDTHS = [
   44, 72, 58, 86, 64, 78, 52, 90, 68, 48, 82, 60,
 ] as const;
-const EMPTY_CODE_COMMENT_PREVIEWS: readonly CodeCommentPreview[] = [];
 
 function normalizeBreadcrumbPathSegments(path: string): string[] {
   return path.replace(/\\/g, "/").split("/").filter(Boolean);
@@ -392,10 +370,6 @@ function isPlainCodeSource(source: CodeViewerSource | null): boolean {
 
   if (source.type === "media") return false;
 
-  if (source.type === "code-review") {
-    return true;
-  }
-
   return false;
 }
 
@@ -493,7 +467,6 @@ export function PreviewPane({
   renderHeavyContent?: boolean;
   markdownSelectionTarget?: MarkdownSelectionTarget;
 }) {
-  const platform = usePlatform();
   const { intl } = useZCodeIntl();
   const theme = useZCodeStore((state) => state.theme);
   const codePreviewSettings = useZCodeStore((state) => state.codePreviewSettings);
@@ -502,17 +475,6 @@ export function PreviewPane({
     [rawSource],
   );
   const sourceWorkspacePath = source?.workspacePath ?? workspacePath;
-  const matchedOpenContext = useWorkspaceOpenInEditorTarget({
-    workspacePath: sourceWorkspacePath,
-    workspaceIdentity: source?.workspaceIdentity,
-    workspaceRemoteSessionId: source?.workspaceRemoteSessionId,
-  });
-  const openInEditorRemoteTarget = matchedOpenContext.remoteTarget;
-  const isRemoteSource = Boolean(
-    source?.workspaceIdentity ||
-    source?.workspaceRemoteSessionId ||
-    matchedOpenContext.isRemoteWorkspace,
-  );
   const fileActions = useFileContextActions();
   const { fileService, fileWatcherService, mediaPreviewService } = useWorkspaceServices(
     sourceWorkspacePath,
@@ -546,8 +508,6 @@ export function PreviewPane({
   const [validatedPptxReferenceNavigationRequestId, setValidatedPptxReferenceNavigationRequestId] =
     useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [installedEditors, setInstalledEditors] = useState<EditorInfo[]>([]);
-  const [preferredEditorId] = useState<string | null>(() => readLastSelectedEditorId());
   const [markdownViewMode, setMarkdownViewMode] = useState<"preview" | "code">("preview");
   const [svgViewMode, setSvgViewMode] = useState<"preview" | "code">("preview");
   const [wrapLongLinesOverride, setWrapLongLinesOverride] = useState<boolean | null>(null);
@@ -586,7 +546,7 @@ export function PreviewPane({
     [source, sourceWorkspacePath],
   );
   const fileSource =
-    (source?.type === "file" || source?.type === "code-review") &&
+    source?.type === "file" &&
     !imageSource &&
     !pdfSource &&
     !officePreviewKind &&
@@ -594,44 +554,12 @@ export function PreviewPane({
     !mediaSource
       ? source
       : null;
-  const codeCommentBucket = useMemo(
-    () =>
-      source?.type !== "code-review" && source?.path && sourceWorkspacePath
-        ? {
-            workspacePath: sourceWorkspacePath,
-            workspaceIdentity: source.workspaceIdentity,
-            sourcePath: source.path,
-          }
-        : null,
-    [source, sourceWorkspacePath],
-  );
-  const codeComments = useCodeCommentPreviewStore((state) =>
-    // code-review 不读取 Composer 评论 store，但这里每次 selector 求值都不能返回新的 []，
-    // 否则会破坏 useSyncExternalStore 的稳定 snapshot 契约并触发无限更新。
-    codeCommentBucket ? state.getComments(codeCommentBucket) : EMPTY_CODE_COMMENT_PREVIEWS,
-  );
-  const addCodeCommentPreview = useCodeCommentPreviewStore((state) => state.addComment);
-  const removeCodeCommentPreview = useCodeCommentPreviewStore((state) => state.removeComment);
   const breadcrumb = useMemo(
     () => (source ? buildCodeViewerBreadcrumb(source, sourceWorkspacePath) : null),
     [source, sourceWorkspacePath],
   );
-  const editorSelection = useMemo(
-    () =>
-      resolveWorkspaceEditorSelection({
-        installedEditors: isRemoteSource && !openInEditorRemoteTarget ? [] : installedEditors,
-        selectedEditorId: preferredEditorId,
-        remoteTarget: openInEditorRemoteTarget,
-      }),
-    [installedEditors, isRemoteSource, openInEditorRemoteTarget, preferredEditorId],
-  );
-  const selectedEditor = editorSelection.selectedEditor;
-  const canOpenInEditor = Boolean(source?.path && selectedEditor);
   const canOpenDiffFilePreview = Boolean(diffFilePreviewSource && onOpenCodeViewer);
   const wrapLongLines = wrapLongLinesOverride ?? codePreviewSettings.wrapLongLines;
-  const canCreateCodeComment = Boolean(
-    source?.type !== "code-review" && source?.path && sourceWorkspacePath,
-  );
   const displayOptions = useMemo(
     () =>
       getPreviewPaneDisplayOptions(source, {
@@ -642,50 +570,10 @@ export function PreviewPane({
   );
   const { canToggleCodeWrap, canToggleMarkdownView, canToggleSvgView, hasMoreMenu } =
     displayOptions;
-  const codeCommentLabels = useMemo(
-    () => ({
-      addComment: intl.formatMessage({ id: "codeViewer.comment.add" }),
-      addCommentTooltip: intl.formatMessage({
-        id: "codeViewer.comment.addTooltip",
-      }),
-      commentPlaceholder: intl.formatMessage({
-        id: "codeViewer.comment.placeholder",
-      }),
-      submitComment: intl.formatMessage({ id: "codeViewer.comment.submit" }),
-      cancelComment: intl.formatMessage({ id: "common.cancel" }),
-      deleteComment: intl.formatMessage({ id: "codeViewer.comment.delete" }),
-      commentLine: intl.formatMessage({ id: "codeViewer.comment.line" }),
-      commentRange: intl.formatMessage({ id: "codeViewer.comment.range" }),
-    }),
-    [intl],
-  );
   // PDF / PPTX 的标签与 dwf 的 workflow-artifact tab 共用一份（见该 hook 的注释）：
   // 两个 labels 接口都是必填全字段，各写一份漏的不会是类型错误，而是一句没翻译的文案。
   const pdfViewerLabels = usePdfViewerLabels();
   const pptxViewerLabels = usePptxViewerLabels();
-
-  useEffect(() => {
-    let disposed = false;
-
-    platform
-      .getInstalledEditors()
-      .then((editors) => {
-        if (disposed) {
-          return;
-        }
-
-        setInstalledEditors(editors);
-      })
-      .catch((platformError) => {
-        logger.warn("[PreviewPane] 获取已安装编辑器列表失败", {
-          error: platformError instanceof Error ? platformError.message : String(platformError),
-        });
-      });
-
-    return () => {
-      disposed = true;
-    };
-  }, [platform]);
 
   useEffect(() => {
     if (!source) {
@@ -693,89 +581,11 @@ export function PreviewPane({
     }
 
     setMarkdownViewMode(
-      source.type !== "code-review" && (isMarkdownSource(source) || isMarkdownFilePath(source.path))
-        ? "preview"
-        : "code",
+      isMarkdownSource(source) || isMarkdownFilePath(source.path) ? "preview" : "code",
     );
-    setSvgViewMode(
-      source.type !== "code-review" && (isSvgSource(source) || isSvgFilePath(source.path))
-        ? "preview"
-        : "code",
-    );
+    setSvgViewMode(isSvgSource(source) || isSvgFilePath(source.path) ? "preview" : "code");
     setWrapLongLinesOverride(null);
   }, [source]);
-
-  const handleSubmitCodeComment = useCallback(
-    (params: { range: CodeCommentRange; selectedText: string; comment: string }) => {
-      if (!source?.path || !sourceWorkspacePath) {
-        return;
-      }
-
-      const normalizedComment = params.comment.trim();
-      const commentId = nanoid();
-      dispatchCodeCommentAddToChat({
-        id: commentId,
-        workspacePath: sourceWorkspacePath,
-        workspaceIdentity: source.workspaceIdentity,
-        sourcePath: source.path,
-        sourceTitle: source.title,
-        startLine: params.range.startLine,
-        endLine: params.range.endLine,
-        selectedText: params.selectedText,
-        comment: normalizedComment,
-        contextLabel: intl.formatMessage({
-          id: "codeViewer.comment.contextLabel",
-        }),
-        commentLabel: intl.formatMessage({
-          id: "codeViewer.comment.commentLabel",
-        }),
-      });
-      if (
-        isCodeCommentMarkedRemoved({
-          id: commentId,
-          workspacePath: sourceWorkspacePath,
-          workspaceIdentity: source.workspaceIdentity,
-        })
-      ) {
-        return;
-      }
-      addCodeCommentPreview({
-        workspacePath: sourceWorkspacePath,
-        workspaceIdentity: source.workspaceIdentity,
-        sourcePath: source.path,
-        comment: {
-          id: commentId,
-          sourcePath: source.path,
-          sourceTitle: source.title,
-          startLine: params.range.startLine,
-          endLine: params.range.endLine,
-          selectedText: params.selectedText,
-          comment: normalizedComment,
-        },
-      });
-    },
-    [addCodeCommentPreview, intl, source, sourceWorkspacePath],
-  );
-
-  const handleDeleteCodeComment = useCallback(
-    (commentId: string) => {
-      if (!source?.path || !sourceWorkspacePath) {
-        return;
-      }
-      removeCodeCommentPreview({
-        workspacePath: sourceWorkspacePath,
-        workspaceIdentity: source.workspaceIdentity,
-        sourcePath: source.path,
-        id: commentId,
-      });
-      dispatchCodeCommentRemoveFromChat({
-        id: commentId,
-        workspacePath: sourceWorkspacePath,
-        workspaceIdentity: source.workspaceIdentity,
-      });
-    },
-    [removeCodeCommentPreview, source, sourceWorkspacePath],
-  );
 
   const rememberScrollMetrics = useCallback(() => {
     const metrics = readPreviewPaneScrollMetrics(scrollContainerRef.current);
@@ -1476,36 +1286,6 @@ export function PreviewPane({
     return null;
   }
 
-  const handleOpenInEditor = async () => {
-    if (!source.path || !selectedEditor) {
-      return;
-    }
-
-    try {
-      // 远程能力过滤产生的 fallback 只用于本次打开；不能把它写回面板偏好，
-      // 否则同一 PreviewPane 切回本地文件时仍会错误沿用远程 VS Code。
-      const result = await platform.openInEditor(selectedEditor.id, source.path, {
-        pathKind: "file",
-        remoteTarget: openInEditorRemoteTarget,
-        workspaceIdentity: source.workspaceIdentity,
-      });
-      if (result.success) {
-        return;
-      }
-
-      logger.warn("[PreviewPane] 用编辑器打开文件失败", {
-        editorId: selectedEditor.id,
-        path: source.path,
-        error: result.error ?? "unknown-error",
-      });
-    } catch (platformError) {
-      logger.warn("[PreviewPane] 打开文件失败", {
-        path: source.path,
-        error: platformError instanceof Error ? platformError.message : String(platformError),
-      });
-    }
-  };
-
   const handleOpenDiffFilePreview = () => {
     if (!diffFilePreviewSource) {
       return;
@@ -1695,35 +1475,6 @@ export function PreviewPane({
               </DropdownMenuContent>
             </DropdownMenu>
           ) : null}
-          {/* 第一期 PPTX 明确为只读预览，不展示任何编辑入口。 */}
-          <Button
-            type="button"
-            size="icon-md"
-            variant="ghost"
-            className="shrink-0 text-foreground-subtle hover:text-foreground disabled:text-foreground-subtlest"
-            onClick={() => {
-              void handleOpenInEditor();
-            }}
-            disabled={!canOpenInEditor}
-            title={
-              selectedEditor
-                ? intl.formatMessage(
-                    { id: "appHeader.openInEditor" },
-                    { editor: selectedEditor.name },
-                  )
-                : intl.formatMessage({ id: "chat.changeSummary.openInEditor" })
-            }
-            aria-label={
-              selectedEditor
-                ? intl.formatMessage(
-                    { id: "appHeader.openInEditor" },
-                    { editor: selectedEditor.name },
-                  )
-                : intl.formatMessage({ id: "chat.changeSummary.openInEditor" })
-            }
-          >
-            <ExternalLinkIcon className="size-3.5" />
-          </Button>
         </div>
       </div>
       <div className="min-h-0 flex-1">
@@ -1786,12 +1537,6 @@ export function PreviewPane({
             markdownViewMode={markdownViewMode}
             svgViewMode={svgViewMode}
             wrapLongLines={wrapLongLines}
-            codeComments={codeComments}
-            enableCodeLineSelection={canCreateCodeComment}
-            enableCodeGutterUtility={canCreateCodeComment}
-            codeCommentLabels={codeCommentLabels}
-            onSubmitCodeComment={handleSubmitCodeComment}
-            onDeleteCodeComment={handleDeleteCodeComment}
             // PreviewPane 外层只是 flex 壳，真实滚动发生在具体内容组件的 overflow 容器。
             // 折叠侧边面板卸载重内容前必须保存该容器的位置。
             onScroll={handlePreviewContentScroll}

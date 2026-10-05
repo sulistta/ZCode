@@ -1,4 +1,4 @@
-import type { AgentColor } from "@zcode/shared";
+import type { AgentColor } from "@social-harness/shared";
 
 export const SUBAGENT_COLORS: AgentColor[] = [
   "yellow",

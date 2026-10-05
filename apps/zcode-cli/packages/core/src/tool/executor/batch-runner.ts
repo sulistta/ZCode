@@ -3,7 +3,7 @@ import {
   createCoreError,
   createRootTraceContext,
   traceContextToLogContext,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { ToolSchedule } from "../scheduler.js";
 import type { ExecutableToolCall, ToolBatchEvent, ToolExecutionResult } from "../types.js";
 import { createErrorResult } from "./errors.js";

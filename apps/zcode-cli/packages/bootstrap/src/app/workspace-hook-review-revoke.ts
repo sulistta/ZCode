@@ -1,5 +1,5 @@
-import type { WorkspaceHookBundleSnapshot } from "@zcode/contracts";
-import type { WorkspaceHookTrustCoordinator } from "@zcode/core";
+import type { WorkspaceHookBundleSnapshot } from "@social-harness/contracts";
+import type { WorkspaceHookTrustCoordinator } from "@social-harness/core";
 import type {
   WorkspaceHookReviewCommandResult,
   WorkspaceHookTrustStoreMutationPort,

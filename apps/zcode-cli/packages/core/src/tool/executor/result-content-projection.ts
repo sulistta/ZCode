@@ -2,8 +2,8 @@ import {
   modelMessageContentToText,
   type ModelMessageContent,
   type ModelMessageContentBlock,
-} from "@zcode/contracts";
-import { findOfficialCuaFrameContentPair } from "@zcode/zcode-cua/frame-contract";
+} from "@social-harness/contracts";
+import { findOfficialCuaFrameContentPair } from "@social-harness/zcode-cua/frame-contract";
 import type { ToolResultSerialization } from "../types.js";
 
 interface HookStringProjection {

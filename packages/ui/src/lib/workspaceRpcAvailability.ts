@@ -1,3 +1,5 @@
+import { parseSocialAccountWorkspaceIdentity } from "@social-harness/shared";
+
 interface WorkspaceRpcAvailabilityTarget {
   workspaceIdentity?: string | null;
   remoteSessionId?: string | null;
@@ -5,8 +7,11 @@ interface WorkspaceRpcAvailabilityTarget {
 }
 
 function isRemoteWorkspaceRpcTarget(target: WorkspaceRpcAvailabilityTarget): boolean {
+  const identity = target.workspaceIdentity?.trim();
   return Boolean(
-    target.workspaceIdentity?.trim() || target.remoteSessionId?.trim() || target.remoteTarget,
+    (identity && parseSocialAccountWorkspaceIdentity(identity) === null) ||
+    target.remoteSessionId?.trim() ||
+    target.remoteTarget,
   );
 }
 

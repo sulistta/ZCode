@@ -1,5 +1,5 @@
 import type { Attributes } from "@opentelemetry/api";
-import type { ResolvedModelTelemetryDescriptor } from "@zcode/contracts/telemetry";
+import type { ResolvedModelTelemetryDescriptor } from "@social-harness/contracts/telemetry";
 import {
   compactAttributes,
   integer,

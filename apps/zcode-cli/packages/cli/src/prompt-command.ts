@@ -1,6 +1,7 @@
+/* eslint-disable max-lines -- headless prompt 的准入、事件、会话清理和输出顺序相互约束，保持生命周期编排集中。 */
 import { extname } from "node:path";
-import { formatJson, type PresentationSurface } from "@zcode/core";
-import type { RunContext, GlobalOptions } from "@zcode/shared-types";
+import { formatJson, type PresentationSurface } from "@social-harness/core";
+import type { RunContext, GlobalOptions } from "@social-harness/shared-types";
 import { loadBootstrapModule } from "./bootstrap-loader.js";
 import {
   buildManualSkillPrompt,
@@ -188,7 +189,7 @@ export const runPrompt = async (
     const appEnv = prepareTelemetry
       ? await prepareTelemetry(env, {
           cliVersion: version,
-          productVersion: env.ZCODE_APP_VERSION,
+          productVersion: env.SOCIAL_HARNESS_APP_VERSION,
         })
       : env;
     const startProviderRegistryRuntime =
@@ -257,7 +258,7 @@ export const runPrompt = async (
     // 自定义命令解析出来一律是 `type === "unknown"`，过去因此全部早退进
     // command-center；那条路径自己 submit 完就 return，于是只挂在下面普通 prompt 路径上
     // 的三件机制全被跳过——dwf 结算等待、常驻事件订阅的单一写者、`response` 取最后一个
-    // 回合。结果是 `zcode -p "/workflow ..."` 在第一个回合后就退出，把在飞的 run 孤儿化
+    // 回合。结果是 `social-harness -p "/workflow ..."` 在第一个回合后就退出，把在飞的 run 孤儿化
     // 成 Interrupted。能解析成真实自定义命令的必须落到普通 prompt 路径，提交**原文**即可：
     // facade 的 customCommandPromptResolver 会在服务端展开（$ARGUMENTS、skills: 前言、`!`）。
     // 解析不出来的名字继续留在 command-center，拿它的 "Unknown command" 文案；保留名
@@ -633,7 +634,7 @@ function writeHeadlessWorkspaceHookTrustDiagnostic(
       ...status.items
         .filter((item) => item.configuredEnabled && item.trustState !== "trusted_persistent")
         .map((item) => `pending digest: ${item.hookDeclarationDigest}`),
-      `Review with: zcode hooks trust review --workspace ${JSON.stringify(status.workspaceIdentity)}`,
+      `Review with: social-harness hooks trust review --workspace ${JSON.stringify(status.workspaceIdentity)}`,
     ].join("\n") + "\n",
   );
 }

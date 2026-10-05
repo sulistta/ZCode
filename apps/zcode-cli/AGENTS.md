@@ -1,6 +1,6 @@
 # Agent 指令
 
-这里是 TypeScript Node.js Coding Agent CLI，支持主流模型和操作系统。通用工作规则遵循[根 AGENTS.md](../../AGENTS.md)；本文件补充 CLI 规则。Node.js 和包管理器版本以仓库根目录的 [mise.toml](../../mise.toml) 与 [package.json](../../package.json) 为准。
+这里是供 Social Harness Desktop 和服务端调用的 headless Agent runtime，不作为独立终端产品发行。通用工作规则遵循[根 AGENTS.md](../../AGENTS.md)；本文件补充 runtime 规则。Node.js 和包管理器版本以仓库根目录的 [mise.toml](../../mise.toml) 与 [package.json](../../package.json) 为准。
 
 ## 工作规范（最重要）
 
@@ -17,8 +17,8 @@
 ## 工具规范
 
 - 与操作系统交互之前，需要考虑同时支持 windows、mac、linux
-- 保持默认的发布路径为标准 Node.js CLI 打包方式。
-- 项目自有的环境变量统一使用 `ZCODE_` 前缀命名，但不要随便新增环境变量；新增前必须先在对应功能的 spec 中定义用途、优先级、错误行为和测试覆盖，能用配置文件、CLI 参数或 session 配置表达的能力，优先不要做成环境变量。
+- 不新增独立终端 UI、安装包或 SEA 发行路径；仅维护 Desktop 和服务端所需的 headless Agent bundle。
+- 项目自有的新环境变量使用 `SOCIAL_HARNESS_` 前缀；不要随便新增环境变量。新增前必须先在对应功能的 spec 中定义用途、优先级、错误行为和测试覆盖，能用配置文件、CLI 参数或 session 配置表达的能力，优先不要做成环境变量。
 
 ## 开源内容与敏感信息
 
@@ -68,9 +68,8 @@
 ## 会话、配置与可观测性
 
 - Coding agent CLI 应把 session、message、tool call、permission、checkpoint、队列和 pending 状态视为一等状态对象，支持恢复、分叉、回滚和并发 session。
-- TUI 只负责输入采集、布局渲染和临时交互态，例如光标、输入框、滚动位置和当前弹窗选择；session、mode、model、tool、todo、permission、checkpoint 等业务状态不得保存在 TUI 层，必须由 server/bootstrap/core/session 存储并通过显式接口或 session event 下发。
-- TUI 中的折叠/展开指示符统一使用 `+`/`-`（折叠为 `+`，展开为 `-`），不要使用 `v` 和 `>`。
-- 与用户交互相关的确认、选择、输入、进度、错误恢复等能力，应面向 TUI 和 ZCode Protocol V4 客户端设计为稳定的交互请求/响应接口或 session event；不同客户端只是呈现和传输适配层，不应把交互流程写死在单一前端中。
+- Headless runtime 只承载 Agent 执行和协议适配；session、mode、model、tool、todo、permission、checkpoint 等业务状态由 Host/bootstrap/core/session 持有，并通过显式接口或 session event 下发。
+- 与用户交互相关的确认、选择、输入、进度、错误恢复等能力，应面向 Desktop 和仍受支持的 Protocol V4 客户端设计为稳定的交互请求/响应接口或 session event；runtime 不得自行假设存在终端交互界面。
 - 所有任务执行都必须携带可传播的 `traceId`。`traceId` 默认对应一次顶层 session 的完整任务链，session 内创建的子 session、subagent、重试任务、后台队列任务和异步 I/O 都应归属到同一个 `traceId`。
 - `traceId` 位于 `sessionId` 之上；`sessionId`、`turnId`、`messageId`、`toolCallId`、`spanId`、`parentSpanId` 等应作为 `traceId` 下的结构化子标识，用于还原完整调用链。
 - 所有模块、service、adapter、tool runtime、provider client、I/O adapter 和权限判断逻辑都应接收并继续传递统一的执行上下文，不得在中途丢弃、覆盖或临时生成无关联的 `traceId`。
@@ -87,7 +86,7 @@
 - 默认让错误向上冒泡，直到到达真正有能力处理它的层。不要在低层模块随意吞掉错误、仅打印日志后继续执行，或提前把错误转换成普通字符串。
 - 只有在能够恢复、重试、降级、补充上下文、转换为用户可操作提示，或处于 CLI 入口边界时，才捕获错误。
 - 抛出或包装错误时应保留原始错误原因，并补充必要上下文，避免丢失调用链和系统错误信息。
-- 用户能感知系统深层的状态；错误、等待、重试、权限、模型、工具和 I/O 状态都应沿调用链向上暴露到 CLI/TUI 等用户界面，同时避免泄露密钥、隐私和完整原始内容。
+- 用户能感知系统深层的状态；错误、等待、重试、权限、模型、工具和 I/O 状态都应沿调用链向上暴露到 Host 和应用界面，同时避免泄露密钥、隐私和完整原始内容。
 - 底层业务模块不应直接调用 `process.exit`、直接输出错误到终端，或决定最终退出码；CLI 入口层负责统一格式化错误、输出提示并设置退出码。
 - 不依赖错误文本做流程判断；需要区分错误类型时，使用稳定的错误类型、错误码或结构化字段。
 - 测试应覆盖关键失败路径，尤其是配置缺失、权限不足、网络失败、文件系统异常、用户输入非法和外部命令失败等 CLI 常见错误。

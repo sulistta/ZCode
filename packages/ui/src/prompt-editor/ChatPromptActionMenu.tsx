@@ -43,6 +43,7 @@ export function ChatPromptActionMenu({
   sessionId,
   container,
   showPlugins,
+  showSlashButton,
   excludedSlashCommandNames,
 }: {
   actionMenuTitle: string;
@@ -60,6 +61,7 @@ export function ChatPromptActionMenu({
   sessionId: string | null;
   container: HTMLElement | null;
   showPlugins: boolean;
+  showSlashButton: boolean;
   excludedSlashCommandNames?: readonly string[];
 }) {
   const { intl } = useZCodeIntl();
@@ -107,16 +109,20 @@ export function ChatPromptActionMenu({
     intl.formatMessage({ id: "chat.mention.sessions.empty" }),
     intl.formatMessage({ id: "chat.mention.sessions.title" }),
   );
-  const contextGroups = buildVisibleMentionGroups(
-    [
-      { id: "files", ...files },
-      { id: "sessions", ...sessions },
-    ].map((group) => ({
-      ...group,
-      errorText: group.error?.message ?? null,
-    })),
-  );
-  const mentionItems = [...plugins.items, ...contextGroups.flatMap((group) => group.items)];
+  const contextGroups = showPlugins
+    ? buildVisibleMentionGroups(
+        [
+          { id: "files", ...files },
+          { id: "sessions", ...sessions },
+        ].map((group) => ({
+          ...group,
+          errorText: group.error?.message ?? null,
+        })),
+      )
+    : [];
+  const mentionItems = showPlugins
+    ? [...plugins.items, ...contextGroups.flatMap((group) => group.items)]
+    : [];
   const attachmentCount = attachmentAction ? 1 : 0;
   const options = [
     ...(attachmentAction ? [{ disabled: false }] : []),
@@ -166,31 +172,35 @@ export function ChatPromptActionMenu({
         }),
       ],
     },
-    {
-      id: "plugins",
-      title: plugins.title,
-      emptyText: plugins.emptyText,
-      loading: plugins.loading,
-      loadingText: intl.formatMessage({ id: "chat.mention.category.loading" }),
-      errorText: plugins.error?.message,
-      options: plugins.items.map((item) => ({
-        ...item,
-        label: item.displayLabel ?? item.label,
-        content: <PluginMentionOptionContent item={item} />,
-      })),
-    },
-    ...contextGroups.map((group) => ({
-      id: group.id,
-      title: group.title,
-      emptyText: group.emptyText,
-      loading: group.loading,
-      loadingText: intl.formatMessage({ id: "chat.mention.category.loading" }),
-      errorText: group.errorText,
-      options: group.items.map((item) => ({
-        ...item,
-        content: <ContextMentionOptionContent item={item} workspacePath={workspacePath} />,
-      })),
-    })),
+    ...(showPlugins
+      ? [
+          {
+            id: "plugins",
+            title: plugins.title,
+            emptyText: plugins.emptyText,
+            loading: plugins.loading,
+            loadingText: intl.formatMessage({ id: "chat.mention.category.loading" }),
+            errorText: plugins.error?.message,
+            options: plugins.items.map((item) => ({
+              ...item,
+              label: item.displayLabel ?? item.label,
+              content: <PluginMentionOptionContent item={item} />,
+            })),
+          },
+          ...contextGroups.map((group) => ({
+            id: group.id,
+            title: group.title,
+            emptyText: group.emptyText,
+            loading: group.loading,
+            loadingText: intl.formatMessage({ id: "chat.mention.category.loading" }),
+            errorText: group.errorText,
+            options: group.items.map((item) => ({
+              ...item,
+              content: <ContextMentionOptionContent item={item} workspacePath={workspacePath} />,
+            })),
+          })),
+        ]
+      : []),
   ].filter((section) => section.id !== "add" || section.options.length > 0);
 
   const selectOption = (index: number) => {
@@ -306,26 +316,40 @@ export function ChatPromptActionMenu({
           description=""
           listMaxHeight="min(24rem, max(8rem, calc(var(--radix-popover-content-available-height, 32rem) - 6rem)))"
           footer={
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-ui-sm text-foreground-subtle">
-              {(
-                [
-                  ["@", "chat.composer.contextShortcut"],
-                  ["/", "chat.composer.capabilityShortcut"],
-                  ["$", "chat.composer.skillShortcut"],
-                ] as const
-              ).map(([trigger, id]) => (
-                <div key={trigger} className="flex shrink-0 items-center gap-1.5">
-                  <code className="flex size-5 shrink-0 items-center justify-center rounded bg-tooltip-tag font-mono text-foreground">
-                    {trigger}
-                  </code>
-                  <span>{intl.formatMessage({ id })}</span>
-                </div>
-              ))}
-              <div className="flex items-center gap-1.5">
-                <Info className="size-4 shrink-0" />
-                <span>{intl.formatMessage({ id: "chat.composer.contextSearchHint" })}</span>
+            showPlugins || showSlashButton ? (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-ui-sm text-foreground-subtle">
+                {showPlugins ? (
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <code className="flex size-5 shrink-0 items-center justify-center rounded bg-tooltip-tag font-mono text-foreground">
+                      @
+                    </code>
+                    <span>{intl.formatMessage({ id: "chat.composer.contextShortcut" })}</span>
+                  </div>
+                ) : null}
+                {showSlashButton ? (
+                  <>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <code className="flex size-5 shrink-0 items-center justify-center rounded bg-tooltip-tag font-mono text-foreground">
+                        /
+                      </code>
+                      <span>{intl.formatMessage({ id: "chat.composer.capabilityShortcut" })}</span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <code className="flex size-5 shrink-0 items-center justify-center rounded bg-tooltip-tag font-mono text-foreground">
+                        $
+                      </code>
+                      <span>{intl.formatMessage({ id: "chat.composer.skillShortcut" })}</span>
+                    </div>
+                  </>
+                ) : null}
+                {showPlugins ? (
+                  <div className="flex items-center gap-1.5">
+                    <Info className="size-4 shrink-0" />
+                    <span>{intl.formatMessage({ id: "chat.composer.contextSearchHint" })}</span>
+                  </div>
+                ) : null}
               </div>
-            </div>
+            ) : undefined
           }
           trigger="+"
           sections={sections}

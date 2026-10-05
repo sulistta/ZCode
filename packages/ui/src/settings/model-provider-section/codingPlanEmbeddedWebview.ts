@@ -1,13 +1,13 @@
 import {
   BIGMODEL_PROVIDER_ID,
   BUILTIN_MODEL_PROVIDER_IDS,
-  DEFAULT_ZCODE_ENDPOINT_ORIGIN,
+  DEFAULT_SOCIAL_HARNESS_ENDPOINT_ORIGIN,
   isTrustedCodingPlanWebviewOrigin,
   isZaiCodingPlanProviderId,
   normalizeZCodeEndpointOrigin,
   ZAI_PROVIDER_ID,
-} from "@zcode/shared";
-import type { CodingPlanWebviewLocale } from "@zcode/shared";
+} from "@social-harness/shared";
+import type { CodingPlanWebviewLocale } from "@social-harness/shared";
 import type { CodingPlanFunnelContext } from "@/lib/codingPlanFunnelTelemetry.js";
 import type { CodingPlanProviderId } from "@/settings/model-provider-section/constants.js";
 
@@ -87,7 +87,7 @@ export function resolveCodingPlanEmbeddedOrigin({
   const normalizedEndpointOrigin = normalizeZCodeEndpointOrigin(endpointOrigin);
   return isTrustedCodingPlanWebviewOrigin(normalizedEndpointOrigin, { e2eStoreBridgeEnabled })
     ? normalizedEndpointOrigin
-    : DEFAULT_ZCODE_ENDPOINT_ORIGIN;
+    : DEFAULT_SOCIAL_HARNESS_ENDPOINT_ORIGIN;
 }
 
 export function buildCodingPlanEmbeddedWebviewUrl({

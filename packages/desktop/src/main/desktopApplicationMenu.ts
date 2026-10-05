@@ -4,12 +4,11 @@ import {
   desktopMenuMessageIds,
   getDesktopMenuMessage,
   isValidShortcutBinding,
-  ZCODE_ENV,
-  ZCODE_PRODUCT_FLAVOR,
+  SOCIAL_HARNESS_PRODUCT_FLAVOR,
   type DesktopCommandId,
   type Locale,
-} from "@zcode/shared";
-import { readZCodeStdioTapDevState } from "@zcode/services/node";
+} from "@social-harness/shared";
+import { readZCodeStdioTapDevState } from "@social-harness/services/node";
 import { CHECK_FOR_UPDATE_MENU_ID, setAutoUpdaterMenuLocale } from "./autoUpdater.js";
 import {
   DESKTOP_ZOOM_MAX_LEVEL,
@@ -17,11 +16,9 @@ import {
   clampDesktopZoomLevel,
 } from "./desktopZoom.js";
 import {
-  HELP_TOGGLE_ZCODE_STDIO_TAP_MENU_ID,
+  HELP_TOGGLE_SOCIAL_HARNESS_STDIO_TAP_MENU_ID,
   HELP_TOGGLE_DEV_TOOLS_MENU_ID,
 } from "./desktopCommandHandlers.js";
-
-const HELP_ZCODE_ENDPOINT_PRODUCTION_MENU_ID = "help.zcode-endpoint.production";
 
 export function getDesktopMenuLabel(
   locale: Locale,
@@ -39,7 +36,7 @@ export function resolveSystemApplicationLocale(): Locale {
 
 export function updateZCodeStdioTapDevMenuState() {
   const menu = Menu.getApplicationMenu();
-  const item = menu?.getMenuItemById(HELP_TOGGLE_ZCODE_STDIO_TAP_MENU_ID);
+  const item = menu?.getMenuItemById(HELP_TOGGLE_SOCIAL_HARNESS_STDIO_TAP_MENU_ID);
   if (!item) {
     return;
   }
@@ -82,7 +79,6 @@ function resolveMenuAccelerator(
 
 function buildApplicationMenuTemplate(options: {
   currentApplicationLocale: Locale;
-  zcodeEndpointSelection?: "production" | "test" | "custom";
   executeDesktopCommand: (
     command: DesktopCommandId,
     senderWindow?: BrowserWindow | null,
@@ -118,7 +114,7 @@ function buildApplicationMenuTemplate(options: {
                 click: () => void options.executeDesktopCommand(DesktopCommandIds.ShowAbout),
               },
               // 更新入口跟随产品身份：Preview 禁用更新器，生产后端的 Preview 也不例外。
-              ...(ZCODE_PRODUCT_FLAVOR === "production"
+              ...(SOCIAL_HARNESS_PRODUCT_FLAVOR === "production"
                 ? [
                     {
                       id: CHECK_FOR_UPDATE_MENU_ID,
@@ -158,17 +154,6 @@ function buildApplicationMenuTemplate(options: {
     {
       label: getLabel(desktopMenuMessageIds.file),
       submenu: [
-        {
-          label: getLabel(desktopMenuMessageIds.fileNewTask),
-          accelerator: resolveMenuAccelerator(options, "newTask", "CmdOrCtrl+N"),
-          click: () => void options.executeDesktopCommand(DesktopCommandIds.NewTask),
-        },
-        {
-          label: getLabel(desktopMenuMessageIds.fileOpenWorkspace),
-          accelerator: resolveMenuAccelerator(options, "openWorkspace", "CmdOrCtrl+O"),
-          click: () => void options.executeDesktopCommand(DesktopCommandIds.OpenWorkspace),
-        },
-        { type: "separator" as const },
         {
           label: getLabel(desktopMenuMessageIds.fileCloseWindow),
           accelerator: resolveMenuAccelerator(options, "closeActiveContext", "CmdOrCtrl+W"),
@@ -259,7 +244,7 @@ function buildApplicationMenuTemplate(options: {
                 label: getLabel(desktopMenuMessageIds.helpAbout),
                 click: () => void options.executeDesktopCommand(DesktopCommandIds.ShowAbout),
               },
-              ...(ZCODE_PRODUCT_FLAVOR === "production"
+              ...(SOCIAL_HARNESS_PRODUCT_FLAVOR === "production"
                 ? [
                     {
                       id: CHECK_FOR_UPDATE_MENU_ID,
@@ -272,51 +257,15 @@ function buildApplicationMenuTemplate(options: {
               { type: "separator" as const },
             ]
           : []),
-        {
-          label: getLabel(desktopMenuMessageIds.helpWhatsNew),
-          click: () => void options.executeDesktopCommand(DesktopCommandIds.OpenChangelog),
-        },
-        { type: "separator" as const },
         ...(isLocalDevelopmentRuntime && stdioTapState.visible
           ? [
               {
-                id: HELP_TOGGLE_ZCODE_STDIO_TAP_MENU_ID,
+                id: HELP_TOGGLE_SOCIAL_HARNESS_STDIO_TAP_MENU_ID,
                 label: getLabel(desktopMenuMessageIds.helpToggleZCodeStdioTap),
                 type: "checkbox" as const,
                 checked: stdioTapState.enabled,
                 click: () =>
                   void options.executeDesktopCommand(DesktopCommandIds.ToggleZCodeStdioTapDevProxy),
-              },
-              { type: "separator" as const },
-            ]
-          : []),
-        ...(ZCODE_ENV === "test"
-          ? [
-              {
-                label: getLabel(desktopMenuMessageIds.helpZCodeEndpoint),
-                submenu: [
-                  {
-                    id: HELP_ZCODE_ENDPOINT_PRODUCTION_MENU_ID,
-                    label: getLabel(desktopMenuMessageIds.helpZCodeEndpointProduction),
-                    type: "radio" as const,
-                    checked: (options.zcodeEndpointSelection ?? "production") === "production",
-                    click: () =>
-                      void options.executeDesktopCommand(
-                        DesktopCommandIds.SetZCodeEndpointProduction,
-                      ),
-                  },
-                  { type: "separator" as const },
-                  {
-                    label: getLabel(desktopMenuMessageIds.helpZCodeEndpointCustom),
-                    click: () =>
-                      void options.executeDesktopCommand(DesktopCommandIds.SetZCodeEndpointCustom),
-                  },
-                  {
-                    label: getLabel(desktopMenuMessageIds.helpZCodeEndpointReset),
-                    click: () =>
-                      void options.executeDesktopCommand(DesktopCommandIds.ResetZCodeEndpoint),
-                  },
-                ],
               },
               { type: "separator" as const },
             ]
@@ -353,7 +302,6 @@ function buildApplicationMenuTemplate(options: {
 
 export function rebuildApplicationMenu(options: {
   currentApplicationLocale: Locale;
-  zcodeEndpointSelection?: "production" | "test" | "custom";
   executeDesktopCommand: (
     command: DesktopCommandId,
     senderWindow?: BrowserWindow | null,
@@ -367,7 +315,6 @@ export function rebuildApplicationMenu(options: {
     Menu.buildFromTemplate(
       buildApplicationMenuTemplate({
         currentApplicationLocale: options.currentApplicationLocale,
-        zcodeEndpointSelection: options.zcodeEndpointSelection,
         executeDesktopCommand: options.executeDesktopCommand,
         currentZoomLevel: options.currentZoomLevel,
         shortcutBindings: options.shortcutBindings,

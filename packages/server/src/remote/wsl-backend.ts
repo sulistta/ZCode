@@ -4,20 +4,24 @@ import type { ChildProcess } from "node:child_process";
 import { access, copyFile, mkdir, readFile, stat } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import { dirname, posix } from "node:path";
-import type { WSLConnectOptions } from "@zcode/shared";
+import type { WSLConnectOptions } from "@social-harness/shared";
 import type {
   IRemoteBackend,
   RemoteEnvironment,
   RemoteUploadOptions,
   StdioStream,
-} from "@zcode/server/remote/backend.js";
-import { createCloseEventController } from "@zcode/server/remote/closeEvent.js";
+} from "@social-harness/server/remote/backend.js";
+import { createCloseEventController } from "@social-harness/server/remote/closeEvent.js";
 import {
   normalizeRemoteArch,
   normalizeRemotePlatform,
   resolveRemotePlatform,
-} from "@zcode/server/remote/detectEnv.js";
-import { isWSLAvailable, listWSLDistros, type WSLDistro } from "@zcode/server/remote/wsl-detect.js";
+} from "@social-harness/server/remote/detectEnv.js";
+import {
+  isWSLAvailable,
+  listWSLDistros,
+  type WSLDistro,
+} from "@social-harness/server/remote/wsl-detect.js";
 import {
   buildWslHostGatewayCommand,
   buildWslProxyPortProbeCommand,
@@ -26,7 +30,7 @@ import {
   parseWslHostGatewayOutput,
   parseWslProxyPortProbeOutput,
   replaceProxyHostname,
-} from "@zcode/server/remote/wslProxy.js";
+} from "@social-harness/server/remote/wslProxy.js";
 
 interface ResolvedWSLInfo {
   distroName: string | null;
@@ -220,7 +224,7 @@ export class WSLBackend implements IRemoteBackend {
 
     // WSL 1 或默认 distro 名称解析失败时，UNC 路径可能不可用。
     // 如果这里直接报错，remote deploy 会彻底失效；回退到 `cat > file` 的流式写入，
-    // 至少能保证 server/node/pty 仍可上传，只是速度慢一些。
+    // 至少能保证 server/node/agent 运行时资源仍可上传，只是速度慢一些。
     const parentDir = posix.dirname(resolvedRemotePath);
     const command = `mkdir -p ${quotePosixShellArg(parentDir)} && cat > ${quotePosixShellArg(resolvedRemotePath)}`;
     const stream = await this.exec(command);

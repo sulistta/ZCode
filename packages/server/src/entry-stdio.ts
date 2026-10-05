@@ -1,12 +1,12 @@
-import { disposeServiceResourcesAndWait, getAppConfigDir } from "@zcode/services/node";
+import { disposeServiceResourcesAndWait, getAppConfigDir } from "@social-harness/services/node";
 import {
-  ZCODE_VERSION,
+  SOCIAL_HARNESS_VERSION,
   SERVICE_AUTHORITY_MODE_ENV,
   formatLogPrefix,
   formatZodError,
   helloAckMessageSchema,
-} from "@zcode/shared";
-import type { HelloMessage, HelloAckMessage } from "@zcode/shared";
+} from "@social-harness/shared";
+import type { HelloMessage, HelloAckMessage } from "@social-harness/shared";
 import { createStdioServer } from "./stdio.js";
 import { registerStdioProcessLifecycle } from "./stdio-lifecycle.js";
 import { createStdioServices } from "./stdioServices.js";
@@ -32,7 +32,7 @@ console.debug = stderrConsoleLog;
 
 // --version flag: print version and exit (used by deploy version check)
 if (process.argv.includes("--version")) {
-  process.stdout.write(ZCODE_VERSION + "\n");
+  process.stdout.write(SOCIAL_HARNESS_VERSION + "\n");
   process.exit(0);
 }
 
@@ -40,7 +40,7 @@ async function main() {
   // Phase 1: Send hello message
   const hello: HelloMessage = {
     type: "zcode-hello",
-    version: ZCODE_VERSION,
+    version: SOCIAL_HARNESS_VERSION,
     platform: process.platform,
     arch: process.arch,
     pid: process.pid,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ConversationRow, SessionPhase } from "@zcode/shared/zcode-protocol-v4";
+import type { ConversationRow, SessionPhase } from "@social-harness/shared/zcode-protocol-v4";
 import {
   applyConversationFindHighlights,
   applySearchResultHighlight,
@@ -21,7 +21,6 @@ import type {
   ChatSearchResultHighlightRequest,
   ConversationFindMatchState,
 } from "@/v4/legacyChatViewTypes.js";
-import { useAssistantCodeCommentFeatureEnabled } from "@/AssistantCodeCommentFeatureProvider.js";
 
 const FIND_AUTO_LOAD_ROW_LIMIT = 1200;
 const SEARCH_RESULT_HIGHLIGHT_DURATION_MS = 3000;
@@ -77,7 +76,6 @@ export function useConversationTimelineFind({
   onSearchResultHighlightDone,
   scrollToUnit,
 }: UseConversationTimelineFindOptions) {
-  const codeCommentCardsEnabled = useAssistantCodeCommentFeatureEnabled();
   const findStable = sessionPhase !== "running" && sessionPhase !== "prewarming";
   const unitFindCacheRef = useRef(
     new Map<string, { source: ConversationFindMatch[]; loadedRowCount: number }>(),
@@ -95,13 +93,11 @@ export function useConversationTimelineFind({
     // streaming delta 只会改变当前 running turn；稳定 turn 的全文索引可复用，
     // 避免每个 token 都扫描整段历史，导致长会话 renderer 主线程被持续占满。
     renderUnits.forEach((unit, unitIndex) => {
-      const cacheKey = `${normalizedQuery}:${codeCommentCardsEnabled}:${unit.key}`;
+      const cacheKey = `${normalizedQuery}:${unit.key}`;
       const cached = !unit.isRunning ? unitFindCacheRef.current.get(cacheKey) : undefined;
       const unitIndexResult = cached
         ? { matches: cached.source, loadedRowCount: cached.loadedRowCount }
-        : buildConversationFindIndex([unit], query, {
-            projectAssistantCodeComments: codeCommentCardsEnabled,
-          });
+        : buildConversationFindIndex([unit], query);
       if (!unit.isRunning && !cached) {
         unitFindCacheRef.current.set(cacheKey, {
           source: unitIndexResult.matches,
@@ -114,15 +110,13 @@ export function useConversationTimelineFind({
       }
     });
     return { query: normalizedQuery, matches, matchCount: matches.length, loadedRowCount };
-  }, [codeCommentCardsEnabled, conversationFindQuery, renderUnits]);
+  }, [conversationFindQuery, renderUnits]);
   const searchResultFindIndex = useMemo(
     () =>
       findStable && searchResultHighlightRequest
-        ? buildConversationFindIndex(renderUnits, searchResultHighlightRequest.query, {
-            projectAssistantCodeComments: codeCommentCardsEnabled,
-          })
+        ? buildConversationFindIndex(renderUnits, searchResultHighlightRequest.query)
         : buildConversationFindIndex([], ""),
-    [codeCommentCardsEnabled, findStable, renderUnits, searchResultHighlightRequest],
+    [findStable, renderUnits, searchResultHighlightRequest],
   );
   const [resolvedFindActiveIndex, setResolvedFindActiveIndex] = useState(-1);
   const findActiveKeyRef = useRef<ConversationFindMatchKey | null>(null);

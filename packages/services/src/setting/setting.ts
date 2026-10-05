@@ -1,5 +1,5 @@
-import type { AppSettings } from "@zcode/shared";
-import { ServiceChannels } from "@zcode/shared";
+import type { AppSettings } from "@social-harness/shared";
+import { ServiceChannels } from "@social-harness/shared";
 import { createServiceDescriptor } from "../descriptors.js";
 
 export interface ISettingService {

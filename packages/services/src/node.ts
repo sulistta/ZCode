@@ -1,25 +1,33 @@
+import { ISocialInstagramSetupService } from "./social-publishing/setupContract.js";
 /* eslint-disable max-lines -- host process 服务注册和启动装配需要集中维护，拆散后会更难追踪依赖注入顺序 */
 // Node.js service implementations — NOT safe to import in browser code
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
   createNodeProviderRuntimePathEnv,
   NodeModelSelectionConfigRepository,
   PERSONAL_PROVIDER_CONFIG_FILE_NAME,
-} from "@zcode/provider-node";
-import { getAppConfigDir as resolveAppConfigDir } from "./paths.js";
+} from "@social-harness/provider-node";
+import {
+  getAppConfigDir as resolveAppConfigDir,
+  getSocialAccountConversationWorkspacePath,
+  getSocialHarnessDataRootDir as resolveSocialHarnessDataRootDir,
+} from "./paths.js";
 import {
   buildLocalMediaPreviewUrl,
   isProviderProvisioningAccountCredentialKey,
+  type SocialAccountConversationWorkspaceRequest,
+  type SocialProjectAgentScope,
   type ProviderProvisioningTrigger,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 
 export {
   materializeZCodeBuiltinProviderConfig,
-  ZCODE_BUILTIN_PROVIDER_CONFIG_FILE_ENV,
-} from "@zcode/provider-node";
+  SOCIAL_HARNESS_BUILTIN_PROVIDER_CONFIG_FILE_ENV,
+} from "@social-harness/provider-node";
 
 export { createFileService } from "./file/fileService.js";
 export {
@@ -45,8 +53,8 @@ export {
   parseFsFaultRulesFromEnvValue,
   resetProcessFsFaultInjectorForTests,
   setFsFaultInjectorForTests,
-  ZCODE_E2E_FS_FAULTS_ALLOW_ENV,
-  ZCODE_E2E_FS_FAULTS_ENV,
+  SOCIAL_HARNESS_E2E_FS_FAULTS_ALLOW_ENV,
+  SOCIAL_HARNESS_E2E_FS_FAULTS_ENV,
 } from "./fs/fsFaultInjection.js";
 export type {
   FsFaultCheckInput,
@@ -60,8 +68,10 @@ export {
   setDataBaseDir,
   getDataBaseDir,
   getZCodeDataRootDir,
+  getSocialHarnessDataRootDir,
   getConversationWorkspaceDir,
   getAppConfigDir,
+  getDataBaseDirBootstrapFilePath,
   getExportLogStageDir,
   getExportLogDir,
   getFeedbackRootDir,
@@ -70,14 +80,13 @@ export {
   getGitCheckpointIndexRootDir,
   copyDataDirectory,
   validateDataBaseDirTarget,
-  ZCODE_WINDOWS_APP_INSTALL_DIR_ENV,
+  SOCIAL_HARNESS_WINDOWS_APP_INSTALL_DIR_ENV,
 } from "./paths.js";
 export { createGitService } from "./git/gitService.js";
 export { GitCommitMessageGenerator } from "./git/gitCommitMessageGenerator.js";
 export { createGitCheckpointService } from "./git/gitCheckpointService.js";
 export { createSystemService } from "./system/systemService.js";
 export { listSSHConfigAliasesFromLocalConfig } from "./system/sshConfigAlias.js";
-export { createTerminalService } from "./terminal/terminalService.js";
 export {
   createSettingService,
   createSettingServiceWithMigrations,
@@ -86,6 +95,7 @@ export { createCredentialService } from "./credential/credentialService.js";
 export { createBroadcastService } from "./broadcast/broadcastService.js";
 export { createZCodeAgentService } from "./zcode-agent/zcodeAgentService.js";
 export { createZCodeTaskServiceAdapter } from "./zcode-agent/zcodeTaskServiceAdapter.js";
+export { createHostCommandEnvelope } from "./zcode-agent/zcodeV4HostCommand.js";
 export { createZCodeSessionService } from "./zcode-session/zcodeSessionService.js";
 export {
   resolveDefaultZCodeAgentCommand,
@@ -105,7 +115,7 @@ export {
   readZCodeStdioTapDevState,
   setZCodeStdioTapDevEnabled,
 } from "./zcode-agent/zcodeStdioTapDevConfig.js";
-export type { ZCodeStdioTapDevState } from "@zcode/shared";
+export type { ZCodeStdioTapDevState } from "@social-harness/shared";
 export {
   createCuaHelperInstaller,
   requestHelperAccessibilityPermissionViaLaunchServices,
@@ -288,7 +298,6 @@ import { IMediaPreviewService } from "./media-preview/mediaPreview.js";
 import { IGitService } from "./git/git.js";
 import { IGitCheckpointService } from "./git/gitCheckpoint.js";
 import { ISystemService } from "./system/system.js";
-import { ITerminalService } from "./terminal/terminal.js";
 import { ISettingService } from "./setting/setting.js";
 import { IOnboardingRecordService } from "./onboarding/onboardingRecord.js";
 import { ICredentialService } from "./credential/credential.js";
@@ -298,21 +307,13 @@ import { IZCodeAgentService } from "./zcode-agent/zcodeAgent.js";
 import type { CuaOperationStateReporter } from "./zcode-agent/cuaOperationTurnTracker.js";
 import { IZCodeSessionService } from "./zcode-session/zcodeSession.js";
 import {
-  createUnsupportedConversationShareService,
-  IConversationShareService,
-  type IConversationShareService as IConversationShareServiceType,
-} from "./conversation-share/conversationShare.js";
-import {
   ConversationShareService,
   conversationShareConnectionScopeFactory,
 } from "./conversation-share/conversationShareService.js";
-import { createLocalConversationShareArtifactSource } from "./conversation-share/conversationShareArtifactSource.js";
 import { ConversationShareHttpClient } from "./conversation-share/conversationShareHttpClient.js";
 import { IFileWatcherService } from "./fileWatcher/fileWatcher.js";
 import { IOAuthService } from "./oauth/oauth.js";
 import { IUsageStatsService } from "./usage-stats/usageStats.js";
-import { ICodingPlanSubscriptionService } from "./coding-plan-subscription/codingPlanSubscription.js";
-import { IClientScenesService } from "./client-scenes/clientScenes.js";
 import { ISkillsService } from "./skills/skills.js";
 import { ISkillSyncService } from "./skill-sync/skillSync.js";
 import { IMcpSyncService } from "./mcp-sync/mcpSync.js";
@@ -327,13 +328,44 @@ import { ISettingsSyncService } from "./settings-sync/settingsSync.js";
 import { IFeedbackService } from "./feedback/feedback.js";
 import { IPromptAttachmentTransferService } from "./prompt-attachment-transfer/promptAttachmentTransfer.js";
 import { createFileService } from "./file/fileService.js";
+import { ISocialAccountService } from "./social-account/contract.js";
+import { createSocialAccountFileStore } from "./social-account/adapters/socialAccountFileStore.js";
+import { createSocialAccountService } from "./social-account/app/socialAccountService.js";
+import { ISocialPublishingService } from "./social-publishing/contract.js";
+import { createSocialPublishingService } from "./social-publishing/app/socialPublishingService.js";
+import { createSocialPublishingFileStore } from "./social-publishing/adapters/socialPublishingFileStore.js";
+import { createSocialPublishingPublicationFileStore } from "./social-publishing/adapters/socialPublishingPublicationFileStore.js";
+import { createInstagramReelPublisher } from "./social-publishing/adapters/instagramReelPublisher.js";
+import { createSocialProjectExportArtifactReader } from "./social-publishing/adapters/socialProjectExportArtifactReader.js";
+import { createInstagramConvexIntegration } from "./social-publishing/adapters/instagramConvexIntegration.js";
+import { createInstagramProfileReader } from "./social-publishing/adapters/instagramProfileReader.js";
+import { createInstagramTokenRefresher } from "./social-publishing/adapters/instagramTokenRefresher.js";
+import { createInstagramMediaReader } from "./social-publishing/adapters/instagramMediaReader.js";
+
+import type { InstagramCredentialStore } from "./social-publishing/app/ports/instagramCredentialStore.js";
+import { ISocialMediaService } from "./social-media/contract.js";
+import { ISocialMediaPreviewService } from "./social-media/previewContract.js";
+import { createSocialMediaFileStore } from "./social-media/adapters/socialMediaFileStore.js";
+import { createWhisperTranscriptionModelManager } from "./social-media/adapters/whisperTranscriptionModelManager.js";
+import { createWhisperTranscriber } from "./social-media/adapters/whisperTranscriber.js";
+import { createFfmpegClipSignalAnalyzer } from "./social-media/adapters/ffmpegClipSignalAnalyzer.js";
+import { createYtDlpSourceDownloadAdapter } from "./social-media/adapters/ytDlpSourceDownload.js";
+import { createYtDlpYouTubeSearchAdapter } from "./social-media/adapters/ytDlpYouTubeSearch.js";
+import { createSocialMediaService } from "./social-media/app/socialMediaService.js";
+import { createFfmpegPreviewProxyRenderer } from "./social-media/adapters/ffmpegPreviewProxyRenderer.js";
+import { ISocialProjectService } from "./social-project/contract.js";
+import { createSocialProjectFileStore } from "./social-project/adapters/socialProjectFileStore.js";
+import { createSocialProjectExportFileStore } from "./social-project/adapters/socialProjectExportFileStore.js";
+import { createSocialProjectService } from "./social-project/app/socialProjectService.js";
+import { createSocialProjectExportFfmpegRenderer } from "./social-project/adapters/socialProjectExportFfmpeg.js";
+import { createSocialAgentService } from "./social-agent/app/socialAgentService.js";
+import type { SocialAgentService } from "./social-agent/contract.js";
 import { createMediaPreviewService } from "./media-preview/mediaPreview.js";
 import type { WorkspaceFileSearchFilter } from "./file/workspaceFileMentionFilter.js";
 import { createGitService } from "./git/gitService.js";
 import { GitCommitMessageGenerator } from "./git/gitCommitMessageGenerator.js";
 import { createGitCheckpointService } from "./git/gitCheckpointService.js";
 import { createSystemService } from "./system/systemService.js";
-import { createTerminalService } from "./terminal/terminalService.js";
 import { createSettingServiceWithMigrations } from "./setting/settingService.js";
 import { createOnboardingRecordService } from "./onboarding/onboardingRecordService.js";
 import { createLegacyTeamOrganizationResolver } from "./model-provider/legacyTeamOrganizationResolver.js";
@@ -368,7 +400,6 @@ import { bindAccountProviderInvalidation } from "./model-provider/accountProvide
 import { AccountProviderApiClient } from "./model-provider/accountProviderApiClient.js";
 import { AccountProviderApiKeyResolver } from "./model-provider/accountProviderApiKeyResolver.js";
 import { createProviderConfigRuntime } from "./model-provider/providerConfigRuntime.js";
-import { fetchZCodeBuiltinRemoteRelease } from "./model-provider/zcodeBuiltinRemoteConfig.js";
 import {
   createProviderRuntimeFromConfigRuntime,
   type ProviderRuntime,
@@ -387,17 +418,13 @@ import {
 } from "./model-provider/providerProvisioningSource.js";
 import { createProviderProvisioningTarget } from "./model-provider/providerProvisioningTarget.js";
 import { IProviderProvisioningTargetService } from "./model-provider/providerProvisioning.js";
-import { buildOffPeakModelSelectionView } from "./model-provider/offPeakModelSelectionView.js";
-import { resolveClientConfigPlatform } from "./runtime-tools/clientPlatform.js";
 import {
   createAccountRequestAuthService,
   type IAccountRequestAuthService,
 } from "./model-provider/accountRequestAuthService.js";
 import { createUsageStatsService } from "./usage-stats/usageStatsService.js";
-import { createCodingPlanSubscriptionService } from "./coding-plan-subscription/codingPlanSubscriptionService.js";
 import { createClientConfigService } from "./client-config/clientConfigService.js";
 import { IClientConfigService } from "./client-config/clientConfig.js";
-import { createClientScenesService } from "./client-scenes/clientScenesService.js";
 import { createSkillsService } from "./skills/skillsService.js";
 import { createSkillSyncService } from "./skill-sync/skillSyncService.js";
 import { createMcpSyncService } from "./mcp-sync/mcpSyncService.js";
@@ -429,7 +456,10 @@ import {
   buildAgentRuntimeEnv,
 } from "./runtime-tools/agentProxyEnv.js";
 import { ensureAppCaCert } from "./runtime-tools/appCaCert.js";
-import { buildHelperOpenArgs, isCuaLocalDevelopmentRuntime } from "@zcode/zcode-cua/broker/server";
+import {
+  buildHelperOpenArgs,
+  isCuaLocalDevelopmentRuntime,
+} from "@social-harness/zcode-cua/broker/server";
 import { createServiceLogger, type ServiceLogger } from "#src/logger/serviceLogger.js";
 import { IOffPeakTaskService } from "./session/offPeakTask.js";
 import { OffPeakTaskService } from "./session/offPeakTaskService.js";
@@ -449,7 +479,7 @@ import {
 import {
   createOfficialMcpTrustedOriginRegistry,
   OFFICIAL_MCP_DEV_TRUSTED_ORIGINS_ENV,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   BROKER_SOCKET_ENV,
   BROKER_UNAVAILABLE_ENV,
@@ -490,12 +520,15 @@ import {
 } from "#src/cua-permission-broker/windowsCuaDevRuntime.js";
 import { createCanonicalCuaHelperInstaller } from "./cua-permission-broker/cuaHelperInstaller.js";
 import { WindowsCuaHelperHost } from "#src/cua-permission-broker/windowsCuaDevHelperHost.js";
-import { DEV_HELPER_APP_NAME, HELPER_APP_NAME } from "@zcode/zcode-cua/broker/helperConstants";
-import { resolveBrokerSocketPath } from "@zcode/zcode-cua/broker/socketPath";
 import {
-  DEFAULT_ZCODE_MODEL_CONTEXT_BUDGET_STRATEGY,
+  DEV_HELPER_APP_NAME,
+  HELPER_APP_NAME,
+} from "@social-harness/zcode-cua/broker/helperConstants";
+import { resolveBrokerSocketPath } from "@social-harness/zcode-cua/broker/socketPath";
+import {
+  DEFAULT_SOCIAL_HARNESS_MODEL_CONTEXT_BUDGET_STRATEGY,
   resolveSafeEndpointHostname,
-  ZCODE_JWT_INVALID_BROADCAST_CHANNEL,
+  SOCIAL_HARNESS_JWT_INVALID_BROADCAST_CHANNEL,
   formatLogPrefix,
   isCredentialDecryptError,
   isStartPlanModelProviderId,
@@ -510,20 +543,17 @@ import {
   isZCodeCuaMcpCommand,
   isZCodeCuaMcpPackageArg,
   isZCodeCuaInternalFeatureEnabled,
-  ZCODE_CUA_PLUGIN_AUTHORITY_ENV_KEY,
+  SOCIAL_HARNESS_CUA_PLUGIN_AUTHORITY_ENV_KEY,
   type ZCodeAutomation,
   type ZCodeAutomationRun,
   getCapturedZCodeAgentTelemetryEnv,
-  ZCODE_DESKTOP_CONTEXT_PROMPT_ENABLED_ENV,
+  SOCIAL_HARNESS_DESKTOP_CONTEXT_PROMPT_ENABLED_ENV,
   ZAI_PROVIDER_ID,
   zcodeAccountAccessSchema,
   zcodeProviderAccountAccessSchema,
-  ZCODE_VERSION,
-  ZCODE_ENV,
-  buildRuntimeZCodeApiUrl,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 
-// 这些 conversation-share 实现依赖 Node 文件系统；仅通过 @zcode/services/node 暴露，
+// 这些 conversation-share 实现依赖 Node 文件系统；仅通过 @social-harness/services/node 暴露，
 // 防止 browser-safe 根入口把 node:* 依赖带进 renderer。
 export {
   ConversationShareService,
@@ -1050,12 +1080,13 @@ export function createDefaultCuaProductHelper(
   };
 }
 
-export const ZCODE_CUA_BUNDLED_HELPER_APP_PATH_ENV = "ZCODE_CUA_BUNDLED_HELPER_APP_PATH";
+export const SOCIAL_HARNESS_CUA_BUNDLED_HELPER_APP_PATH_ENV =
+  "SOCIAL_HARNESS_CUA_BUNDLED_HELPER_APP_PATH";
 
 export function resolveBundledCuaHelperAppPath(
   env: NodeJS.ProcessEnv = process.env,
 ): string | undefined {
-  const injectedPath = env[ZCODE_CUA_BUNDLED_HELPER_APP_PATH_ENV]?.trim();
+  const injectedPath = env[SOCIAL_HARNESS_CUA_BUNDLED_HELPER_APP_PATH_ENV]?.trim();
   if (injectedPath) {
     return injectedPath;
   }
@@ -1069,7 +1100,8 @@ export { isOfficialCuaPluginEnabledForWorkspace };
 
 export function hasGlobalCliZCodeCuaServer(env: NodeJS.ProcessEnv = process.env): boolean {
   const home = env.HOME?.trim() || homedir();
-  const configPath = join(home, ".zcode", "cli", "config.json");
+  const dataBaseDir = env.SOCIAL_HARNESS_DATA_BASE_DIR?.trim() || home;
+  const configPath = join(dataBaseDir, ".social-harness", "v1", "cli", "config.json");
   let parsed: unknown;
   try {
     parsed = JSON.parse(readFileSync(configPath, "utf8"));
@@ -1089,7 +1121,7 @@ function isGlobalCliZCodeCuaServer(name: string, config: unknown): boolean {
   if (config.enabled === false) return false;
   if (typeof config.type === "string" && config.type !== "stdio") return false;
   if (name === "computer-use") return true;
-  // 与 desktop/services resolver 和 CLI bootstrap 共用 @zcode/shared 的单一事实源，避免第三处
+  // 与 desktop/services resolver 和 CLI bootstrap 共用 @social-harness/shared 的单一事实源，避免第三处
   // 判定漂移：git/.git/本地路径形态的 zcode-cua 若这里漏判，全局 CLI env 注入不会带 broker
   // socket/token，agent 会回退成 Python/uvx 自己持有 macOS TCC（违反 product broker 边界）。
   if (typeof config.command === "string" && isZCodeCuaMcpCommand(config.command)) {
@@ -1188,7 +1220,7 @@ export async function buildCuaProductHelperAgentEnv(
       cuaProductHelperAgentEnvRetryAt.delete(host);
       return {
         [BROKER_SOCKET_ENV]: transport.socketPath,
-        [ZCODE_CUA_PLUGIN_AUTHORITY_ENV_KEY]: transport.pluginAuthority,
+        [SOCIAL_HARNESS_CUA_PLUGIN_AUTHORITY_ENV_KEY]: transport.pluginAuthority,
       };
     }
     // 原来只在 1s 超时后读取预留 tuple，Host 已安全占住 socket 时也会白等。
@@ -1201,7 +1233,7 @@ export async function buildCuaProductHelperAgentEnv(
       // token 鉴权已整体删除（连接门是代码签名身份）。凭据只剩 socket + authority。
       return {
         [BROKER_SOCKET_ENV]: reserved.socketPath,
-        [ZCODE_CUA_PLUGIN_AUTHORITY_ENV_KEY]: reserved.pluginAuthority,
+        [SOCIAL_HARNESS_CUA_PLUGIN_AUTHORITY_ENV_KEY]: reserved.pluginAuthority,
       };
     }
     // 有界 deadline race：cold launch 没在 1s 内 ready 且无预留才 fail-closed。waitForCuaHelperStartup
@@ -1221,7 +1253,7 @@ export async function buildCuaProductHelperAgentEnv(
     cuaProductHelperAgentEnvRetryAt.delete(host);
     return {
       [BROKER_SOCKET_ENV]: handle.socketPath,
-      [ZCODE_CUA_PLUGIN_AUTHORITY_ENV_KEY]: handle.pluginAuthority,
+      [SOCIAL_HARNESS_CUA_PLUGIN_AUTHORITY_ENV_KEY]: handle.pluginAuthority,
     };
   } catch (error) {
     // caller_timeout 仅表示共享的 30s startup 仍在后台运行；trackCuaProductHelperStartup 会在其
@@ -1242,7 +1274,7 @@ export async function buildCuaProductHelperAgentEnv(
         cuaProductHelperAgentEnvRetryAt.delete(host);
         return {
           [BROKER_SOCKET_ENV]: reserved.socketPath,
-          [ZCODE_CUA_PLUGIN_AUTHORITY_ENV_KEY]: reserved.pluginAuthority,
+          [SOCIAL_HARNESS_CUA_PLUGIN_AUTHORITY_ENV_KEY]: reserved.pluginAuthority,
         };
       }
     }
@@ -1290,6 +1322,10 @@ export function createLocalServices(options: {
   hostApiNetworkTransport?: HostApiNetworkTransport;
   /** Desktop Host 请求 Main 登记 Agent 已授权的精确本地视频路径。 */
   authorizeLocalMediaPreviewPath?: (path: string) => Promise<string>;
+  /** Host 已验证账户媒体后，请 Main 签发不含存储路径的短期预览 URL。 */
+  createLocalMediaPreviewUrl?: (path: string) => Promise<{ url: string; expiresAt: number }>;
+  /** Desktop Main-owned OS credential adapter; absent on server-only Hosts. */
+  instagramCredentialStore?: InstagramCredentialStore;
   feedback?: Partial<
     Omit<CreateFeedbackServiceOptions, "apiClient" | "credentialService" | "oauthService">
   >;
@@ -1373,7 +1409,7 @@ export function createLocalServices(options: {
   initializeRuntimeProcessEnv(options?.runtimeProcessEnvPatch);
 
   const desktopContextPromptEnabledRaw =
-    process.env[ZCODE_DESKTOP_CONTEXT_PROMPT_ENABLED_ENV]?.trim();
+    process.env[SOCIAL_HARNESS_DESKTOP_CONTEXT_PROMPT_ENABLED_ENV]?.trim();
   const desktopContextPromptEnabled =
     desktopContextPromptEnabledRaw === "1"
       ? true
@@ -1394,9 +1430,7 @@ export function createLocalServices(options: {
     options?.settingService ?? localSettings!.service,
   );
   const resolveCurrentZCodeEndpointOrigin = async () =>
-    resolveRuntimeZCodeEndpointOrigin(process.env, {
-      overrideOrigin: (await settingService.get()).zcodeEndpointOrigin,
-    });
+    resolveRuntimeZCodeEndpointOrigin(process.env);
   const provisioningOAuthKeys = new Set<string>(PROVIDER_PROVISIONING_OAUTH_CREDENTIAL_KEYS);
   const credentialService = createCredentialService({
     onDidMutate: ({ key }) => {
@@ -1507,31 +1541,8 @@ export function createLocalServices(options: {
     }),
   );
   const providerConfigLog = createServiceLogger("provider-config");
-  const clientConfigPlatform = resolveClientConfigPlatform();
   const providerConfigRuntime = createProviderConfigRuntime({
     zcodeBuiltinFilePath: options.zcodeBuiltinProviderConfigFilePath,
-    zcodeBuiltinEnvironment: {
-      environmentConfigRoot: resolveAppConfigDir(),
-      platform: clientConfigPlatform,
-      appVersion: ZCODE_VERSION,
-      resolveEndpointOrigin: resolveCurrentZCodeEndpointOrigin,
-      onRefreshResult: (event) => {
-        if (event.result === "updated")
-          providerConfigLog.info(undefined, "ZCode Built-in CDN 配置已更新", event);
-        else providerConfigLog.debug(undefined, "ZCode Built-in 刷新检查", event);
-      },
-      fetchRelease: (endpointOrigin, signal) =>
-        fetchZCodeBuiltinRemoteRelease({
-          apiClient,
-          endpointOrigin,
-          signal,
-          appVersion: ZCODE_VERSION,
-          platform: clientConfigPlatform,
-        }),
-    },
-    onZCodeBuiltinRefreshError: (error) => {
-      providerConfigLog.warn(undefined, "ZCode Built-in Config 远端刷新失败", { error });
-    },
     onPersonalConfigRecovery: (event) => {
       providerConfigLog.warn(
         undefined,
@@ -1682,8 +1693,8 @@ export function createLocalServices(options: {
   // service 创建完成后再赋值。Helper recovery 始终不能回收 Agent。
   let hasActiveTurnRef: (() => boolean) | undefined;
   const isCuaEnabledForContext = (context?: CuaProductMcpServerResolverContext): boolean =>
-    // 保留 main 原有 gate 行为（避免回归）：dev/internal 特性开启时（ZCODE_CUA_DEV_MODE=1 或
-    // ZCODE_CUA_PRODUCT_HELPER=1）即视为启用，不依赖 config.json 显式 enable——main 的 bootstrap
+    // 保留 main 原有 gate 行为（避免回归）：dev/internal 特性开启时（SOCIAL_HARNESS_CUA_DEV_MODE=1 或
+    // SOCIAL_HARNESS_CUA_PRODUCT_HELPER=1）即视为启用，不依赖 config.json 显式 enable——main 的 bootstrap
     // 用 isZCodeCuaInternalFeatureEnabled 门控 bundled plugin，与 feat 的 workspace enablement 不同。
     // 生产路径（dev mode off）回落到官方插件 workspace enablement 判定（与 feat 一致）。
     isZCodeCuaInternalFeatureEnabled(process.env) ||
@@ -1776,17 +1787,17 @@ export function createLocalServices(options: {
   // 签名门查询；产品 Helper 不嵌 dev policy，这对 argv 无效（产品签名天然过 Team 门）。
   // 拉起后轮询 ping（5s/100ms），就绪返回 socket 路径，否则 null。
   //
-  // dev 判定直接用上游的 isCuaLocalDevelopmentRuntime（@zcode/zcode-cua/broker/server，
+  // dev 判定直接用上游的 isCuaLocalDevelopmentRuntime（@social-harness/zcode-cua/broker/server，
   // 即本文件已经用来 import buildHelperOpenArgs 的那个 subpath，可正常导入）。
   //
   // 行为等价性（别误读成安全加固）：上游是 `COMPILED_LOCAL_DEVELOPMENT_RUNTIME &&
-  // ZCODE_RUNTIME_ENV!=="production"`，而那个编译期常量只有 scripts/build-cua-helper-app.mjs
+  // SOCIAL_HARNESS_RUNTIME_ENV!=="production"`，而那个编译期常量只有 scripts/build-cua-helper-app.mjs
   // 会用 define 折叠（Helper bundle）；desktop host bundle 没有该 define，于是回退成
   // `process.env.NODE_ENV !== "production"` —— 正是复制品写的那一项。所以在**当前**打包形态下
-  // 两者逐字等价，关门靠的是 ZCODE_RUNTIME_ENV=production（打包态显式注入且不传 NODE_ENV）。
+  // 两者逐字等价，关门靠的是 SOCIAL_HARNESS_RUNTIME_ENV=production（打包态显式注入且不传 NODE_ENV）。
   //
   // 换成上游的收益是消除漂移面：折叠点、因子个数与 fail-closed 方向都由上游一处决定，
-  // 哪天 host bundle 也补上 __ZCODE_LOCAL_DEVELOPMENT_RUNTIME__ define（Helper 侧已经有），
+  // 哪天 host bundle 也补上 __SOCIAL_HARNESS_LOCAL_DEVELOPMENT_RUNTIME__ define（Helper 侧已经有），
   // 编译期门自动生效，不需要再回来改这里。
 
   const launchStandaloneCuaHelperForStatus = async (): Promise<string | null> => {
@@ -1797,7 +1808,8 @@ export function createLocalServices(options: {
     const socketPath = resolveBrokerSocketPath();
     // standaloneHelperCandidatePaths 未在上游 exports 白名单——此处按同一规则枚举安装候选
     //（dev-desktop → dev/ 前缀；app 名一律取 helperConstants，不写字面量）。
-    const home = process.env.ZCODE_HOME?.trim() || join(homedir(), ".zcode");
+    const home =
+      process.env.SOCIAL_HARNESS_HOME?.trim() || join(homedir(), ".social-harness", "v1");
     const baseRoot = join(home, "computer-use");
     // 安装布局见上游 helperLauncher.resolveCuaHelperInstallRoot：dev 是独立子根 `dev/` 且 app
     // 名换成 DEV_HELPER_APP_NAME；preview 是独立子根 `preview/` 但**沿用**稳定 app 名
@@ -1915,7 +1927,8 @@ export function createLocalServices(options: {
         }
         // standalone Helper 上直接查权限真值（身份模式，无 token）。
         try {
-          const { callBrokerMethod } = await import("@zcode/zcode-cua/broker/helperHealth");
+          const { callBrokerMethod } =
+            await import("@social-harness/zcode-cua/broker/helperHealth");
           const report = await callBrokerMethod<{
             grant_owner: string;
             owner?: { display_name?: string };
@@ -2055,38 +2068,24 @@ export function createLocalServices(options: {
       }
     },
   };
-  const codingPlanSubscriptionService = createCodingPlanSubscriptionService({
-    apiClient,
-    credentialService,
-    resolveOffPeakModelSelectionView: async () => {
-      await providerRuntime.start();
-      return buildOffPeakModelSelectionView(providerRuntime.registryService.getView());
-    },
-  });
-  // OffPeakTaskService 单例在下方 DI register IIFE 中创建（晚于 agent service）；
-  // 用前向引用 holder 惰性绑定——offPeak/create 协议请求只会发生在服务集合装配完成后。
-  let offPeakTaskServiceForAgent: OffPeakTaskService | undefined;
-  // desktop-attached-remote 装配不暴露 Off-Peak 工具面（远程不在支持范围）。
-  const offPeakToolWiring =
-    options?.serviceAuthorityMode === "desktop-attached-remote"
-      ? {}
-      : {
-          resolveOffPeakClientConfig: () => codingPlanSubscriptionService.getOffPeakClientConfig(),
-          resolveOffPeakTaskService: () => offPeakTaskServiceForAgent,
-        };
+  let socialProjectAgentScopeResolver = async (
+    _workspaceIdentity: string,
+  ): Promise<SocialProjectAgentScope | null> => null;
+  let socialAgentScopeResolver: SocialAgentService["resolveScope"] = async () => null;
+  let socialAccountWorkspaceValidator = async (
+    _request: SocialAccountConversationWorkspaceRequest,
+  ): Promise<boolean> => false;
   const zcodeAgentService = createZCodeAgentService({
     ...(agentAccountProviderConfigSource
       ? { accountProviderConfigSource: agentAccountProviderConfigSource }
       : {}),
     accountRequestAuthService,
+    resolveSocialProjectAgentScope: (workspaceIdentity) =>
+      socialProjectAgentScopeResolver(workspaceIdentity),
+    resolveSocialAgentScope: (workspaceIdentity) => socialAgentScopeResolver(workspaceIdentity),
+    validateSocialAccountWorkspace: (request) => socialAccountWorkspaceValidator(request),
     ...(modelSelectionReadinessSource ? { modelSelectionReadinessSource } : {}),
     authorizeLocalMediaPreviewPath: options?.authorizeLocalMediaPreviewPath,
-    ...offPeakToolWiring,
-    // 动态工作流灰度：与 Off-Peak 不同，
-    // 这里不按 serviceAuthorityMode 裁剪——SSH/WSL/Docker 的 desktop-attached-remote Host
-    // 是它自己那些 workspace 的唯一裁决者，灰度开启时远程 workspace 同样提供工作流。
-    resolveDynamicWorkflowClientConfig: () =>
-      codingPlanSubscriptionService.getDynamicWorkflowClientConfig(),
     commandResolver: options?.zcodeAgentCommandResolver,
     presentationSurface: resolveZCodeAgentPresentationSurface({
       runtimeSurface: options?.agentRuntimeContext?.runtimeSurface,
@@ -2109,9 +2108,9 @@ export function createLocalServices(options: {
       modelSelectionService: providerRuntime.modelSelection,
     }),
     // host 是身份权威边界：provenance/origin 必须在这里再校验一次，不能只依赖 agent
-    // adapter 的 fetch wrapper。判定实现与 CLI 侧共用 @zcode/shared 的同一份，避免分叉。
-    // origin 解析复用 resolveCurrentZCodeEndpointOrigin——与闲时任务同口径（含 settings
-    // 覆盖），否则会出现"闲时任务能连、官方 MCP 连不上"。
+    // adapter 的 fetch wrapper。判定实现与 CLI 侧共用 @social-harness/shared 的同一份，避免分叉。
+    // origin 解析复用 resolveCurrentZCodeEndpointOrigin 与闲时任务相同的运行时配置，
+    // 否则会出现"闲时任务能连、官方 MCP 连不上"。
     // dev 开关必须同样传入，否则本地自测会被 host 单方面拒绝。
     officialMcpTrustedOrigins: createOfficialMcpTrustedOriginRegistry({
       devTrustedOriginsRaw: process.env[OFFICIAL_MCP_DEV_TRUSTED_ORIGINS_ENV],
@@ -2174,7 +2173,7 @@ export function createLocalServices(options: {
         // 它不需要 host——托管态由 host 铸造，懒启动态在此按 spawn 铸造，语义与校验完全一致。
         cuaProductHelperEnv = {
           [BROKER_SOCKET_ENV]: resolveBrokerSocketPath(),
-          [ZCODE_CUA_PLUGIN_AUTHORITY_ENV_KEY]: randomBytes(16).toString("hex"),
+          [SOCIAL_HARNESS_CUA_PLUGIN_AUTHORITY_ENV_KEY]: randomBytes(16).toString("hex"),
         };
         cuaProductHelperWorkspaceRegistry.setEnabled(context, false);
       } else if (cuaProductHelperHost && helper) {
@@ -2245,7 +2244,7 @@ export function createLocalServices(options: {
           resolveSessionRuntimePreferences: async (scope) => {
             // 预算已统一，不能把可选远端配置作为本地/手机 shared-host 建会话的前置条件。
             const settings = await settingService.get();
-            const modelContextBudgetStrategy = DEFAULT_ZCODE_MODEL_CONTEXT_BUDGET_STRATEGY;
+            const modelContextBudgetStrategy = DEFAULT_SOCIAL_HARNESS_MODEL_CONTEXT_BUDGET_STRATEGY;
             return {
               askUserQuestionAutoResolutionEnabled:
                 settings.askUserQuestionAutoResolutionEnabled !== false,
@@ -2341,7 +2340,7 @@ export function createLocalServices(options: {
         // 401 分类后可能已完成新登录；只有队列内真正清理的旧会话才广播过期。
         if (invalidated) {
           void broadcastService.send({
-            channel: ZCODE_JWT_INVALID_BROADCAST_CHANNEL,
+            channel: SOCIAL_HARNESS_JWT_INVALID_BROADCAST_CHANNEL,
             payload: {},
           });
         }
@@ -2387,45 +2386,155 @@ export function createLocalServices(options: {
   const fileService = createFileService({
     workspaceFileSearchFilter: options?.workspaceFileSearchFilter,
   });
+  const socialAccountService = createSocialAccountService({
+    store: createSocialAccountFileStore({
+      filePath: join(resolveSocialHarnessDataRootDir(), "social-accounts", "accounts.json"),
+    }),
+    workspacePathForAccount: getSocialAccountConversationWorkspacePath,
+    ensureConversationWorkspace: async (workspacePath) => {
+      await mkdir(workspacePath, { recursive: true });
+    },
+  });
+  const instagramConvex = options?.instagramCredentialStore
+    ? createInstagramConvexIntegration({
+        configurationPath: join(
+          resolveSocialHarnessDataRootDir(),
+          "social-publishing",
+          "convex-bridge.json",
+        ),
+        assetsDir:
+          process.env.SOCIAL_HARNESS_CONVEX_ASSETS_DIR ??
+          join(process.cwd(), "packages", "desktop", "bundled-tools", "convex-provisioner"),
+        credentials: options.instagramCredentialStore,
+      })
+    : undefined;
+  socialAccountWorkspaceValidator = (request) =>
+    socialAccountService.validateConversationWorkspace(request);
+  const socialMediaRootDir = join(resolveSocialHarnessDataRootDir(), "social-media");
+  const transcriptionModelsDir = join(socialMediaRootDir, "models");
+  const socialMediaStore = createSocialMediaFileStore({
+    catalogPath: join(socialMediaRootDir, "catalog.json"),
+    originalsDir: join(socialMediaRootDir, "originals"),
+    jobsDir: join(socialMediaRootDir, "jobs"),
+    jobQueueLockPath: join(socialMediaRootDir, "jobs", ".queue"),
+  });
+  const socialMediaService = createSocialMediaService({
+    store: socialMediaStore,
+    socialAccountService,
+    previewProxyRenderer: createFfmpegPreviewProxyRenderer({
+      ffmpegExecutablePath: process.env.SOCIAL_HARNESS_FFMPEG_PATH,
+      ffprobeExecutablePath: process.env.SOCIAL_HARNESS_FFPROBE_PATH,
+    }),
+    transcriptionModelManager: createWhisperTranscriptionModelManager({
+      modelsDir: transcriptionModelsDir,
+      selectedModelPath: join(socialMediaRootDir, "transcription-model.json"),
+      downloadStatePath: join(transcriptionModelsDir, "download-state.json"),
+      downloadLockPath: join(transcriptionModelsDir, ".download"),
+      cancelRequestPath: join(transcriptionModelsDir, "cancel-request.json"),
+    }),
+    transcriber: createWhisperTranscriber({
+      ffmpegExecutablePath: process.env.SOCIAL_HARNESS_FFMPEG_PATH,
+      whisperExecutablePath: process.env.SOCIAL_HARNESS_WHISPER_CPP_PATH,
+    }),
+    clipSignalAnalyzer: createFfmpegClipSignalAnalyzer({
+      ffmpegExecutablePath: process.env.SOCIAL_HARNESS_FFMPEG_PATH,
+      ffprobeExecutablePath: process.env.SOCIAL_HARNESS_FFPROBE_PATH,
+    }),
+    youTubeSearch: createYtDlpYouTubeSearchAdapter({
+      executablePath: process.env.SOCIAL_HARNESS_YT_DLP_PATH,
+    }),
+    sourceUrlDownload: createYtDlpSourceDownloadAdapter({
+      executablePath: process.env.SOCIAL_HARNESS_YT_DLP_PATH,
+      ffmpegExecutablePath: process.env.SOCIAL_HARNESS_FFMPEG_PATH,
+    }),
+    createPreviewUrl: options?.createLocalMediaPreviewUrl,
+  });
+  const socialProjectsRootDir = join(resolveSocialHarnessDataRootDir(), "social-projects");
+  const socialProjectService = createSocialProjectService({
+    store: createSocialProjectFileStore({
+      filePath: join(socialProjectsRootDir, "projects.json"),
+    }),
+    exportStore: createSocialProjectExportFileStore(join(socialProjectsRootDir, "exports.json")),
+    exportRenderer: createSocialProjectExportFfmpegRenderer({
+      ffmpegExecutablePath: process.env.SOCIAL_HARNESS_FFMPEG_PATH,
+      ffprobeExecutablePath: process.env.SOCIAL_HARNESS_FFPROBE_PATH,
+      exportDirectory: join(socialProjectsRootDir, "exports"),
+      resolveMediaPath: (asset) => socialMediaStore.getManagedOriginalPath(asset),
+      createDownloadUrl: async (path) => {
+        if (!options?.createLocalMediaPreviewUrl) {
+          throw new Error("Local project export downloads are not available on this Host");
+        }
+        return options.createLocalMediaPreviewUrl(path);
+      },
+    }),
+    socialAccountService,
+    socialMediaService,
+  });
+  let socialInstagramSetupService: ISocialInstagramSetupService | undefined;
+  const socialPublishingService = options?.instagramCredentialStore
+    ? createSocialPublishingService({
+        accountService: socialAccountService,
+        authBridge: instagramConvex?.bridge,
+        bridgeSetup: instagramConvex?.setup,
+        registerBridgeSetup: (service) => {
+          socialInstagramSetupService = service;
+        },
+        credentialStore: options.instagramCredentialStore,
+        tokenRefresher: createInstagramTokenRefresher(),
+        mediaReader: createInstagramMediaReader(),
+        socialMediaService,
+        connectionStore: createSocialPublishingFileStore({
+          filePath: join(
+            resolveSocialHarnessDataRootDir(),
+            "social-publishing",
+            "connections.json",
+          ),
+        }),
+        publication: {
+          store: createSocialPublishingPublicationFileStore({
+            filePath: join(
+              resolveSocialHarnessDataRootDir(),
+              "social-publishing",
+              "publications.json",
+            ),
+          }),
+          projectService: socialProjectService,
+          artifactReader: createSocialProjectExportArtifactReader({
+            exportDirectory: join(socialProjectsRootDir, "exports"),
+          }),
+          publisher: createInstagramReelPublisher(),
+        },
+        verifyProfile: createInstagramProfileReader(),
+      })
+    : undefined;
+  socialProjectAgentScopeResolver = (workspaceIdentity) =>
+    socialProjectService.agentScope(workspaceIdentity);
+  const socialAgentService = createSocialAgentService({
+    accountService: socialAccountService,
+    mediaService: socialMediaService,
+    projectService: socialProjectService,
+    ...(socialPublishingService ? { publishingService: socialPublishingService } : {}),
+  });
+  socialAgentScopeResolver = (workspaceIdentity) =>
+    socialAgentService.resolveScope(workspaceIdentity);
   const mediaPreviewService = createMediaPreviewService({
     fileService,
     authorizeLocalMediaPreviewPath: options?.authorizeLocalMediaPreviewPath,
     createLocalMediaPreviewUrl: buildLocalMediaPreviewUrl,
   });
-  const conversationShareClient = new ConversationShareHttpClient({
-    // 分享运行时始终走真实 API；测试/Mock 场景应在 service 单测或 Web fixture 中显式注入，
-    // 不能让开发环境默认生成仅存在于进程内存的 mock-share 链接。
-    apiClient,
-    baseUrl: buildRuntimeZCodeApiUrl(process.env, "/api/v1"),
-    tokenProvider: async (): Promise<string | null> => {
-      const activeProvider = await oauthCredentialRepo.getActiveProvider();
-      if (!activeProvider) {
-        return null;
-      }
-      const tokenSet = await oauthCredentialRepo.loadTokenSet(activeProvider);
-      return tokenSet?.zcodeJwtToken ?? tokenSet?.accessToken ?? null;
-    },
-  });
-  const conversationShareService: IConversationShareServiceType = isDesktopAttachedRemote
-    ? createUnsupportedConversationShareService({
-        message: "Conversation publishing is not available for remote workspaces",
-      })
-    : new ConversationShareService({
-        zcodeAgentService,
-        zcodeSessionService,
-        client: conversationShareClient,
-        artifactSource: createLocalConversationShareArtifactSource(),
-      });
   // 注册链上的懒工厂（如 OffPeak）会各自创建 tasks-index sqlite repo；先收集到本数组，
   // services 集合建好后在 return 前统一登记进 sharedSqliteRepos 侧表
   const sqliteReposToClose: Array<{ close(): void }> = [];
   const services = new ServiceCollection()
     .register(IFileService, fileService)
     .register(IMediaPreviewService, mediaPreviewService)
+    .register(ISocialAccountService, socialAccountService)
+    .register(ISocialMediaService, socialMediaService)
+    .register(ISocialMediaPreviewService, socialMediaService.previewService)
+    .register(ISocialProjectService, socialProjectService)
     .register(IGitService, gitService)
     .register(IGitCheckpointService, gitCheckpointService)
     .register(ISystemService, systemService)
-    .register(ITerminalService, createTerminalService({ settingService }))
     .register(ISettingService, settingService)
     .register(IOnboardingRecordService, onboardingRecordService)
     .register(ICredentialService, credentialService)
@@ -2435,7 +2544,6 @@ export function createLocalServices(options: {
     .register(IZCodeSessionService, zcodeSessionService)
     .register(ICuaPermissionService, cuaPermissionService)
     .register(ICuaPipSessionService, cuaPipSessionService)
-    .register(IConversationShareService, conversationShareService)
     .register(IFileWatcherService, createFileWatcherService())
     .register(IOAuthService, oauthService)
     .register(
@@ -2448,19 +2556,7 @@ export function createLocalServices(options: {
         officialMcpCredentialSource,
       }),
     )
-    .register(ICodingPlanSubscriptionService, codingPlanSubscriptionService)
-    .register(
-      IClientConfigService,
-      createClientConfigService({
-        apiClient,
-        resolveRequestContext: async () => ({
-          endpointOrigin: await resolveCurrentZCodeEndpointOrigin(),
-          appVersion: ZCODE_VERSION,
-          platform: `${process.platform}-${process.arch}`,
-        }),
-      }),
-    )
-    .register(IClientScenesService, createClientScenesService({ apiClient }))
+    .register(IClientConfigService, createClientConfigService())
     .register(
       IOffPeakTaskService,
       (() => {
@@ -2537,8 +2633,6 @@ export function createLocalServices(options: {
           },
         });
         offPeakTaskService.startSync();
-        // 回写前向引用，供 zcodeAgentService 的 offPeak/create、offPeak/list 协议 handler 调用。
-        offPeakTaskServiceForAgent = offPeakTaskService;
         return offPeakTaskService;
       })(),
     )
@@ -2571,6 +2665,12 @@ export function createLocalServices(options: {
       }),
     )
     .register(IPromptAttachmentTransferService, createLocalPromptAttachmentTransferService());
+
+  if (socialPublishingService) {
+    services.register(ISocialPublishingService, socialPublishingService);
+    if (socialInstagramSetupService)
+      services.register(ISocialInstagramSetupService, socialInstagramSetupService);
+  }
 
   // 即使初始配置关闭也必须登记 lifecycle disposer：terminal fence 需要早于任意延迟 setting/acquire
   // 恢复，不能把"当前还没有 Helper"误当成"不需要生命周期所有者"。dispose 时串行 stop host。
@@ -2684,7 +2784,7 @@ export function createTelemetryAuthorizationLoader(
 
 export function createTelemetryMarketingParamsLoader(
   credentialService: ICredentialService,
-): () => Promise<import("@zcode/shared").OAuthLoginAttribution | null> {
+): () => Promise<import("@social-harness/shared").OAuthLoginAttribution | null> {
   // 恢复原因：固定返回 null 会丢掉已保存的渠道归因，数仓应读取 OAuth 的同一份事实。
   const repo = new OAuthCredentialRepo(credentialService);
   return () => repo.loadLoginAttribution();
@@ -2713,12 +2813,12 @@ export function disposeServiceResources(services: ServiceCollection): void {
   // terminal/task wrapper 这类会拉起子进程的服务只能等宿主进程自己结束，时序上可能留下短暂残留。
   // 这里集中调用各服务的本地 disposeAll 钩子，把“退出 app = 回收所有托管资源”落成机械动作。
   const disposableServices = [
-    services.getOptional(ITerminalService),
     services.getOptional(IZCodeTaskService),
     services.getOptional(IZCodeAgentService),
     services.getOptional(IZCodeSessionService),
     services.getOptional(IFileWatcherService),
     services.getOptional(IOffPeakTaskService),
+    services.getOptional(ISocialMediaService),
   ].filter((service) => service !== undefined);
 
   for (const service of disposableServices) {
@@ -2746,12 +2846,12 @@ export async function disposeServiceResourcesAndWait(services: ServiceCollection
   // app 关闭时 host 需要等 agent 进程树完成 graceful + force 清理。
   // 旧的同步 dispose 会在 host 退出时丢掉强杀 timer，导致 zcode-cli/app-server 变成孤儿进程。
   const disposableServices = [
-    services.getOptional(ITerminalService),
     services.getOptional(IZCodeTaskService),
     services.getOptional(IZCodeAgentService),
     services.getOptional(IZCodeSessionService),
     services.getOptional(IFileWatcherService),
     services.getOptional(IOffPeakTaskService),
+    services.getOptional(ISocialMediaService),
   ].filter((service) => service !== undefined);
 
   for (const service of disposableServices) {

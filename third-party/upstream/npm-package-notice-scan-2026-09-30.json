@@ -1,0 +1,131 @@
+{
+  "checkedOn": "2026-09-30",
+  "method": "npm pack --silent --dry-run --json --ignore-scripts <package>@<version> against the exact public npm package versions; inspect the published file inventory and returned tarball SRI.",
+  "licenseFilenamePattern": "(^|/)(license|licence|copying|notice)(\\.[^/]*)?$",
+  "caseInsensitive": true,
+  "result": "None of these twelve published package archives contains a path matching the license filename pattern. This is negative archive evidence only; it does not prove that a README or package metadata contains no license reference and does not provide the missing complete original copyright/license notice. All corresponding strict review items remain open.",
+  "contentInspection": {
+    "checkedOn": "2026-10-01",
+    "method": "Re-downloaded each exact registry tarball and verified its SHA-512 SRI against the version metadata before inspecting package/README.md and package/package.json.",
+    "readmeLicenseEvidence": {
+      "react-remove-scroll-bar@2.3.8": "The License section says only MIT.",
+      "@hono/node-ws@1.3.0": "The License section says only MIT.",
+      "strict-event-emitter@0.5.1": "The License section says only MIT.",
+      "quickjs-wasi@2.2.0": "The README says it is built from quickjs-ng (MIT license); it does not provide a quickjs-wasi copyright/license notice."
+    },
+    "result": "No complete original package-level copyright/license notice surfaced in the README or package.json of any of the twelve exact published archives. SPDX metadata, author fields, and a bare MIT statement do not supply the missing original notice. Do not synthesize a copyright line; keep all twelve strict review items open until complete publisher material is obtained."
+  },
+  "sourceRepositoryInspection": {
+    "checkedOn": "2026-10-01",
+    "method": "Queried exact npm version metadata for repository and gitHead, then inspected immutable GitHub trees plus package README/package.json where the published source commit or exact release tag was available.",
+    "findings": {
+      "@hono/node-ws@1.3.0": "npm gitHead 2c026b9d5bfff006dc9abdc1b33c53856d2d784f; the exact package subtree has no LICENSE/COPYING/NOTICE path and its README says only MIT.",
+      "strict-event-emitter@0.5.1": "Exact v0.5.1 source commit 56e004cf2793053ea9ece4330fd52cace96acbff has no license-named path; README says only MIT.",
+      "lazy-val@1.0.5": "npm gitHead b69ad4119f1b19bdab13c61ee2fcc88d46b89071; exact source tree contains only package.json and readme.md among the inspected files, with no complete notice.",
+      "semaphore@1.1.0": "npm gitHead 88a33875b168cc7b5943d7fe987c36d08321d252; exact source tree has no license-named path and README says only MIT.",
+      "@open-draft/deferred-promise@2.2.0": "npm gitHead b30f1b683311030e92fcdd08d2bd6574d652b77f; exact source tree contains package.json and README.md but no license-named path or complete notice.",
+      "is-node-process@1.2.0": "Exact v1.2.0 source commit 8a6152c795d8705be97166bd5167e70ac6efc67c has no license-named path or complete notice.",
+      "quickjs-wasi@2.2.0": "Exact quickjs-wasi@2.2.0 source tree has no package-level license path; its only matching path is the separate mbedTLS extension license.",
+      "react-remove-scroll-bar@2.3.8": "npm publishes gitHead b3b1287aad81def2e2ae707274b74531b61ddbaf, but the declared GitHub repository does not resolve that commit (HTTP 422), so no source notice was attributed to it.",
+      "@arms/rum-browser@0.1.8, @arms/rum-core@0.1.4, @arms/rum-electron@0.0.3": "npm publishes gitHead values but no repository URLs; public GitHub commit search did not resolve those commits.",
+      "boolbase@1.0.0": "The exact npm version has no gitHead, and no matching 1.0.0 source tag was found in its declared repository."
+    },
+    "result": "The exact-source follow-up found no complete original publisher notice for any of these items. Source metadata and bare license identifiers are not substitutes; keep all twelve strict review items open."
+  },
+  "fullRepositoryTreeInspection": {
+    "checkedOn": "2026-10-01",
+    "method": "Queried the recursive GitHub Git tree API for each exact npm gitHead commit and listed every repository path matching the case-insensitive license/licence/copying/notice filename pattern.",
+    "repositories": {
+      "@hono/node-ws@1.3.0": "honojs/middleware@2c026b9d5bfff006dc9abdc1b33c53856d2d784f returned HTTP 200; the complete repository tree has no license-named path.",
+      "strict-event-emitter@0.5.1": "open-draft/strict-event-emitter@56e004cf2793053ea9ece4330fd52cace96acbff returned HTTP 200; the complete repository tree has no license-named path.",
+      "@open-draft/deferred-promise@2.2.0": "open-draft/deferred-promise@b30f1b683311030e92fcdd08d2bd6574d652b77f returned HTTP 200; the complete repository tree has no license-named path."
+    },
+    "result": "The full immutable source trees do not add an original notice for these three packages. Their exact package README evidence remains only a bare MIT statement or no license text; leave the corresponding strict review items open."
+  },
+  "packages": [
+    {
+      "name": "react-remove-scroll-bar",
+      "version": "2.3.8",
+      "integrity": "sha512-9r+yi9+mgU33AKcj6IbT9oRCO78WriSj6t/cF8DWBZJ9aOGPOTEDvdUDz1FwKim7QXWwmHqtdHnRJfhAxEG46Q==",
+      "entryCount": 27,
+      "licenseNamedPaths": []
+    },
+    {
+      "name": "quickjs-wasi",
+      "version": "2.2.0",
+      "integrity": "sha512-zQxXmQMrEoD3S+jQdYsloq4qAuaxKFHZj6hHqOYGwB2iQZH+q9e/lf5zQPXCKOk0WJuAjzRFbO4KwHIp2D05Iw==",
+      "entryCount": 49,
+      "licenseNamedPaths": []
+    },
+    {
+      "name": "@hono/node-ws",
+      "version": "1.3.0",
+      "integrity": "sha512-ju25YbbvLuXdqBCmLZLqnNYu1nbHIQjoyUqA8ApZOeL1k4skuiTcw5SW77/5SUYo2Xi2NVBJoVlfQurnKEp03Q==",
+      "entryCount": 10,
+      "licenseNamedPaths": []
+    },
+    {
+      "name": "strict-event-emitter",
+      "version": "0.5.1",
+      "integrity": "sha512-vMgjE/GGEPEFnhFub6pa4FmJBRBVOLpIII2hvCZ8Kzb7K0hlHo7mQv6xYrBvCL2LtAIBwFUK8wvuJgTVSQ5MFQ==",
+      "entryCount": 7,
+      "licenseNamedPaths": []
+    },
+    {
+      "name": "lazy-val",
+      "version": "1.0.5",
+      "integrity": "sha512-0/BnGCCfyUMkBpeDgWihanIAF9JmZhHBgUhEqzvf+adhNGLoP6TaiI5oF8oyb3I45P+PcnrqihSf01M0l0G5+Q==",
+      "entryCount": 5,
+      "licenseNamedPaths": []
+    },
+    {
+      "name": "semaphore",
+      "version": "1.1.0",
+      "integrity": "sha512-O4OZEaNtkMd/K0i6js9SL+gqy0ZCBMgUvlSqHKi4IBdjhe7wB8pwztUk1BbZ1fmrvpwFrPbHzqd2w5pTcJH6LA==",
+      "entryCount": 7,
+      "licenseNamedPaths": []
+    },
+    {
+      "name": "boolbase",
+      "version": "1.0.0",
+      "integrity": "sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==",
+      "entryCount": 3,
+      "licenseNamedPaths": []
+    },
+    {
+      "name": "@open-draft/deferred-promise",
+      "version": "2.2.0",
+      "integrity": "sha512-CecwLWx3rhxVQF6V4bAgPS5t+So2sTbPgAzafKkVizyi7tlwpcFpdFqq+wqF2OwNBmqFuu6tOyouTuxgpMfzmA==",
+      "entryCount": 8,
+      "licenseNamedPaths": []
+    },
+    {
+      "name": "is-node-process",
+      "version": "1.2.0",
+      "integrity": "sha512-Vg4o6/fqPxIjtxgUH5QLJhwZ7gW5diGCVlXpuUfELC62CuxM1iHcRe51f2W1FDy04Ai4KJkagKjx3XaqyfRKXw==",
+      "entryCount": 7,
+      "licenseNamedPaths": []
+    },
+    {
+      "name": "@arms/rum-browser",
+      "version": "0.1.8",
+      "integrity": "sha512-XqGzZB3ziQf8nNVYCf4lDkwonclPCOQYHjk8XBr8U28u/JrTtMSF1hNYZN4JlKqyLypelGb9Nx7T8BtS5bIEhQ==",
+      "entryCount": 91,
+      "licenseNamedPaths": []
+    },
+    {
+      "name": "@arms/rum-core",
+      "version": "0.1.4",
+      "integrity": "sha512-if7tvpBnKhKddUKk+/u9iXKUVC+/nugiK6FGHTBuqS6LBLL0Fl8xAm4FTN3hGq07DAmP77RmWaG5mb1vmJ73SQ==",
+      "entryCount": 96,
+      "licenseNamedPaths": []
+    },
+    {
+      "name": "@arms/rum-electron",
+      "version": "0.0.3",
+      "integrity": "sha512-ieiMhVQNpkSEv3tgwfQZqhvy8p9cyhl3B7AS4j+8kikDcriNOA5xE0d8JwpItzfOm7kfeYqGbZYwZMF45EDl4Q==",
+      "entryCount": 9,
+      "licenseNamedPaths": []
+    }
+  ]
+}

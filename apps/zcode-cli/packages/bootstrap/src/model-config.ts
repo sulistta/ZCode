@@ -2,12 +2,11 @@ import type {
   AiSdkModelExecutionConfig,
   AiSdkNetworkConfig,
   EnvRecord,
-} from "@zcode/adapters/model";
+} from "@social-harness/adapters/model";
 import {
   resolveRuntimeZCodeEnv,
-  resolveRuntimeZCodeEndpointOrigin,
-  ZCODE_APP_VERSION_ENV,
-} from "@zcode/shared";
+  SOCIAL_HARNESS_APP_VERSION_ENV,
+} from "@social-harness/shared";
 import {
   createRuntimePlatformHeaders,
   normalizePrintableHeaderValue,
@@ -50,26 +49,41 @@ function buildCliZCodeSourceHeaders(
 ): Record<string, string> {
   const sourceTitle = options.sourceTitle ?? detectDefaultProviderSourceTitle();
   const appVersion = resolveAppVersionForHeaders(env, options);
+  const providerReferer = resolveSocialHarnessProviderReferer(env);
   const locale = normalizePrintableHeaderValue(Intl.DateTimeFormat().resolvedOptions().locale);
   const timezone = normalizePrintableHeaderValue(Intl.DateTimeFormat().resolvedOptions().timeZone);
   return {
-    "HTTP-Referer": resolveRuntimeZCodeEndpointOrigin(env),
-    "User-Agent": `ZCode/${appVersion ?? "unknown"}`,
-    ...(appVersion ? { "X-ZCode-App-Version": appVersion } : {}),
-    "X-Title": `Z Code@${sourceTitle}`,
+    ...(providerReferer ? { "HTTP-Referer": providerReferer } : {}),
+    "User-Agent": `Social Harness/${appVersion ?? "unknown"}`,
+    ...(appVersion ? { "X-Social-Harness-App-Version": appVersion } : {}),
+    "X-Title": `Social Harness@${sourceTitle}`,
     "X-Release-Channel": resolveRuntimeZCodeEnv(env),
     "X-Client-Language": locale ?? "unknown",
     "X-Client-Timezone": timezone ?? "unknown",
-    "X-ZCode-Agent": "glm",
     ...createRuntimePlatformHeaders(),
   };
+}
+
+function resolveSocialHarnessProviderReferer(env: EnvRecord): string | undefined {
+  const configured = normalizePrintableHeaderValue(env["SOCIAL_HARNESS_PROVIDER_REFERER"]);
+  if (!configured) return undefined;
+  try {
+    const parsed = new URL(configured);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return undefined;
+    }
+    if (parsed.username || parsed.password) return undefined;
+    return parsed.origin;
+  } catch {
+    return undefined;
+  }
 }
 
 function resolveAppVersionForHeaders(
   env: EnvRecord,
   options: Pick<RuntimeExecutionConfigOptions, "appVersion">,
 ): string | undefined {
-  return normalizePrintableHeaderValue(env[ZCODE_APP_VERSION_ENV] ?? options.appVersion);
+  return normalizePrintableHeaderValue(env[SOCIAL_HARNESS_APP_VERSION_ENV] ?? options.appVersion);
 }
 
 function detectDefaultProviderSourceTitle(): ModelProviderSourceTitle {

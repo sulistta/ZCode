@@ -10,7 +10,6 @@ interface AccountProviderInvalidationOptions {
 const ACCOUNT_PROVIDER_SETTING_KEYS = new Set([
   "providerFamilyDomain",
   "providerFamilyConnectionSelections",
-  "zcodeEndpointOrigin",
 ]);
 
 /**

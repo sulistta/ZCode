@@ -11,6 +11,10 @@ export {
 } from "./frontmatter.js";
 
 export {
+  assertAccountWorkflowSource,
+  isAccountRecipeWorkspace,
+  deleteSavedWorkflow,
+  updateSavedWorkflowMeta,
   findSavedWorkflowShadowing,
   listSavedWorkflows,
   moveSavedWorkflow,

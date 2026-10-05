@@ -3,7 +3,8 @@ import type {
   ZCodeAutomationScheduleRule,
   ZCodeMcpListMode,
   ModelSelection,
-} from "@zcode/shared";
+  ApprovedWorkflowSnapshot,
+} from "@social-harness/shared";
 
 export interface ZCodeAgentWorkspaceTarget {
   workspacePath: string;
@@ -121,6 +122,7 @@ export interface ZCodeAgentCreateAutomationParams extends ZCodeAgentWorkspaceTar
   cronExpr: string;
   relativeDelayMinutes?: number;
   prompt: string;
+  recipeSnapshot?: ApprovedWorkflowSnapshot;
   modelSelection?: ModelSelection;
   mode?: string;
   recurring?: boolean;
@@ -134,6 +136,7 @@ export interface ZCodeAgentUpdateAutomationParams extends ZCodeAgentWorkspaceTar
   title?: string;
   cronExpr?: string;
   prompt?: string;
+  recipeSnapshot?: ApprovedWorkflowSnapshot;
   modelSelection?: ModelSelection | null;
   mode?: string | null;
   recurring?: boolean;

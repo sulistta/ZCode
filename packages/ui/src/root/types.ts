@@ -1,5 +1,5 @@
-import type { IPlatformService, UserInfo } from "@zcode/shared";
-import type { IServiceAccessor } from "@zcode/services";
+import type { IPlatformService, UserInfo } from "@social-harness/shared";
+import type { IServiceAccessor } from "@social-harness/services";
 import type { ReactNode } from "react";
 import type { CreateTaskRequest } from "@/app-shell/types.js";
 
@@ -9,7 +9,7 @@ export interface RootProps {
   /** 如果从 main 进程传入则跳过项目选择页 */
   initialWorkspaceAbsPath?: string;
   /** app-owned workspace 展示分类；缺省为真实项目。 */
-  initialWorkspacePurpose?: import("@zcode/shared").WorkspacePurpose;
+  initialWorkspacePurpose?: import("@social-harness/shared").WorkspacePurpose;
   /** 桌面启动时精确 active 的本地 workspace 不可用；仅用于本次 renderer 生命周期。 */
   unavailableWorkspacePath?: string;
   /** 初始 workspace 的身份隔离键，远程工作区需要透传 */
@@ -36,8 +36,6 @@ export interface RootProps {
   allowRemoteWorkspace?: boolean;
   /** 非桌面入口初始 workspace 注入前继续展示的 loading，桌面端不使用 */
   initialWorkspaceLoadingFallback?: ReactNode;
-  /** Assistant code-comment 卡片灰度；默认关闭，关闭时保留原始 directive。 */
-  assistantCodeCommentCardsEnabled?: boolean;
 }
 
 export interface WorkspaceSettingsLayerProps {

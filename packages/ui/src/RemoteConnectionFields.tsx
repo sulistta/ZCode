@@ -7,7 +7,7 @@ import type {
   RemoteWorkspaceSessionEntry,
   SSHConfigAliasOption,
   WSLDistro,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { AlertTriangleIcon, CheckIcon, ChevronDownIcon, LoaderIcon, Plus } from "lucide-react";
 import {
   TID_DOCKER_CONTAINER_INPUT,
@@ -23,7 +23,7 @@ import {
   TID_WSL_DISTRO_SELECT,
   TID_WSL_USER_INPUT,
   isValidWslUser,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type { SSHAuthMethod } from "@/hooks/useRemoteConnectionForm.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import { cn } from "@/components/lib/utils.js";

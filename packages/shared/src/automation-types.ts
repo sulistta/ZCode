@@ -1,5 +1,6 @@
 import type { ZCodeTaskMode } from "./zcode-task-types-core.js";
 import type { ModelSelection } from "./model-selection.js";
+import type { ApprovedWorkflowSnapshot } from "./approved-workflow-snapshot.js";
 
 // ---- 定时任务(Automation)领域类型 ----
 // automation / automation_runs 存 tasks-index.sqlite。
@@ -67,6 +68,9 @@ export interface ZCodeAutomation {
   /** 5 段 cron，本地时区。 */
   cronExpr: string;
   prompt: string;
+  recipeSnapshot?: ApprovedWorkflowSnapshot;
+  /** Read-only corruption projection; never dispatch this occurrence as a prompt. */
+  recipeSnapshotError?: "invalid_recipe_snapshot";
   /** 缺失表示 Select 阶段继续跟随 Workspace 首选；存在时固定结构化模型意图。 */
   modelSelection?: ModelSelection;
   /** 权限模式；派发时透传给 createTask，缺省走 workspace 默认。 */
@@ -132,6 +136,8 @@ export interface ZCodeAutomationRun {
   workspaceKey: string;
   scheduledAt?: number;
   trigger: ZCodeAutomationTrigger;
+  recipeSnapshot?: ApprovedWorkflowSnapshot;
+  recipeSnapshotError?: "invalid_recipe_snapshot";
   /** Select 转 Submission 后固定；同一 run 的派发重试不得重新读取 Workspace 首选。 */
   modelSelection?: ModelSelection;
   dispatchStatus: ZCodeAutomationRunDispatchStatus;
@@ -151,6 +157,7 @@ export interface ZCodeAutomationCreateParams {
   /** 仅创建期使用：由服务层基于真实当前时间换算为 cronExpr，不写入数据库。 */
   relativeDelayMinutes?: number;
   prompt: string;
+  recipeSnapshot?: ApprovedWorkflowSnapshot;
   modelSelection?: ModelSelection;
   mode?: ZCodeTaskMode;
   workspacePath: string;
@@ -176,6 +183,8 @@ export interface ZCodeAutomationUpdateParams {
   title?: string;
   cronExpr?: string;
   prompt?: string;
+  /** Omission keeps the approved version; replacement requires another reviewed snapshot. */
+  recipeSnapshot?: ApprovedWorkflowSnapshot;
   /** undefined=不修改；null=清空，回退到 Workspace 首选。 */
   modelSelection?: ModelSelection | null;
   /** undefined=不修改；null=清空，回退到 workspace 默认权限模式。 */

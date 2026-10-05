@@ -1,5 +1,5 @@
 /* oxlint-disable eslint(max-lines) -- footer 聚合账户、主题、模式和快捷键菜单。 */
-import type { Locale, UserInfo } from "@zcode/shared";
+import type { Locale, UserInfo } from "@social-harness/shared";
 import { memo, useCallback, useEffect, useState } from "react";
 import {
   DesktopCommandIds,
@@ -7,7 +7,7 @@ import {
   TID_LOGIN_TRIGGER,
   TID_LOGOUT_BUTTON,
   TID_TASK_SETTINGS_BUTTON,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar.js";
 import { cn } from "@/components/lib/utils.js";
@@ -64,7 +64,7 @@ function getSidebarProfileName(user?: UserInfo | null): string {
     return username;
   }
 
-  return "ZCode";
+  return "Social Harness";
 }
 
 function getSidebarProfileBadge(
@@ -79,8 +79,8 @@ function getSidebarProfileBadge(
 }
 
 function getAvatarFallbackText(user: UserInfo | null | undefined): string {
-  const source = user?.displayName?.trim() || user?.username?.trim() || "Z";
-  return source[0]?.toUpperCase() ?? "Z";
+  const source = user?.displayName?.trim() || user?.username?.trim() || "S";
+  return source[0]?.toUpperCase() ?? "S";
 }
 
 export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterComponent({

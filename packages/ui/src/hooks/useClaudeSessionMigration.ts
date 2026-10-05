@@ -1,5 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
-import type { ZCodeImportSessionsResult, ZCodeImportableSessionCandidate } from "@zcode/shared";
+import type {
+  ZCodeImportSessionsResult,
+  ZCodeImportableSessionCandidate,
+} from "@social-harness/shared";
 import { logger } from "@/logger.js";
 import { useZCodeTaskService } from "@/hooks/useZCodeTaskService.js";
 import { useTabStoreApi } from "@/store/TabStoreProvider.js";

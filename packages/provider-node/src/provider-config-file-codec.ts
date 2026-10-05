@@ -1,13 +1,16 @@
 import { z } from "zod";
-import { modelSelectionSchema } from "@zcode/shared/model-selection";
-import { completeModelConfigDataSchema, modelConfigDataSchema } from "@zcode/shared/model-config";
+import { modelSelectionSchema } from "@social-harness/shared/model-selection";
+import {
+  completeModelConfigDataSchema,
+  modelConfigDataSchema,
+} from "@social-harness/shared/model-config";
 import {
   parsePersonalModelConfigRules,
   parsePersonalProviderConfigMap,
   extractManualModelConfig,
   manualModelConfigSchema,
   type ProviderConfigLayerUpdate,
-} from "@zcode/provider";
+} from "@social-harness/provider";
 
 const CURRENT_SCHEMA_VERSION = 1 as const;
 

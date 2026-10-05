@@ -19,6 +19,17 @@ function readRuntimePackage(moduleLookupRoots, moduleName, parentPackagePath = n
   if (parentPackagePath) {
     try {
       const requireFromParent = createRequire(parentPackagePath);
+      // 二进制 optional 包没有 JS 入口，先按父包解析 package.json，避免误选 hoisted 新版本。
+      try {
+        const packageJsonPath = requireFromParent.resolve(`${moduleName}/package.json`);
+        return {
+          packageJson: JSON.parse(readFileSync(packageJsonPath, "utf8")),
+          packageJsonPath,
+          packageRoot: dirname(packageJsonPath),
+        };
+      } catch {
+        // exports 未开放 package.json 的模块继续按公开入口定位。
+      }
       const entryPath = requireFromParent.resolve(moduleName);
       const packageRoot = findPackageRoot(entryPath);
       if (packageRoot) {

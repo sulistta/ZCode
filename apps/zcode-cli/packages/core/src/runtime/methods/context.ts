@@ -25,6 +25,7 @@ import { resolveEnabledProjectMemoryRoot } from "../helpers/project-memory.js";
 import { buildContextHistoryEntries } from "./context-history-entries.js";
 import { resolveRuntimeEmbeddedSearchEnabled } from "./embedded-search-branch.js";
 import { getContextSourceShellDisplayName } from "./session-shell-environment.js";
+import { isSocialAccountRuntime } from "../helpers/tool-allowlist.js";
 
 export { buildContextHistoryEntries };
 
@@ -134,6 +135,7 @@ export function createContextBuilderFromSnapshot(
     embeddedSearchEnabled: resolveRuntimeEmbeddedSearchEnabled(this),
     skillMetadataBudget: this.config.skillMetadataBudget,
     customSystemPrompt: this.config.systemPrompt,
+    socialAccountRuntime: isSocialAccountRuntime(this.config),
     workflowActor: this.config.workflowActor,
     language: this.config.language,
     outputStyle: this.config.outputStyle,

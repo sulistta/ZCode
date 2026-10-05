@@ -6,8 +6,8 @@ import { join } from "node:path";
 import type {
   ComputerUseRuntime,
   ComputerUseRuntimeContext,
-} from "@zcode/zcode-cua";
-import type { Logger } from "@zcode/contracts";
+} from "@social-harness/zcode-cua";
+import type { Logger } from "@social-harness/contracts";
 import type { NodeReplCuaBrokerConnection } from "./cua-bridge.js";
 
 const MAX_REQUEST_BYTES = 1024 * 1024;

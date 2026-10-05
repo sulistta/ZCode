@@ -1,10 +1,10 @@
+import type { ISocialInstagramSetupService } from "./social-publishing/setupContract.js";
 import { IOffPeakTaskService } from "./session/offPeakTask.js";
 import type { IFileService } from "./file/file.js";
 import type { IMediaPreviewService } from "./media-preview/mediaPreview.js";
 import type { IGitService } from "./git/git.js";
 import type { IGitCheckpointService } from "./git/gitCheckpoint.js";
 import type { ISystemService } from "./system/system.js";
-import type { ITerminalService } from "./terminal/terminal.js";
 import type { ISettingService } from "./setting/setting.js";
 import type { ICredentialService } from "./credential/credential.js";
 import type { IBroadcastService } from "./broadcast/broadcast.js";
@@ -38,6 +38,11 @@ import type { IPromptAttachmentTransferService } from "./prompt-attachment-trans
 import type { IWindowControllerService } from "./window-controller/windowController.js";
 import type { IOnboardingRecordService } from "./onboarding/onboardingRecord.js";
 import type { IConversationShareService } from "./conversation-share/conversationShare.js";
+import type { ISocialAccountService } from "./social-account/contract.js";
+import type { ISocialMediaService } from "./social-media/contract.js";
+import type { ISocialMediaPreviewService } from "./social-media/previewContract.js";
+import type { ISocialProjectService } from "./social-project/contract.js";
+import type { ISocialPublishingService } from "./social-publishing/contract.js";
 
 /** UI 层消费的统一服务接口 */
 export interface IServiceAccessor {
@@ -46,8 +51,18 @@ export interface IServiceAccessor {
   readonly gitService: IGitService;
   readonly gitCheckpointService: IGitCheckpointService;
   readonly systemService: ISystemService;
-  readonly terminalService: ITerminalService;
   readonly settingService: ISettingService;
+  /** Local Social Harness account directory; old/remote test hosts may not expose it yet. */
+  readonly socialAccountService?: ISocialAccountService;
+  /** Local account-scoped media catalog; hosts without the Social Harness media module omit it. */
+  readonly socialMediaService?: ISocialMediaService;
+  /** Short-lived media preview capabilities; separated from catalog operations. */
+  readonly socialMediaPreviewService?: ISocialMediaPreviewService;
+  /** Local account-scoped project editor; older hosts may not expose it yet. */
+  readonly socialProjectService?: ISocialProjectService;
+  /** Instagram OAuth and publishing account projection; available only on a local Desktop Host. */
+  readonly socialPublishingService?: ISocialPublishingService;
+  readonly socialInstagramSetupService?: ISocialInstagramSetupService;
   /** Onboarding 完成记录（本地持久化）；旧测试 double / 不支持的 host 可不提供。 */
   readonly onboardingRecordService?: IOnboardingRecordService;
   readonly credentialService: ICredentialService;

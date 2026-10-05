@@ -1,11 +1,12 @@
 import {
   ApiError,
-  DEFAULT_ZCODE_ENDPOINT_ORIGIN,
+  isRetiredZCodeEndpointUrl,
   normalizeZCodeEndpointOrigin,
+  resolveRuntimeZCodeEndpointOrigin,
   rewriteZCodeEndpointUrl,
   type ApiClient,
   type ApiRequestInit,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { createServiceLogger } from "#src/logger/serviceLogger.js";
 import { buildZCodeSourceHeaders } from "../sourceHeaders.js";
 import { withRequestIdHeader } from "./requestIdHeaders.js";
@@ -44,7 +45,6 @@ function isRequestForEndpoint(input: string | URL, endpointOrigin: string): bool
 
 function withZCodeEndpointHeaders(
   headers: RequestInit["headers"] | undefined,
-  endpointOrigin: string,
 ): RequestInit["headers"] {
   const next = new Headers(buildZCodeSourceHeaders());
   if (headers) {
@@ -53,9 +53,6 @@ function withZCodeEndpointHeaders(
     });
   }
 
-  if (next.get("HTTP-Referer") === DEFAULT_ZCODE_ENDPOINT_ORIGIN) {
-    next.set("HTTP-Referer", endpointOrigin);
-  }
   return next;
 }
 
@@ -70,7 +67,7 @@ function resolveRequestHeaders(
 
   // ZCode 后端请求以前只有部分业务路径手动补来源头。
   // 统一在 ApiClient 出口按 endpoint origin 注入，避免 OAuth/config/billing/snapshot 等链路遗漏。
-  return withZCodeEndpointHeaders(headers, endpointOrigin);
+  return withZCodeEndpointHeaders(headers);
 }
 
 export class NodeApiClient implements ApiClient {
@@ -90,10 +87,36 @@ export class NodeApiClient implements ApiClient {
     const endpointOrigin = this.resolveZCodeEndpointOrigin
       ? await this.resolveZCodeEndpointOrigin()
       : undefined;
-    const activeEndpointOrigin = endpointOrigin ?? DEFAULT_ZCODE_ENDPOINT_ORIGIN;
+    const activeEndpointOrigin = endpointOrigin ?? resolveRuntimeZCodeEndpointOrigin();
     const requestInput = rewriteZCodeEndpointUrl(input, activeEndpointOrigin);
     const url = resolveUrl(requestInput);
     const method = resolveMethod(init);
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      // 未配置第一方 origin 时，拒绝相对路径，避免 Node fetch 或浏览器把它发往隐式同源地址。
+      throw new ApiError({
+        message: "API request URL must be an absolute HTTP(S) URL",
+        url,
+        method,
+      });
+    }
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      throw new ApiError({
+        message: "API request URL must use HTTP or HTTPS",
+        url,
+        method,
+      });
+    }
+    if (isRetiredZCodeEndpointUrl(parsedUrl)) {
+      // 旧产品 API 已退役；遇到旧地址时必须在本地失败，避免继续访问 ZCode。
+      throw new ApiError({
+        message: "Requests to the retired ZCode API are disabled",
+        url,
+        method,
+      });
+    }
     const timeoutMs = init?.timeoutMs;
     const controller = timeoutMs && timeoutMs > 0 ? new AbortController() : null;
     let didTimeout = false;

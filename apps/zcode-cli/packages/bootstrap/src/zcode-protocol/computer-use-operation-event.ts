@@ -1,5 +1,5 @@
-import { SessionEventType, type SessionEvent } from "@zcode/contracts";
-import type { ZCodeComputerUseOperationEvent } from "@zcode/shared";
+import { SessionEventType, type SessionEvent } from "@social-harness/contracts";
+import type { ZCodeComputerUseOperationEvent } from "@social-harness/shared";
 
 function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)

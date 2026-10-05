@@ -41,11 +41,10 @@ import type {
   EnterpriseCodingPlanPricingResponse,
   StartPlanPreviewConfig,
   ZCodeModelContextBudgetStrategy,
-  ForceUpdateConfig,
   DynamicWorkflowClientConfig,
-} from "@zcode/shared";
-import type { ModelSelectionView } from "@zcode/provider";
-import { ServiceChannels } from "@zcode/shared";
+} from "@social-harness/shared";
+import type { ModelSelectionView } from "@social-harness/provider";
+import { ServiceChannels } from "@social-harness/shared";
 import { createServiceDescriptor } from "../descriptors.js";
 
 export interface OffPeakClientConfig {
@@ -60,18 +59,14 @@ export interface ICodingPlanSubscriptionService {
   getStaticProducts(): Promise<CodingPlanStaticProductsConfig>;
   getStaticTeamProducts(): Promise<CodingPlanStaticTeamProductsConfig>;
   getStartPlanPreview(): Promise<StartPlanPreviewConfig | null>;
-  /** 闲时任务灰度配置：forceRefresh 供入口打开时补拉（绕过 1h 快照缓存）。 */
+  /** 兼容旧 Coding Plan 闲时任务入口；Social Harness 正常运行时固定关闭。 */
   getOffPeakClientConfig(options?: { forceRefresh?: boolean }): Promise<OffPeakClientConfig>;
-  /**
-   * 动态工作流灰度快照：远端 `configs.dynamicWorkflow.mode`
-   * 与本地覆盖折叠后的结果；forceRefresh 绕过 1h 快照缓存。请求失败 fail-closed（disabled/default）。
-   */
+  /** 动态工作流配置读取本地覆盖；Social Harness social sessions leave it disabled. */
   getDynamicWorkflowClientConfig(options?: {
     forceRefresh?: boolean;
   }): Promise<DynamicWorkflowClientConfig>;
   /** 兼容接口：固定返回 preflight-v1，不读取远端配置或缓存。 */
   getModelContextBudgetStrategy(): Promise<ZCodeModelContextBudgetStrategy>;
-  getForceUpdateConfig(): Promise<ForceUpdateConfig | null>;
   productInfo(request: CodingPlanProductInfoRequest): Promise<CodingPlanProductInfo>;
   preview(request: CodingPlanPreviewRequest): Promise<CodingPlanPreviewResponse>;
   createSign(request: CodingPlanCreateSignRequest): Promise<CodingPlanAgreementResponse>;

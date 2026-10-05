@@ -46,7 +46,7 @@ export type {
   ConversationShareTurnPreflightResult,
   PublishTextConversationInput,
 } from "./conversation-share/conversationShare.js";
-// Conversation share 的具体实现依赖 Node 文件系统，只能从 @zcode/services/node 引入；
+// Conversation share 的具体实现依赖 Node 文件系统，只能从 @social-harness/services/node 引入；
 // 根入口必须保持 browser-safe，避免 renderer 解析到 node:* 模块。
 export {
   createConversationTelemetryService,
@@ -66,14 +66,95 @@ export { IGitCheckpointService } from "./git/gitCheckpoint.js";
 // System service — ISystemService is both a type (interface) and value (descriptor)
 export { ISystemService } from "./system/system.js";
 
-// Terminal service — ITerminalService is both a type (interface) and value (descriptor)
-export { ITerminalService } from "./terminal/terminal.js";
-
 // Setting service — ISettingService is both a type (interface) and value (descriptor)
 export { ISettingService } from "./setting/setting.js";
 
 // Credential service — ICredentialService is both a type (interface) and value (descriptor)
 export { ICredentialService } from "./credential/credential.js";
+export { ISocialAccountService } from "./social-account/contract.js";
+export type {
+  CreateSocialAccountRequest,
+  EditorialMemoryEntry,
+  EditorialProfile,
+  ISocialAccountService as SocialAccountService,
+  SocialAccount,
+  SocialAccountChange,
+  SocialAutomationPolicy,
+  UpdateSocialAccountEditorialRequest,
+  UpdateSocialAccountPolicyRequest,
+} from "./social-account/contract.js";
+export { ISocialInstagramSetupService } from "./social-publishing/setupContract.js";
+export type { ISocialInstagramSetupService as SocialInstagramSetupService } from "./social-publishing/setupContract.js";
+export { ISocialPublishingService } from "./social-publishing/contract.js";
+export type {
+  ApproveInstagramPublicationRequest,
+  ApproveInstagramPublicationProposalRequest,
+  CompleteInstagramConnectionRequest,
+  DisconnectInstagramRequest,
+  InstagramConnection,
+  InstagramConnectionProfile,
+  InstagramPublication,
+  RequestAutomatedInstagramPublicationRequest,
+  ISocialPublishingService as SocialPublishingService,
+  SocialPublishingConnectionChange,
+  SocialPublishingPublicationChange,
+  ResolveInstagramPublicationRequest,
+  StartInstagramConnectionRequest,
+  StartInstagramConnectionResult,
+} from "./social-publishing/contract.js";
+export { ISocialMediaService } from "./social-media/contract.js";
+export { ISocialMediaPreviewService } from "./social-media/previewContract.js";
+export type {
+  ISocialMediaPreviewService as SocialMediaPreviewService,
+  SocialMediaPreview,
+  SocialMediaPreviewRequest,
+} from "./social-media/previewContract.js";
+export type {
+  ISocialMediaService as SocialMediaService,
+  SocialMediaAsset,
+  SocialMediaClipCandidate,
+  SocialMediaClipCandidateEvidence,
+  SocialMediaClipCandidateMode,
+  SocialMediaClipCandidateRequest,
+  SocialMediaClipCandidateResult,
+  SocialMediaClipCandidateUnavailableReason,
+  SocialMediaChange,
+  SocialMediaJob,
+  SocialMediaJobActionRequest,
+  SocialMediaJobChange,
+  SocialMediaKind,
+  SocialMediaLocalFileImportRequest,
+  SocialMediaTranscriptionModelId,
+  SocialMediaTranscriptionModelRequest,
+  SocialMediaTranscriptionSetup,
+  SocialMediaTranscript,
+  SocialMediaTranscriptSegment,
+  SocialMediaSourceUrlDownloadRequest,
+  SocialMediaYouTubeSearchRequest,
+  SocialMediaYouTubeSearchResult,
+} from "./social-media/contract.js";
+export { ISocialProjectService } from "./social-project/contract.js";
+export type {
+  ISocialProjectService as SocialProjectService,
+  SocialProject,
+  SocialProjectChange,
+  SocialProjectClip,
+  SocialProjectCommandRequest,
+  SocialProjectCommandResult,
+  SocialProjectHistoryEntry,
+  SocialProjectKeyframe,
+  SocialProjectReadModel,
+  SocialProjectSettings,
+  SocialProjectSummary,
+  SocialProjectTrack,
+  SocialProjectExportCancelRequest,
+  SocialProjectExportChange,
+  SocialProjectExportDownload,
+  SocialProjectExportDownloadRequest,
+  SocialProjectExportJob,
+  SocialProjectExportRequest,
+} from "./social-project/contract.js";
+export type { SocialAgentService, SocialAgentScope } from "./social-agent/contract.js";
 
 // Broadcast service — IBroadcastService is both a type (interface) and value (descriptor)
 export { IBroadcastService } from "./broadcast/broadcast.js";
@@ -85,7 +166,7 @@ export type {
   OnboardingRecordServiceFactory,
 } from "./onboarding/onboardingRecord.js";
 // 这里只能导出 descriptor 和类型。根 index 会被 renderer 经 value import 拉进浏览器包，
-// 若 value 导出 createOnboardingRecordService，会连带 fs/atomicFileUtils → @zcode/shared/node →
+// 若 value 导出 createOnboardingRecordService，会连带 fs/atomicFileUtils → @social-harness/shared/node →
 // node:timers/promises 整条 Node 链进浏览器，模块加载直接抛错导致整个应用黑屏。
 // 工厂函数由 host 侧（node.ts）与测试从实现文件路径直接导入，与 createSettingService 同惯例。
 export type {
@@ -137,11 +218,11 @@ export type {
 export {
   IZCodeAgentService,
   type ZCodeAgentLocalRuntimeChildProcesses,
-  ZCODE_AGENT_RUNTIME_UNAVAILABLE_CODE,
+  SOCIAL_HARNESS_AGENT_RUNTIME_UNAVAILABLE_CODE,
 } from "./zcode-agent/zcodeAgent.js";
 export {
   isZCodeAgentMcpStatusModeUnsupportedError,
-  ZCODE_AGENT_MCP_STATUS_MODE_UNSUPPORTED_ERROR_CODE,
+  SOCIAL_HARNESS_AGENT_MCP_STATUS_MODE_UNSUPPORTED_ERROR_CODE,
   ZCodeAgentMcpStatusModeUnsupportedError,
 } from "./zcode-agent/zcodeAgentErrors.js";
 export {
@@ -218,7 +299,7 @@ export { IOAuthService } from "./oauth/oauth.js";
 // UsageStats service — IUsageStatsService is both a type (interface) and value (descriptor)
 export { IUsageStatsService } from "./usage-stats/usageStats.js";
 
-// Storage（资源管理器「存储」tab）：数据类型在 @zcode/shared；这里只导出服务接口与卷分组纯函数
+// Storage（资源管理器「存储」tab）：数据类型在 @social-harness/shared；这里只导出服务接口与卷分组纯函数
 export type { IStorageService } from "./storage/contract.js";
 
 // CodingPlanSubscription service — ICodingPlanSubscriptionService is both a type (interface) and value (descriptor)
@@ -297,5 +378,5 @@ export type {
   FeedbackTicketStatus,
   FeedbackTicketSummary,
   FeedbackTicketType,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 export { IClientConfigService } from "./client-config/clientConfig.js";

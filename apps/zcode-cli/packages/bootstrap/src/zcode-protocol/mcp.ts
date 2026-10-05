@@ -1,10 +1,10 @@
-import { createConfig, resolvePath } from "@zcode/adapters/config";
-import type { Logger, McpConnectionSnapshot, McpPort, McpServerStatus } from "@zcode/contracts";
+import { createConfig, resolvePath } from "@social-harness/adapters/config";
+import type { Logger, McpConnectionSnapshot, McpPort, McpServerStatus } from "@social-harness/contracts";
 import {
   zcodeMcpListParamsSchema,
   zcodeMcpListResultSchema,
   type ZCodeMcpListResult,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   listMcpServerStatuses,
   omitMcpServers,

@@ -31,6 +31,9 @@ export {
 export {
   SAVED_WORKFLOW_SENTINEL,
   findSavedWorkflowShadowing,
+  deleteSavedWorkflow,
+  updateSavedWorkflowMeta,
+  isAccountRecipeWorkspace,
   listSavedWorkflows,
   moveSavedWorkflow,
   parseSavedWorkflow,
@@ -44,6 +47,8 @@ export {
   serializeSavedWorkflow,
   validateWorkflowArgs,
 } from "./tool/handlers/saved-workflows/index.js";
+export { analyzeScript } from "./tool/handlers/workflow-script-analysis.js";
+export { resolveSavedWorkflowLaunch } from "./tool/handlers/saved-workflows/launch-source.js";
 export type {
   ResolvedSavedWorkflow,
   SavedWorkflowListResult,
@@ -182,5 +187,5 @@ export type {
   LogEntry,
   SessionEvent,
   SessionEventSink,
-} from "@zcode/contracts";
-export { LogLevel, SessionEventType } from "@zcode/contracts";
+} from "@social-harness/contracts";
+export { LogLevel, SessionEventType } from "@social-harness/contracts";

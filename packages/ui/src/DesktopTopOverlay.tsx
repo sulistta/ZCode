@@ -1,4 +1,4 @@
-import type { IPlatformService, UpdateStatePayload } from "@zcode/shared";
+import type { IPlatformService, UpdateStatePayload } from "@social-harness/shared";
 import { cn } from "@/components/lib/utils.js";
 import {
   ArrowLeftIcon,
@@ -141,7 +141,7 @@ export function DesktopTopOverlay({
             >
               <img
                 src={appLogoUrl}
-                alt="ZCode"
+                alt="Social Harness"
                 className="size-5 transition-opacity duration-150 group-hover:opacity-0"
                 draggable={false}
               />

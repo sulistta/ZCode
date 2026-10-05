@@ -6,7 +6,7 @@ import {
   parseModelPickerValue as parseSharedModelSelection,
   formatModelPickerValue as formatSharedModelSelection,
   resolveZCodeVisibleSessionTitle,
-  ZCODE_AGENT_PROVIDER,
+  SOCIAL_HARNESS_AGENT_PROVIDER,
   type ZCodeConfigOption,
   type ZCodeTaskGoal,
   type ZCodeTaskMode,
@@ -17,12 +17,12 @@ import {
   type ZCodeSessionMode,
   type ZCodeSessionSettingsState,
   type ZCodeSessionStateSnapshot,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 
 const MODEL_CONFIG_ID = "model";
 const THOUGHT_LEVEL_CONFIG_ID = "thought_level";
 const MODE_CONFIG_ID = "mode";
-const ZCODE_AGENT_MODE_OPTIONS = [
+const SOCIAL_HARNESS_AGENT_MODE_OPTIONS = [
   {
     id: "build",
     name: "Ask before changes",
@@ -44,7 +44,9 @@ const ZCODE_AGENT_MODE_OPTIONS = [
     description: "Edit and run commands with fewer confirmations.",
   },
 ] as const satisfies readonly ZCodeTaskModeInfo[];
-const ZCODE_AGENT_MODE_ID_SET = new Set<string>(ZCODE_AGENT_MODE_OPTIONS.map((mode) => mode.id));
+const SOCIAL_HARNESS_AGENT_MODE_ID_SET = new Set<string>(
+  SOCIAL_HARNESS_AGENT_MODE_OPTIONS.map((mode) => mode.id),
+);
 
 export function formatModelPickerValue(ref: ModelSelection | undefined): string {
   return formatSharedModelSelection(ref);
@@ -183,7 +185,7 @@ export function zcodeSessionSnapshotToTaskMeta(snapshot: ZCodeSessionStateSnapsh
     mode: fromZCodeMode(snapshot.session.mode),
     model: formatModelPickerValue(resolveTaskMetaModelSelectionFromSnapshot(snapshot)),
     thoughtLevel: snapshot.settings.thoughtLevel.current,
-    provider: ZCODE_AGENT_PROVIDER,
+    provider: SOCIAL_HARNESS_AGENT_PROVIDER,
     status: deriveZCodeTaskStatusFromSessionSnapshot(snapshot),
     lastError: snapshot.projection.lastError
       ? {
@@ -216,11 +218,11 @@ function fromZCodeMode(mode: ZCodeSessionMode): ZCodeTaskMode {
 }
 
 function normalizeAvailableZCodeMode(mode: ZCodeSessionMode): string {
-  return ZCODE_AGENT_MODE_ID_SET.has(mode) ? mode : "build";
+  return SOCIAL_HARNESS_AGENT_MODE_ID_SET.has(mode) ? mode : "build";
 }
 
 function getZCodeAgentModeSelectOptions(): NonNullable<ZCodeConfigOption["options"]> {
-  return ZCODE_AGENT_MODE_OPTIONS.map((mode) => ({
+  return SOCIAL_HARNESS_AGENT_MODE_OPTIONS.map((mode) => ({
     value: mode.id,
     name: mode.name,
     description: mode.description,

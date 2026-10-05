@@ -14,9 +14,12 @@ import type {
   DynamicWorkflowRunListResult,
   DynamicWorkflowRunPendingQuestion,
   DynamicWorkflowRunPort,
-} from "@zcode/contracts";
-import type { JournalStorePort } from "@zcode/dynamic-workflow";
-import { reduceWorkflowRunsState, type WorkflowRunsState } from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/contracts";
+import type { JournalStorePort } from "@social-harness/dynamic-workflow";
+import {
+  reduceWorkflowRunsState,
+  type WorkflowRunsState,
+} from "@social-harness/shared/zcode-protocol-v4";
 import type { DynamicWorkflowIntrospectableJournal } from "./dynamic-workflow-run-journal.js";
 import { readRunScriptPath, readRunSubagentModel } from "./dynamic-workflow-run-launch-anchor.js";
 import {
@@ -58,6 +61,8 @@ interface DynamicWorkflowRunIntrospectionContext {
    * 是每次读时的事实。
    */
   concurrencyCeiling: () => number;
+  allowsRun?: (runId: string) => boolean;
+  allowsWorkspace?: (cwd: string) => boolean;
 }
 
 /** 造 `listRuns` / `getRunDetail` 两个成员，由 service 展开进返回的端口对象。 */
@@ -72,6 +77,7 @@ export function createRunIntrospectionMethods(
      * 孤儿收敛的执行权只属于 owning 会话的构造时刻，见文件头不变式 4）。
      */
     async listRuns(query: DynamicWorkflowRunListQuery): Promise<DynamicWorkflowRunListResult> {
+      if (ctx.allowsWorkspace && !ctx.allowsWorkspace(query.cwd)) return { runs: [] };
       const limit = Math.max(0, query.limit);
       // 多取一条**只为判定 truncated**，它不进结果页。判据绝不能是 `length === limit`：
       // 条数正好等于 limit 时那会误报，而误报会让模型去追一页不存在的历史。同一个惯例在
@@ -116,6 +122,7 @@ export function createRunIntrospectionMethods(
 
     /** 单 run 详情：dwf_run 行 + 节点计数 + actors + log 尾巴 + 内存终态产物。 */
     async getRunDetail(runId: string): Promise<DynamicWorkflowRunDetail | undefined> {
+      if (ctx.allowsRun && !ctx.allowsRun(runId)) return undefined;
       const row = introspection.getRunRow(runId);
       const entry = runs.get(runId);
       if (row === undefined) {

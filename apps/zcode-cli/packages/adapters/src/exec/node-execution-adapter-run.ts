@@ -21,7 +21,7 @@ import type {
   ExecutionResult,
   ExecutionRunOptions,
   ExecutionShellDialect,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 
 export class NodeExecutionAdapterRun extends NodeExecutionAdapterProcess {
   async run(

@@ -1,14 +1,14 @@
 import { ZCodeStorageStartupGate } from "#src/zcode-agent/zcodeStorageStartupGate.js";
-import { Emitter } from "@zcode/rpc";
-import type { IDisposable } from "@zcode/rpc";
+import { Emitter } from "@social-harness/rpc";
+import type { IDisposable } from "@social-harness/rpc";
 import type {
   ZCodeProtocolMethod,
   ZCodeProtocolNotification,
   ZCodeProtocolRequest,
   ZCodeProtocolRequestId,
   ZCodeProtocolTrace,
-} from "@zcode/shared";
-import type { V4Method } from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared";
+import type { V4Method } from "@social-harness/shared/zcode-protocol-v4";
 import type { z } from "zod";
 import type { ZCodeProtocolTransport } from "./zcodeProtocolTransport.js";
 
@@ -45,7 +45,7 @@ interface ZCodeProtocolClientRequestOptions {
   timeoutMs?: number;
 }
 
-const DEFAULT_ZCODE_PROTOCOL_REQUEST_TIMEOUT_MS = 3 * 60_000;
+const DEFAULT_SOCIAL_HARNESS_PROTOCOL_REQUEST_TIMEOUT_MS = 3 * 60_000;
 
 class ZCodeProtocolClientError extends Error {
   constructor(
@@ -115,7 +115,8 @@ export class ZCodeProtocolClient implements IDisposable {
     options?: ZCodeProtocolClientOptions,
   ) {
     this.storageStartup = new ZCodeStorageStartupGate(options?.requireStorageStartup ?? false);
-    this.requestTimeoutMs = options?.requestTimeoutMs ?? DEFAULT_ZCODE_PROTOCOL_REQUEST_TIMEOUT_MS;
+    this.requestTimeoutMs =
+      options?.requestTimeoutMs ?? DEFAULT_SOCIAL_HARNESS_PROTOCOL_REQUEST_TIMEOUT_MS;
     this.disposables.push(
       transport.onMessage((message) => this.handleMessage(message)),
       transport.onClose((event) => {

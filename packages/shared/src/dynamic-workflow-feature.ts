@@ -1,10 +1,9 @@
 // ============================================================
-// Dynamic Workflow 灰度：服务端 feature key 的取值域与客户端快照
+// Dynamic Workflow 本地 feature key 的取值域与客户端快照
 // ============================================================
-// 服务端 `/api/v1/client/configs` 下发 `data.configs.dynamicWorkflow.mode`。
 
 // 这里只放三端（Host services、Desktop main、UI）共用的取值域、归一化与快照形状；
-// 读取远端、覆盖与下发都在各自的 owner 里，不在 shared 层发请求。
+// 本地覆盖与下发都在各自的 owner 里，shared 层不访问网络。
 
 export const DYNAMIC_WORKFLOW_MODES = ["disabled", "onDemand", "alwaysOn"] as const;
 export type DynamicWorkflowMode = (typeof DYNAMIC_WORKFLOW_MODES)[number];
@@ -17,9 +16,9 @@ export type DynamicWorkflowMode = (typeof DYNAMIC_WORKFLOW_MODES)[number];
  *   - 打包 production：删除继承值，永不写入。
  * 没有 main 的 Web/server Host 直接读进程环境（运维/开发者设置）。
  */
-export const ZCODE_DYNAMIC_WORKFLOW_MODE_ENV = "ZCODE_DYNAMIC_WORKFLOW_MODE";
+export const SOCIAL_HARNESS_DYNAMIC_WORKFLOW_MODE_ENV = "SOCIAL_HARNESS_DYNAMIC_WORKFLOW_MODE";
 
-/** 服务端缺省、格式非法或请求失败时的取值：fail-closed，与闲时任务灰度一致。 */
+/** 缺省或格式非法时关闭，避免默认打开 Agent workflow 工具。 */
 export const DEFAULT_DYNAMIC_WORKFLOW_MODE: DynamicWorkflowMode = "disabled";
 
 export function normalizeDynamicWorkflowMode(value: unknown): DynamicWorkflowMode | undefined {
@@ -31,15 +30,15 @@ export function normalizeDynamicWorkflowMode(value: unknown): DynamicWorkflowMod
 }
 
 /**
- * 解析保留服务端契约的三态，消费侧统一转换为布尔开关。
+ * 解析本地三态，消费侧统一转换为布尔开关。
  * 将来 onDemand 有独立行为时，只需调整消费侧。
  */
 export function isDynamicWorkflowModeEnabled(mode: DynamicWorkflowMode): boolean {
   return mode !== "disabled";
 }
 
-/** 快照的来源：观测用，UI 与日志据此区分「服务端关」与「本地覆盖」。 */
-export type DynamicWorkflowClientConfigSource = "remote" | "override" | "default";
+/** 快照的来源：观测用，区分本地默认值与本地覆盖。 */
+export type DynamicWorkflowClientConfigSource = "override" | "default";
 
 export interface DynamicWorkflowClientConfig {
   readonly mode: DynamicWorkflowMode;
@@ -56,21 +55,14 @@ export function createDynamicWorkflowClientConfig(
 }
 
 /**
- * 纯函数：把远端 envelope 的 `configs.dynamicWorkflow` 与本地覆盖环境变量折叠成一个快照。
- * 优先级：覆盖 > 远端合法值 > 缺省。远端成功但**未下发**该 key 也视为 disabled——
- * 服务端撤掉 key 等于关闭，不能沿用旧快照（与 desktopContextPromptRollout 同一裁决）。
+ * 纯函数：将本地覆盖环境变量解析成快照。Social Harness 不再读取远端 Coding Plan 灰度配置。
  */
 export function resolveDynamicWorkflowClientConfig(input: {
-  remote: unknown;
   env?: Record<string, string | undefined>;
 }): DynamicWorkflowClientConfig {
-  const override = normalizeDynamicWorkflowMode(input.env?.[ZCODE_DYNAMIC_WORKFLOW_MODE_ENV]);
-  if (override) return createDynamicWorkflowClientConfig(override, "override");
-  const remoteMode = normalizeDynamicWorkflowMode(
-    typeof input.remote === "object" && input.remote !== null
-      ? (input.remote as { mode?: unknown }).mode
-      : undefined,
+  const override = normalizeDynamicWorkflowMode(
+    input.env?.[SOCIAL_HARNESS_DYNAMIC_WORKFLOW_MODE_ENV],
   );
-  if (remoteMode) return createDynamicWorkflowClientConfig(remoteMode, "remote");
+  if (override) return createDynamicWorkflowClientConfig(override, "override");
   return createDynamicWorkflowClientConfig(DEFAULT_DYNAMIC_WORKFLOW_MODE, "default");
 }

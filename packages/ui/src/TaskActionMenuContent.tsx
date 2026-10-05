@@ -1,4 +1,4 @@
-import { TID_V4_TASK_OPEN_IN_SPLIT } from "@zcode/shared";
+import { TID_V4_TASK_OPEN_IN_SPLIT } from "@social-harness/shared";
 
 interface TaskActionMenuItemProps {
   children: React.ReactNode;
@@ -185,7 +185,7 @@ export function TaskActionMenuContent({
       {onViewModelTrajectory ? (
         <>
           <Separator />
-          {/* 调用轨迹查看：从 ~/.zcode/cli 的 model-io 还原该 task 的模型请求/响应/工具调用，
+          {/* 调用轨迹查看：从 Social Harness cli 的 model-io 还原该 task 的模型请求/响应/工具调用，
               在右侧边栏可视化。只依赖 taskId（即 sessionId），不依赖快照文件是否落盘。 */}
           <Item
             disabled={taskTargetActionsDisabled || !activeSessionId}

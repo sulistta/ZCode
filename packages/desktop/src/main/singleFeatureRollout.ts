@@ -3,7 +3,7 @@
  * awaitFirstDecision 有界裁决。解析层（每个 feature 各自的 resolveConfig）由调用方注入。
  *
  * 抽取原因：desktopContextPromptRollout 与 rendererActionTraceRollout 共享同一套
- * /api/v1/client/configs 旁路请求机制，只有 `data.configs.<key>` 的解析不同；复制两份
+ * 本地默认与环境开关的解析机制，只有各自的配置 schema 不同；复制两份
  * 170 行机制代码会让超时/TTL 语义悄悄分叉。
  *
  * 语义约定（与 desktopContextPromptRollout 一致，CUA 灰度 fail-close 也复用同一语义）：
@@ -39,7 +39,7 @@ const SINGLE_FEATURE_REQUEST_TIMEOUT_MS = 3_000;
 const SINGLE_FEATURE_CACHE_TTL_MS = 60 * 60 * 1_000;
 
 interface CreateSingleFeatureRolloutOptions<T extends SingleFeatureRolloutConfig> {
-  /** 解析 /api/v1/client/configs 响应体；null 表示响应无效（按失败处理，沿用旧快照）。 */
+  /** 解析所选配置源；null 表示无有效覆盖，继续使用本地默认值。 */
   resolveConfig: (payload: unknown) => T | null;
   /** 初始快照（fail-open feature 传 {enabled:true}，fail-close 传 {enabled:false}）。 */
   defaultValue: T;

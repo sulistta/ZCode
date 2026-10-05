@@ -13,14 +13,14 @@ import {
   computeAutomationNextRunAt,
   isOneShotAutomation,
   OffPeakTaskRepo,
-} from "@zcode/services/node";
+} from "@social-harness/services/node";
 import {
   resolveWorkspaceKey,
   type ZCodeAutomation,
   type ZCodeAutomationTrigger,
   type ZCodeAutomationRun,
   type ZCodeOffPeakTask,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type { MainToSchedulerMessage, SchedulerToMainMessage } from "./schedulerProtocol.js";
 import { settleManualClaimForDispatchResult } from "./manualClaimRelease.js";
 import { settleOffPeakDispatchResult } from "./offPeakDispatchSettlement.js";
@@ -28,15 +28,10 @@ import {
   startSchedulerResourceTelemetry,
   type SchedulerResourceTelemetry,
 } from "./schedulerResourceTelemetry.js";
+import { isMissedAutomationFirstDispatch } from "./misfirePolicy.js";
 
 /** 轮询间隔：cron 最小粒度是分钟，20s 轮询足以按时命中且开销低。 */
 const POLL_INTERVAL_MS = 20_000;
-/**
- * misfire 宽限：next_run_at 早于 now 超过该值，视为「关机/休眠/退出期间错过的窗口」→ 记 skipped 不补跑。
- * 取值需明显大于一次正常轮询延迟（避免把正常到点误判成 misfire），又能覆盖短暂卡顿。
- */
-const MISFIRE_GRACE_MS = 5 * 60_000;
-
 const { parentPort } = process;
 
 type InFlight = {
@@ -133,11 +128,8 @@ async function handleClaimed(automation: ZCodeAutomation, now: number): Promise<
     workspacePath: automation.workspacePath,
     workspaceIdentity: automation.workspaceIdentity,
   });
-  const isRetry = automation.dispatchAttempts > 0;
-
   // misfire：首轮（非重试）且计划触发时间已远早于 now → 认定错过窗口，跳过不补跑。
-  const missed =
-    !isRetry && automation.nextRunAt != null && automation.nextRunAt <= now - MISFIRE_GRACE_MS;
+  const missed = isMissedAutomationFirstDispatch(automation, now);
   if (missed) {
     // 纯一次性任务（如 delayMinutes 落成的 minute scheduleRule）错过窗口后，
     // 通用重算会给出 anchorAt + k*interval 的下一周期，让“只跑一次”的提醒在后续周期
@@ -278,6 +270,7 @@ async function settleDispatchResult(
       runId: msg.runId,
       workspaceKey,
       ok,
+      admissionUncertain: msg.admissionUncertain,
       logError: (message) => log("error", message),
     });
   };
@@ -303,6 +296,12 @@ async function settleDispatchResult(
     return;
   }
 
+  // manual recipe 的确认不确定时保留同一 claimed row 和 claim；不得当成未派发清锁。
+  if (trigger === "manual" && msg.admissionUncertain) {
+    await repo.markRunDispatch({ runId: msg.runId, dispatchStatus: "claimed", error: msg.error });
+    await settleManualClaim(false);
+    return;
+  }
   await repo.markRunDispatch({
     runId: msg.runId,
     dispatchStatus: "failed_to_dispatch",

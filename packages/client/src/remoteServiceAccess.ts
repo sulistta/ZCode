@@ -1,11 +1,11 @@
-import { ProxyChannel, type IChannelClient } from "@zcode/rpc";
+import { ISocialInstagramSetupService } from "@social-harness/services";
+import { ProxyChannel, type IChannelClient } from "@social-harness/rpc";
 import {
   IFileService,
   IMediaPreviewService,
   IGitService,
   IGitCheckpointService,
   ISystemService,
-  ITerminalService,
   ISettingService,
   IOnboardingRecordService,
   ICredentialService,
@@ -39,8 +39,18 @@ import {
   IFeedbackService,
   IPromptAttachmentTransferService,
   IWindowControllerService,
+  ISocialAccountService,
+  ISocialMediaService,
+  ISocialMediaPreviewService,
+  ISocialProjectService,
+  ISocialPublishingService,
   type IServiceAccessor,
-} from "@zcode/services";
+} from "@social-harness/services";
+
+export interface RemoteServiceAccessOptions {
+  /** Desktop's local MessagePort Host always installs Main's OS-secure Instagram credential adapter. */
+  includeSocialPublishing?: boolean;
+}
 
 /**
  * RemoteServiceAccess — 通过 ChannelClient 自动创建类型安全的服务代理
@@ -53,8 +63,15 @@ export class RemoteServiceAccess implements IServiceAccessor {
   readonly gitService: IGitService;
   readonly gitCheckpointService: IGitCheckpointService;
   readonly systemService: ISystemService;
-  readonly terminalService: ITerminalService;
   readonly settingService: ISettingService;
+  readonly socialAccountService: ISocialAccountService;
+  readonly socialMediaService: ISocialMediaService;
+  // Host 才持有媒体预览能力与项目修订状态；Renderer 只透传契约，遗漏代理会让 UI 误判服务不可用。
+  readonly socialMediaPreviewService: ISocialMediaPreviewService;
+  readonly socialProjectService: ISocialProjectService;
+  // WebSocket Host 不一定有 Desktop Main 的 OS 安全凭据库，必须保持可选。
+  readonly socialPublishingService?: ISocialPublishingService;
+  readonly socialInstagramSetupService?: ISocialInstagramSetupService;
   readonly onboardingRecordService: IOnboardingRecordService;
   readonly credentialService: ICredentialService;
   readonly broadcastService: IBroadcastService;
@@ -91,7 +108,7 @@ export class RemoteServiceAccess implements IServiceAccessor {
   readonly feedbackService: IFeedbackService;
   readonly promptAttachmentTransferService: IPromptAttachmentTransferService;
 
-  constructor(channelClient: IChannelClient) {
+  constructor(channelClient: IChannelClient, options: RemoteServiceAccessOptions = {}) {
     this.fileService = ProxyChannel.toService<IFileService>(
       channelClient.getChannel(IFileService.channelName),
     );
@@ -109,12 +126,29 @@ export class RemoteServiceAccess implements IServiceAccessor {
     this.systemService = ProxyChannel.toService<ISystemService>(
       channelClient.getChannel(ISystemService.channelName),
     );
-    this.terminalService = ProxyChannel.toService<ITerminalService>(
-      channelClient.getChannel(ITerminalService.channelName),
-    );
     this.settingService = ProxyChannel.toService<ISettingService>(
       channelClient.getChannel(ISettingService.channelName),
     );
+    this.socialAccountService = ProxyChannel.toService<ISocialAccountService>(
+      channelClient.getChannel(ISocialAccountService.channelName),
+    );
+    this.socialMediaService = ProxyChannel.toService<ISocialMediaService>(
+      channelClient.getChannel(ISocialMediaService.channelName),
+    );
+    this.socialMediaPreviewService = ProxyChannel.toService<ISocialMediaPreviewService>(
+      channelClient.getChannel(ISocialMediaPreviewService.channelName),
+    );
+    this.socialProjectService = ProxyChannel.toService<ISocialProjectService>(
+      channelClient.getChannel(ISocialProjectService.channelName),
+    );
+    if (options.includeSocialPublishing) {
+      this.socialInstagramSetupService = ProxyChannel.toService<ISocialInstagramSetupService>(
+        channelClient.getChannel(ISocialInstagramSetupService.channelName),
+      );
+      this.socialPublishingService = ProxyChannel.toService<ISocialPublishingService>(
+        channelClient.getChannel(ISocialPublishingService.channelName),
+      );
+    }
     this.onboardingRecordService = ProxyChannel.toService<IOnboardingRecordService>(
       channelClient.getChannel(IOnboardingRecordService.channelName),
     );

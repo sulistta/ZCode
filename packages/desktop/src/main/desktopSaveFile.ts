@@ -4,10 +4,11 @@ import { BlockList } from "node:net";
 import type { LookupFunction } from "node:net";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import type { SaveFileRequest, SaveFileResult } from "@zcode/shared";
-import { PlatformChannels } from "@zcode/shared";
+import type { SaveFileRequest, SaveFileResult } from "@social-harness/shared";
+import { LOCAL_MEDIA_PREVIEW_SCHEME, PlatformChannels } from "@social-harness/shared";
 import { BrowserWindow, dialog, ipcMain } from "electron";
 import { Agent, fetch as undiciFetch } from "undici";
+import type { DesktopE2ESaveDialog } from "./desktopE2ESaveDialog.js";
 
 const MAX_SAVE_FILE_BYTES = 50 * 1024 * 1024;
 const REMOTE_DOWNLOAD_TIMEOUT_MS = 30_000;
@@ -54,6 +55,26 @@ function parseRemoteImageUrl(value: unknown): URL | null {
   try {
     const url = new URL(value);
     return url.protocol === "http:" || url.protocol === "https:" ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+function parseLocalMediaCapabilityToken(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  try {
+    const url = new URL(value);
+    const match = /^\/preview\/([0-9a-f-]{36})$/i.exec(url.pathname);
+    if (
+      url.protocol !== `${LOCAL_MEDIA_PREVIEW_SCHEME}:` ||
+      url.hostname !== "local" ||
+      !match ||
+      url.search !== "" ||
+      url.hash !== ""
+    ) {
+      return null;
+    }
+    return match[1] ?? null;
   } catch {
     return null;
   }
@@ -180,7 +201,11 @@ async function downloadRemoteFile(sourceUrl: URL, destinationPath: string): Prom
   }
 }
 
-export function registerDesktopSaveFileIpcHandler(logger: { warn: (...args: unknown[]) => void }) {
+export function registerDesktopSaveFileIpcHandler(options: {
+  logger: { warn: (...args: unknown[]) => void };
+  resolveLocalMediaCapability?: (token: string) => string | null;
+  e2eSaveDialog?: DesktopE2ESaveDialog | null;
+}) {
   ipcMain.handle(
     PlatformChannels.SaveFile,
     async (event, payload: SaveFileRequest): Promise<SaveFileResult> => {
@@ -189,8 +214,9 @@ export function registerDesktopSaveFileIpcHandler(logger: { warn: (...args: unkn
       }
       const suggestedName = basename(payload.suggestedName.trim()).slice(0, 120);
       const sourceUrl = parseRemoteImageUrl(payload.sourceUrl);
+      const localCapabilityToken = parseLocalMediaCapabilityToken(payload.sourceUrl);
       const hasData = payload.data instanceof ArrayBuffer;
-      if (!suggestedName || (sourceUrl === null && !hasData)) {
+      if (!suggestedName || (sourceUrl === null && localCapabilityToken === null && !hasData)) {
         return { success: false, error: "invalid_file_payload" };
       }
       if (hasData && payload.data.byteLength === 0) {
@@ -202,9 +228,11 @@ export function registerDesktopSaveFileIpcHandler(logger: { warn: (...args: unkn
 
       const senderWindow = BrowserWindow.fromWebContents(event.sender);
       const dialogOptions = { defaultPath: suggestedName };
-      const result = senderWindow
-        ? await dialog.showSaveDialog(senderWindow, dialogOptions)
-        : await dialog.showSaveDialog(dialogOptions);
+      const result = options.e2eSaveDialog
+        ? options.e2eSaveDialog.showSaveDialog()
+        : senderWindow
+          ? await dialog.showSaveDialog(senderWindow, dialogOptions)
+          : await dialog.showSaveDialog(dialogOptions);
       if (result.canceled || !result.filePath) {
         return { success: false, canceled: true };
       }
@@ -212,15 +240,23 @@ export function registerDesktopSaveFileIpcHandler(logger: { warn: (...args: unkn
       try {
         if (sourceUrl) {
           await downloadRemoteFile(sourceUrl, result.filePath);
+        } else if (localCapabilityToken) {
+          const sourcePath = options.resolveLocalMediaCapability?.(localCapabilityToken);
+          if (!sourcePath) return { success: false, error: "invalid_file_payload" };
+          await copyFile(sourcePath, result.filePath);
         } else if (hasData) {
           await writeFile(result.filePath, new Uint8Array(payload.data));
         }
         return { success: true, path: result.filePath };
       } catch (error) {
         const errorCode = error instanceof SaveFileError ? error.code : "write_failed";
-        logger.warn(
-          `[save-file] 写入失败 path=${result.filePath} error=${
-            error instanceof Error ? error.message : String(error)
+        options.logger.warn(
+          `[save-file] 写入失败 error=${
+            localCapabilityToken
+              ? "managed_media_copy_failed"
+              : error instanceof SaveFileError
+                ? error.code
+                : "write_failed"
           }`,
         );
         return { success: false, error: errorCode };

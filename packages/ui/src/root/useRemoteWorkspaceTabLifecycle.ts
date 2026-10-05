@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import type { IPlatformService } from "@zcode/shared";
+import type { IPlatformService } from "@social-harness/shared";
+import { parseSocialAccountWorkspaceIdentity } from "@social-harness/shared";
 import { logger } from "@/logger.js";
 import {
   bindRemoteWorkspaceIdentity,
@@ -11,7 +12,12 @@ import {
 import { isWorkspaceTab, type WindowTabState, type WorkspaceTabState } from "@/store/tabStore.js";
 
 function remoteWorkspaceKey(tab: WorkspaceTabState): string | null {
-  if (!tab.workspaceIdentity?.trim() && !tab.remoteSessionId && !tab.remoteTarget) {
+  const identity = tab.workspaceIdentity?.trim();
+  if (
+    (!identity || parseSocialAccountWorkspaceIdentity(identity) !== null) &&
+    !tab.remoteSessionId &&
+    !tab.remoteTarget
+  ) {
     return null;
   }
 

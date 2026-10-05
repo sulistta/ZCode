@@ -7,7 +7,7 @@ import {
   type HookConfig,
   type HookInput,
   type HookJSONOutput,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import {
   createCompatibleHookStdin,
   createPluginEnvOverlay,

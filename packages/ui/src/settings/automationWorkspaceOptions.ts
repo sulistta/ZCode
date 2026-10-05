@@ -1,4 +1,8 @@
-import { resolveWorkspaceKey, type RemoteTarget, type WorkspacePurpose } from "@zcode/shared";
+import {
+  resolveWorkspaceKey,
+  type RemoteTarget,
+  type WorkspacePurpose,
+} from "@social-harness/shared";
 import { isWorkspaceTab, isWorkspaceTabReadOnly, type WindowTabState } from "@/store/tabStore.js";
 
 export interface AutomationWorkspaceOption {

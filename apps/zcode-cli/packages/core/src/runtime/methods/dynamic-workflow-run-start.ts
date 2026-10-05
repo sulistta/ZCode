@@ -6,20 +6,17 @@ import {
   createWorkflowPhaseNames,
   type SavedWorkflowScope,
   type TraceContext,
-} from "@zcode/contracts";
-import type { CompileDiagnostic } from "@zcode/dynamic-workflow";
-import {
-  resolveSavedWorkflow,
-  validateWorkflowArgs,
-} from "../../tool/handlers/saved-workflows/index.js";
+} from "@social-harness/contracts";
+import type { CompileDiagnostic } from "@social-harness/dynamic-workflow";
+import { isAccountRecipeWorkspace } from "../../tool/handlers/saved-workflows/index.js";
+import { resolveSavedWorkflowLaunch } from "../../tool/handlers/saved-workflows/launch-source.js";
 import {
   boundGraphOfAnalysis,
   displayOfAnalysis,
 } from "../../tool/handlers/workflow-analysis-display.js";
 import { writeWorkflowDraft } from "../../tool/handlers/workflow-drafts.js";
-import { analyzeScript } from "../../tool/handlers/workflow-script-analysis.js";
 import type { ExecutableToolCall } from "../../tool/types.js";
-import { uuidv7 } from "@zcode/shared";
+import { uuidv7, type ApprovedWorkflowSnapshot } from "@social-harness/shared";
 import { createMessageId, traceContextToLogContext } from "../deps.js";
 import type { AgentRuntimeInternal } from "../internal.js";
 import { emitControlOnlyUserTurn, persistWorkflowLaunchUserMessage } from "./control-only-turn.js";
@@ -65,6 +62,8 @@ export async function startSavedWorkflowRun(
     name: string;
     scope?: SavedWorkflowScope;
     args?: Record<string, unknown>;
+    approvedSnapshot?: ApprovedWorkflowSnapshot;
+    launchInputId?: string;
     traceContext?: TraceContext;
   },
 ): Promise<StartSavedWorkflowRunResult> {
@@ -77,61 +76,21 @@ export async function startSavedWorkflowRun(
   }
 
   const cwd = this.workingDirectory;
+  const workspaceIdentity =
+    this.config.workspaceIdentity?.toString() || this.config.memory?.workspaceIdentity;
 
   // (1) 解析 + 实参校验：复用 create-workflow-source 的同一段归一化（第二个调用方，不复制）。
-  const found = resolveSavedWorkflow({ cwd, name: input.name, scope: input.scope });
-  if (!found.ok) {
-    if (found.reason === "invalid_name") {
-      return {
-        ok: false,
-        reason: "invalid_name",
-        message: `'${input.name}' is not a usable workflow name: ${found.detail}`,
-      };
-    }
-    if (found.reason === "not_found") {
-      return {
-        ok: false,
-        reason: "not_found",
-        message:
-          input.scope === undefined
-            ? `No saved workflow named '${input.name}' in this project or globally.`
-            : `No ${input.scope} workflow named '${input.name}'.`,
-      };
-    }
-    // parse_error / read_error：文件在但坏了。对 GUI 与「找不到」是同一个下一步（这个名字跑不
-    // 起来），归 not_found；但 message 说清是文件问题而非名字问题，好让用户去修文件而不是改名字。
-    return {
-      ok: false,
-      reason: "not_found",
-      message: `The saved workflow '${input.name}' at ${found.path} could not be read: ${found.detail}`,
-    };
-  }
-
-  const validated = validateWorkflowArgs(found.meta.args, input.args);
-  if (!validated.ok) {
-    return {
-      ok: false,
-      reason: "invalid_args",
-      message: [
-        `The arguments for saved workflow '${found.name}' are not valid:`,
-        ...validated.errors.map((error) => `- ${error}`),
-      ].join("\n"),
-    };
-  }
-
-  // (2) 编译。任一诊断即拒绝——与 CreateWorkflow 对编不过脚本的处理同一条原则（弹一个注定失败的
-  // run 只是延迟同一个错误）。诊断进 message，有界。
-  const analysis = analyzeScript(found.script);
-  if (!analysis.ok || analysis.diagnostics.length > 0) {
-    return {
-      ok: false,
-      reason: "compile_failed",
-      message: boundedCompileDiagnostics(
-        `The saved workflow '${found.name}' has errors:`,
-        analysis.diagnostics,
-      ),
-    };
-  }
+  const resolved = await resolveSavedWorkflowLaunch({
+    cwd,
+    name: input.name,
+    scope: input.scope,
+    workspaceIdentity,
+    args: input.args,
+    approvedSnapshot: input.approvedSnapshot,
+  });
+  if (!resolved.ok) return resolved;
+  const { definition: found, analysis } = resolved;
+  const validated = { args: resolved.args };
 
   // —— 到此为止零副作用：无 run、无消息、无事件、无任务。——
 
@@ -149,12 +108,15 @@ export async function startSavedWorkflowRun(
   await this.ensureSessionPersisted(found.name, traceContext);
 
   // (3) toolCallId：`launch-` 前缀，日志与工具卡可辨于模型工具调用 id（`tool_*`）与 resume 重臂。
-  const toolCallId = `launch-${randomUUID()}`;
+  const admissionKey = isAccountRecipeWorkspace(workspaceIdentity)
+    ? input.launchInputId
+    : undefined;
+  const toolCallId = `launch-${admissionKey ?? randomUUID()}`;
   const hasArgs = Object.keys(validated.args).length > 0;
   // 发起锚点：直接启动没有用户轮，铸一个 UUID v7 同时充当
   // run 的 `run-launched.inputId` 与下面 controlOnly 启动轮的 inputId——启动轮 run 卡与子代理的
   // agent_step 因此挂在同一个 message 下。
-  const launchInputId = uuidv7();
+  const launchInputId = admissionKey ?? uuidv7();
   // 提交的声明阶段表读与启动轮 display 同一个「分析结果 → 有界显示图」投影（阶段来自控制流层，
   // 只传因果图就没有阶段），再过同一个 createWorkflowPhaseNames——两条路上同一脚本画同一条侧栏轨道。
   const launchGraph = boundGraphOfAnalysis(analysis);
@@ -166,7 +128,9 @@ export async function startSavedWorkflowRun(
   // (3b) 工作副本。中枢直接启动与 `CreateWorkflow` 的 saved 来源是同一件事，所以拷贝也按同一条
   // 规矩写：逐字节（元数据块一起）、保存的定义本身一个字都不动。写不成就没有 `scriptPath`——run 照常起，
   // 只是终态通知里没有可编辑的文件可指。
-  const draft = await writeWorkflowDraft({ cwd, name: found.name, source: found.source });
+  const draft = isAccountRecipeWorkspace(workspaceIdentity)
+    ? undefined
+    : await writeWorkflowDraft({ cwd, name: found.name, source: found.source });
 
   // (4) 提交启动。提交失败（拒绝 / 抛错）在启动轮之前退出——绝不吞成带 runId 的成功。
   let runId: string;
@@ -179,12 +143,15 @@ export async function startSavedWorkflowRun(
       parentSessionId: this.sessionId,
       toolCallId,
       launchInputId,
+      ...(admissionKey === undefined ? {} : { admissionKey }),
       ...(phaseNames === undefined ? {} : { phaseNames }),
       ...(phaseAlongside === undefined ? {} : { phaseAlongside }),
       ...(draft === undefined ? {} : { scriptPath: draft.path }),
       trace: traceContext,
     });
     runId = submitted.runId;
+    // 引擎已接纳同一 commandId：journal/回放是权威，不再追加启动轮或安装第二个 watcher。
+    if (submitted.replayed) return { ok: true, runId, toolCallId };
   } catch (error) {
     return { ok: false, reason: "start_failed", message: describeError(error) };
   }

@@ -2,8 +2,8 @@
 // Tool Scheduler - Tool execution scheduling
 // ============================================================
 
-import type { ModelToolSideEffectScope, ToolCallId } from "@zcode/contracts";
-import { createCoreError, CoreErrorType } from "@zcode/contracts";
+import type { ModelToolSideEffectScope, ToolCallId } from "@social-harness/contracts";
+import { createCoreError, CoreErrorType } from "@social-harness/contracts";
 
 // -----------------------------------------------
 // Types

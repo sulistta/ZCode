@@ -7,8 +7,8 @@ import {
   type DynamicWorkflowRunSnapshot,
   type TraceContext,
   type WorkflowSettingsAmendMeta,
-} from "@zcode/contracts";
-import { uuidv7 } from "@zcode/shared";
+} from "@social-harness/contracts";
+import { uuidv7 } from "@social-harness/shared";
 import {
   resolveAmendMaxConcurrency,
   resolveAmendSubagentModelChoice,

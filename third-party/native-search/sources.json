@@ -3157,7 +3157,10 @@
     {
       "id": "rust-standard-library",
       "version": "6a6eaca656978778f7c1c750ee0c3db87f8bffb2",
-      "url": "https://github.com/rust-lang/rust/tree/6a6eaca656978778f7c1c750ee0c3db87f8bffb2",
+      "url": "https://github.com/microsoft/ripgrep-prebuilt/blob/v14.1.1-1/build/windows.yml",
+      "scope": ["ripgrep14-win32-arm64", "ripgrep14-win32-x64"],
+      "toolchain": "rust.tools-x86_64-pc-windows-msvc.1.88.0-ms-20250913.5",
+      "sourceRevisionEvidence": "Revision reported by the Windows binaries' embedded Rust source paths; the Microsoft RustTools feed requires authentication. On 2026-10-01, the exact ref returned HTTP 404 from public rust-lang/rust and an unauthenticated GET to the RustTools feed index returned HTTP 401. No exact source notice snapshot is available in this checkout; do not reuse notices from a different Rust revision.",
       "notices": []
     },
     {

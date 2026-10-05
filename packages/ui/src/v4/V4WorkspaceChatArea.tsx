@@ -1,11 +1,6 @@
 /* oxlint-disable eslint(max-lines) -- V4WorkspaceChatArea 是分屏 workbench 宿主，集中管理 pane layout/focus/session binding；拆散会让 store action 和 shell binding 链路跨文件跳转。 */
 import { useCallback, useMemo, useRef, type CSSProperties, type ReactNode } from "react";
-import type {
-  GitChangeSourceId,
-  GitRepositorySummary,
-  ZCodeProvider,
-  ZCodeTaskChangeSummary,
-} from "@zcode/shared";
+import type { ZCodeProvider } from "@social-harness/shared";
 import type { CodeViewerSource } from "@/lib/codeViewer.js";
 import type { AssistantPreviewCardsAutoOpenRequest } from "@/lib/assistantPreviewCards.js";
 import type { OpenAutomationsMain } from "@/lib/taskNavigationHistory.js";
@@ -84,7 +79,7 @@ interface V4WorkspaceChatAreaProps {
   /** primary pane 会话删除后回 draft（shell 起新草稿）。 */
   onSessionDeleted?: () => void;
   /**
-   * 草稿态 composer contextHeader（m5：workspace 菜单 + Git 分支），
+   * 草稿态 composer contextHeader（workspace 切换菜单），
    * 仅下发给 primary pane——其余 pane 的 draft 不承载壳级 workspace 切换。
    */
   draftComposerHeader?: ReactNode;
@@ -92,15 +87,8 @@ interface V4WorkspaceChatAreaProps {
   onPrimaryDraftDropTargetControllerChange?: (
     controller: ConversationDropTargetController | null,
   ) => void;
-  gitSummary?: GitRepositorySummary | null;
-  gitDirtyFileCount?: number;
-  gitWorktreeReviewSourceId?: GitChangeSourceId | null;
-  gitWorktreeChangeSummary?: { added: number; removed: number } | null;
-  activeTaskChangeSummary?: ZCodeTaskChangeSummary | null;
   summaryPanelVariantOverride?: ChatViewSummaryPanelVariant | null;
   onSummaryPanelVariantOverrideChange?: (variant: ChatViewSummaryPanelVariant | null) => void;
-  onRefreshGit?: () => void;
-  onOpenGitReview?: (sourceId?: GitChangeSourceId) => void;
   onPaneActiveSessionChange?: (scope: PaneWorkspaceScope, sessionId: string) => void;
   onOpenBrowserUrl?: (url: string) => void;
   onOpenAutomationsMain?: OpenAutomationsMain;
@@ -153,15 +141,8 @@ export function V4WorkspaceChatArea({
   onSessionDeleted,
   draftComposerHeader,
   onPrimaryDraftDropTargetControllerChange,
-  gitSummary,
-  gitDirtyFileCount,
-  gitWorktreeReviewSourceId,
-  gitWorktreeChangeSummary,
-  activeTaskChangeSummary,
   summaryPanelVariantOverride,
   onSummaryPanelVariantOverrideChange,
-  onRefreshGit,
-  onOpenGitReview,
   onPaneActiveSessionChange,
   onOpenBrowserUrl,
   onOpenAutomationsMain,
@@ -279,15 +260,8 @@ export function V4WorkspaceChatArea({
       onSessionDeleted,
       draftComposerHeader,
       onPrimaryDraftDropTargetControllerChange,
-      gitSummary,
-      gitDirtyFileCount,
-      gitWorktreeReviewSourceId,
-      gitWorktreeChangeSummary,
-      activeTaskChangeSummary: primaryPaneSessionId ? activeTaskChangeSummary : null,
       summaryPanelVariantOverride,
       onSummaryPanelVariantOverrideChange,
-      onRefreshGit,
-      onOpenGitReview,
       onOpenBrowserUrl,
       onOpenAutomationsMain,
       onOpenCodeViewer,
@@ -324,15 +298,8 @@ export function V4WorkspaceChatArea({
       onSessionDeleted,
       draftComposerHeader,
       onPrimaryDraftDropTargetControllerChange,
-      gitSummary,
-      gitDirtyFileCount,
-      gitWorktreeReviewSourceId,
-      gitWorktreeChangeSummary,
-      activeTaskChangeSummary,
       summaryPanelVariantOverride,
       onSummaryPanelVariantOverrideChange,
-      onRefreshGit,
-      onOpenGitReview,
       onOpenBrowserUrl,
       onOpenAutomationsMain,
       onOpenCodeViewer,

@@ -11,20 +11,20 @@ import {
   compileModelOptionMaps,
   type CompiledModelOptionMaps,
   type ModelOptionValues,
-} from "@zcode/model-option-map";
+} from "@social-harness/model-option-map";
 import {
   type Logger,
   type ModelId,
   type ModelProviderId,
   type ModelRequestAuth,
-} from "@zcode/contracts";
-import type { RegistryProviderConfig } from "@zcode/provider";
-import { withOpenRouterAttributionHeaders } from "@zcode/shared";
+} from "@social-harness/contracts";
+import type { RegistryProviderConfig } from "@social-harness/provider";
+import { withOpenRouterAttributionHeaders } from "@social-harness/shared";
 import { createAnthropicCompatFetch } from "./anthropic-stream-compat.js";
 import { createOpenAIResponsesJsonCompatFetch } from "./openai-responses-json-compat.js";
 import { createModelOptionMapFetch, type RawRequestBodyCapture } from "./model-option-map-fetch.js";
 import { createNetworkProxyFetch } from "../network/proxy-fetch.js";
-import { createOfficialCodingPlanGatewayFetch } from "./official-coding-plan-gateway.js";
+import { createProviderTransportFetch } from "./provider-transport.js";
 import { normalizeModelTlsFailure } from "./failure-tls.js";
 import { mergeModelRequestHeaders } from "./model-request-headers.js";
 
@@ -262,7 +262,7 @@ export class AiSdkModelExecution {
   ): LanguageModelFactory {
     const apiKey = this.resolveApiKey(providerConfig);
     const headers = providerConfig.headers;
-    const providerTransport = this.resolveProviderTransport(providerId);
+    const providerTransport = this.resolveProviderTransport(providerId, providerConfig.access.type);
     const fetch = createProviderBusinessErrorFetch({
       fetch: providerTransport,
       providerId,
@@ -321,21 +321,25 @@ export class AiSdkModelExecution {
     return providerConfig.apiKey;
   }
 
-  private resolveProviderTransport(providerId: string): ProviderFetch {
-    const current = this.providerTransports.get(providerId);
+  private resolveProviderTransport(providerId: string, accessType: string): ProviderFetch {
+    const transportKey = JSON.stringify([providerId, accessType]);
+    const current = this.providerTransports.get(transportKey);
     if (current) {
       return current;
     }
-    // 官方 Coding Plan 端点先替换为平台网关端点，再进入用户 HTTP 代理 fetch，
-    // httpProxy / noProxy 按实际发送地址判定。
-    const transport = createProviderTransportFetch({
+    const providerProxyFetch = createProviderProxyFetch({
       caCertFile: this.network.caCertFile,
       env: this.env,
       fetch: this.baseTransport,
       httpProxy: this.network.httpProxy,
       noProxy: this.network.noProxy,
     });
-    this.providerTransports.set(providerId, transport);
+    const transport = createProviderTransportFetch({
+      accessType,
+      env: this.env,
+      fetch: providerProxyFetch,
+    });
+    this.providerTransports.set(transportKey, transport);
     return transport;
   }
 }
@@ -506,18 +510,6 @@ function createProviderProxyFetch(options: ProviderProxyFetchOptions): ProviderF
   // Node 的 global fetch 不会自动读取 HTTP_PROXY/http_proxy。
   // 模型 provider 和 MCP HTTP transport 都复用同一层 proxy-aware fetch，避免多套出口规则漂移。
   return createNetworkProxyFetch(options);
-}
-
-/**
- * 模型请求出口：官方 Coding Plan 端点经 ZCode 平台网关发送（做套餐权益校验等平台侧处理），
- * 其余 provider 直连；之后统一进入用户 HTTP 代理 fetch，httpProxy / noProxy 按实际发送地址判定。
- * 官方端点与网关端点的对应关系见 official-coding-plan-gateway.ts。
- */
-function createProviderTransportFetch(options: ProviderProxyFetchOptions): ProviderFetch {
-  return createOfficialCodingPlanGatewayFetch({
-    env: options.env,
-    fetch: createProviderProxyFetch(options),
-  });
 }
 
 async function detectProviderBusinessError(

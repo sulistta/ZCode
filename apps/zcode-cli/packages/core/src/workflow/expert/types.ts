@@ -6,7 +6,7 @@ import type {
   WorkflowEvent,
   WorkflowRunStatus,
   WorkflowStorePort,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 
 export interface ExpertWorkflowAgentRunInput {
   abortSignal?: AbortSignal;

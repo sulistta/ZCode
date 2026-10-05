@@ -7,8 +7,8 @@ import type {
   TurnInputIntentMetadata,
   TurnStartedPayload,
   WorkflowLaunchMeta,
-} from "@zcode/contracts";
-import { SessionEventType } from "@zcode/contracts";
+} from "@social-harness/contracts";
+import { SessionEventType } from "@social-harness/contracts";
 
 type CanonicalConversationVisibility = "visible" | "modelOnly" | "stateOnly";
 type CanonicalConversationOrigin =

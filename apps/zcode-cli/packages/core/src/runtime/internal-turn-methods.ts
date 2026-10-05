@@ -1,5 +1,5 @@
-import type { BackgroundBashOutputResult } from "@zcode/shared";
-import type { RuntimeInputPresentation } from "@zcode/contracts";
+import type { BackgroundBashOutputResult } from "@social-harness/shared";
+import type { RuntimeInputPresentation } from "@social-harness/contracts";
 import type {
   CompactPhase,
   CompactReason,

@@ -1,0 +1,127 @@
+import type { SocialAgentPort, TraceContext } from "@social-harness/contracts";
+import {
+  parseSocialAccountWorkspaceIdentity,
+  zcodeProtocolMethods,
+  zcodeSocialAgentQueryResultSchema,
+  type SocialAgentQueryParams,
+  type SocialAgentQueryResult,
+} from "@social-harness/shared";
+import {
+  protocolTraceFromTraceContext,
+  requireSession,
+  type ZCodeProtocolAgentServerContext,
+} from "./server-types.js";
+
+export function createProtocolSocialAgentPort(
+  context: ZCodeProtocolAgentServerContext,
+  resolveOwnSession: () =>
+    | { app: { sessionId?: string }; workspace: { workspaceIdentity?: string } }
+    | undefined,
+): SocialAgentPort {
+  function requireAccountSession(sessionId: string): void {
+    const session = resolveOwnSession() ?? requireSession(context, sessionId);
+    if (session.app.sessionId && session.app.sessionId !== sessionId) {
+      throw new Error("Social Agent request does not belong to the active session.");
+    }
+    if (!parseSocialAccountWorkspaceIdentity(session.workspace.workspaceIdentity)) {
+      throw new Error("Social Agent tools require an account-scoped conversation.");
+    }
+  }
+
+  async function query(
+    params: SocialAgentQueryParams,
+    options?: {
+      signal?: AbortSignal;
+      traceContext?: TraceContext;
+    },
+  ): Promise<SocialAgentQueryResult> {
+    const sessionId = resolveOwnSession()?.app.sessionId;
+    if (!sessionId) throw new Error("Social Agent request has no active session.");
+    requireAccountSession(sessionId);
+    return context.requestClient(
+      zcodeProtocolMethods.socialAgentQuery,
+      params,
+      zcodeSocialAgentQueryResultSchema,
+      {
+        ...(options?.signal ? { signal: options.signal } : {}),
+        ...(options?.traceContext
+          ? { trace: protocolTraceFromTraceContext(options.traceContext) }
+          : {}),
+      },
+    );
+  }
+
+  return {
+    async importSource(url, options) {
+      const result = await query({ action: "import-source", url }, options);
+      if (result.action !== "import-source")
+        throw new Error("Social Agent returned the wrong result.");
+      return result.job;
+    },
+    async listMediaJobs(input, options) {
+      const result = await query({ action: "list-media-jobs", ...input }, options);
+      if (result.action !== "list-media-jobs")
+        throw new Error("Social Agent returned the wrong result.");
+      return result.jobs;
+    },
+    async mediaJobCommand(input, options) {
+      const result = await query(
+        { action: "media-job-command", jobId: input.jobId, command: input.action },
+        options,
+      );
+      if (result.action !== "media-job-command")
+        throw new Error("Social Agent returned the wrong result.");
+      return result.job;
+    },
+    async createProject(input, options) {
+      const result = await query({ action: "create-project", ...input }, options);
+      if (result.action !== "create-project")
+        throw new Error("Social Agent returned the wrong result.");
+      return result.project;
+    },
+    async startExport(input, options) {
+      const result = await query({ action: "start-export", ...input }, options);
+      if (result.action !== "start-export")
+        throw new Error("Social Agent returned the wrong result.");
+      return result.job;
+    },
+    async listExports(input, options) {
+      const result = await query({ action: "list-exports", ...input }, options);
+      if (result.action !== "list-exports")
+        throw new Error("Social Agent returned the wrong result.");
+      return result.jobs;
+    },
+    async getContext(options) {
+      const result = await query({ action: "context" }, options);
+      if (result.action !== "context") throw new Error("Social Agent returned the wrong result.");
+      return result.context;
+    },
+    async listMedia(options) {
+      const result = await query({ action: "list-media" }, options);
+      if (result.action !== "list-media")
+        throw new Error("Social Agent returned the wrong result.");
+      return result.assets;
+    },
+    async searchYouTube(queryText, options) {
+      const result = await query({ action: "search-youtube", query: queryText }, options);
+      if (result.action !== "search-youtube") {
+        throw new Error("Social Agent returned the wrong result.");
+      }
+      return result.results;
+    },
+    async suggestClipCandidates(input, options) {
+      const result = await query({ action: "suggest-candidates", ...input }, options);
+      if (result.action !== "suggest-candidates") {
+        throw new Error("Social Agent returned the wrong result.");
+      }
+      return result.result;
+    },
+    async requestPublication(input, options) {
+      const result = await query({ action: "request-publication", ...input }, options);
+      if (result.action !== "request-publication") {
+        throw new Error("Social Agent returned the wrong publication result.");
+      }
+      return result.result;
+    },
+  };
+}

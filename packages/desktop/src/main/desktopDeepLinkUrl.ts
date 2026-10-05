@@ -1,12 +1,7 @@
-const DEEP_LINK_SCHEME = "zcode";
-const DEEP_LINK_RE = /\bzcode:(?:\/\/|\/)?[^\s"'<>]+/i;
+const DEEP_LINK_SCHEME = "social-harness";
+const DEEP_LINK_RE = /\bsocial-harness:(?:\/\/|\/)?[^\s"'<>]+/i;
 const OAUTH_CALLBACK_HOSTS = new Set(["oauth"]);
-const PAYMENT_CALLBACK_HOST = "payment";
-const WORKSPACE_OPEN_HOST = "workspace";
-const SHARE_IMPORT_HOST = "share";
 const DEEP_LINK_ADDITIONAL_DATA_KEY = "deepLinkUrl";
-const OPEN_WORKSPACE_ADDITIONAL_DATA_KEY = "openWorkspacePath";
-const OPEN_WORKSPACE_ARG = "--open-workspace";
 
 function normalizeOAuthCallbackPath(pathname: string): string {
   const withoutTrailingSlash = pathname.replace(/\/+$/, "");
@@ -34,63 +29,8 @@ export function isOAuthCallbackUrl(parsedUrl: URL): boolean {
   );
 }
 
-export function isPaymentCallbackUrl(parsedUrl: URL): boolean {
-  if (parsedUrl.protocol !== `${DEEP_LINK_SCHEME}:`) {
-    return false;
-  }
-
-  const normalizedPath = normalizeOAuthCallbackPath(parsedUrl.pathname);
-  if (parsedUrl.hostname === PAYMENT_CALLBACK_HOST) {
-    return normalizedPath === "/callback";
-  }
-
-  if (parsedUrl.hostname) {
-    return false;
-  }
-
-  const [, host, ...pathParts] = normalizedPath.split("/");
-  return Boolean(host === PAYMENT_CALLBACK_HOST && `/${pathParts.join("/")}` === "/callback");
-}
-
-export function isWorkspaceOpenUrl(parsedUrl: URL): boolean {
-  if (parsedUrl.protocol !== `${DEEP_LINK_SCHEME}:`) {
-    return false;
-  }
-
-  const normalizedPath = normalizeOAuthCallbackPath(parsedUrl.pathname);
-  if (parsedUrl.hostname === WORKSPACE_OPEN_HOST) {
-    return normalizedPath === "/open";
-  }
-
-  if (parsedUrl.hostname) {
-    return false;
-  }
-
-  const [, host, ...pathParts] = normalizedPath.split("/");
-  return Boolean(host === WORKSPACE_OPEN_HOST && `/${pathParts.join("/")}` === "/open");
-}
-
-export function extractWorkspaceOpenPath(parsedUrl: URL): string | null {
-  if (!isWorkspaceOpenUrl(parsedUrl)) {
-    return null;
-  }
-
-  const path = parsedUrl.searchParams.get("path");
-  return path && path.length > 0 ? path : null;
-}
-
-export function isShareImportUrl(parsedUrl: URL): boolean {
-  return (
-    parsedUrl.protocol === `${DEEP_LINK_SCHEME}:` &&
-    parsedUrl.hostname === SHARE_IMPORT_HOST &&
-    normalizeOAuthCallbackPath(parsedUrl.pathname) === "/import"
-  );
-}
-
-export function extractShareImportCode(parsedUrl: URL): string | null {
-  if (!isShareImportUrl(parsedUrl)) return null;
-  const code = parsedUrl.searchParams.get("code")?.trim();
-  return code && /^[A-Za-z0-9._~-]{1,512}$/u.test(code) ? code : null;
+export function isSupportedSocialHarnessDeepLinkUrl(parsedUrl: URL): boolean {
+  return isOAuthCallbackUrl(parsedUrl);
 }
 
 function decodeDeepLinkCandidate(value: string): string | null {
@@ -152,7 +92,7 @@ function extractFromCandidate(value: string): string | null {
   return match?.[0].replace(/&amp;/gi, "&").replace(/\\([&=?:/])/g, "$1") ?? null;
 }
 
-function isCompleteDeepLinkUrl(value: string): boolean {
+function isCompleteOAuthCallbackUrl(value: string): boolean {
   let parsedUrl: URL;
   try {
     parsedUrl = new URL(value);
@@ -160,27 +100,7 @@ function isCompleteDeepLinkUrl(value: string): boolean {
     return false;
   }
 
-  if (isOAuthCallbackUrl(parsedUrl)) {
-    return parsedUrl.searchParams.has("state");
-  }
-
-  if (isPaymentCallbackUrl(parsedUrl)) {
-    return (
-      parsedUrl.searchParams.has("provider") &&
-      parsedUrl.searchParams.has("channel") &&
-      parsedUrl.searchParams.has("status")
-    );
-  }
-
-  if (isWorkspaceOpenUrl(parsedUrl)) {
-    return parsedUrl.searchParams.has("path");
-  }
-
-  if (isShareImportUrl(parsedUrl)) {
-    return extractShareImportCode(parsedUrl) !== null;
-  }
-
-  return true;
+  return isOAuthCallbackUrl(parsedUrl) && parsedUrl.searchParams.has("state");
 }
 
 export function extractDeepLinkUrlFromArgs(args: readonly string[]): string | null {
@@ -190,10 +110,19 @@ export function extractDeepLinkUrlFromArgs(args: readonly string[]): string | nu
     for (const candidate of expandDecodedDeepLinkCandidates(arg)) {
       const match = extractFromCandidate(candidate);
       if (match) {
+        let parsedMatch: URL;
+        try {
+          parsedMatch = new URL(match);
+        } catch {
+          continue;
+        }
+        if (!isSupportedSocialHarnessDeepLinkUrl(parsedMatch)) {
+          continue;
+        }
         // Debian/xdg 的协议回调可能被浏览器或桌面门户多次编码，
         // 也可能把 query 片段拆成相邻 argv。这里先生成有限候选再多轮解码，
-        // 避免浏览器确认“打开 ZCode”后主进程拿不到完整回调 URL。
-        if (isCompleteDeepLinkUrl(match)) {
+        // 避免系统确认打开链接后主进程拿不到完整回调 URL。
+        if (isCompleteOAuthCallbackUrl(match)) {
           return match;
         }
         fallbackMatch ??= match;
@@ -204,57 +133,9 @@ export function extractDeepLinkUrlFromArgs(args: readonly string[]): string | nu
   return fallbackMatch;
 }
 
-function trimArgValue(value: string): string {
-  const trimmed = value.trim();
-  const first = trimmed[0];
-  const last = trimmed[trimmed.length - 1];
-  if ((first === '"' || first === "'") && first === last) {
-    return trimmed.slice(1, -1);
-  }
-
-  if (/^[A-Za-z]:(?:\\.*)?["']$/.test(trimmed)) {
-    // Windows Explorer 的 Drive\shell 菜单会把 C:\ 代入 "%1"。
-    // 部分 argv 解析链会把末尾反斜杠和闭合引号折叠成尾引号，这里只修正盘符绝对路径。
-    return `${trimmed.slice(0, -1)}\\`;
-  }
-
-  return trimmed;
-}
-
-export function extractOpenWorkspacePathFromArgs(args: readonly string[]): string | null {
-  for (let index = 0; index < args.length; index++) {
-    const arg = args[index];
-    if (!arg) {
-      continue;
-    }
-
-    if (arg === OPEN_WORKSPACE_ARG) {
-      const value = args[index + 1];
-      const path = value ? trimArgValue(value) : "";
-      if (path) {
-        return path;
-      }
-      continue;
-    }
-
-    if (arg.startsWith(`${OPEN_WORKSPACE_ARG}=`)) {
-      const path = trimArgValue(arg.slice(OPEN_WORKSPACE_ARG.length + 1));
-      if (path) {
-        return path;
-      }
-    }
-  }
-
-  return null;
-}
-
 export function createDeepLinkSingleInstanceData(args: readonly string[]): Record<string, string> {
   const url = extractDeepLinkUrlFromArgs(args);
-  const openWorkspacePath = extractOpenWorkspacePathFromArgs(args);
-  return {
-    ...(url ? { [DEEP_LINK_ADDITIONAL_DATA_KEY]: url } : {}),
-    ...(openWorkspacePath ? { [OPEN_WORKSPACE_ADDITIONAL_DATA_KEY]: openWorkspacePath } : {}),
-  };
+  return url ? { [DEEP_LINK_ADDITIONAL_DATA_KEY]: url } : {};
 }
 
 export function extractDeepLinkUrlFromSingleInstanceData(additionalData: unknown): string | null {
@@ -268,19 +149,4 @@ export function extractDeepLinkUrlFromSingleInstanceData(additionalData: unknown
   }
 
   return extractDeepLinkUrlFromArgs([value]);
-}
-
-export function extractOpenWorkspacePathFromSingleInstanceData(
-  additionalData: unknown,
-): string | null {
-  if (!additionalData || typeof additionalData !== "object") {
-    return null;
-  }
-
-  const value = (additionalData as Record<string, unknown>)[OPEN_WORKSPACE_ADDITIONAL_DATA_KEY];
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  return extractOpenWorkspacePathFromArgs([`${OPEN_WORKSPACE_ARG}=${value}`]);
 }

@@ -1,5 +1,5 @@
-import { isUiLocale, SUPPORTED_LOCALES, type UiLocale } from "@zcode/i18n";
-import type { TuiSubmitPromptResult } from "@zcode/tui";
+import { isUiLocale, SUPPORTED_LOCALES, type UiLocale } from "@social-harness/i18n";
+import type { CommandCenterSubmitPromptResult } from "../contracts.js";
 import type { CommandCenterDeps } from "../types.js";
 
 const CONFIGURABLE_LOCALES = ["auto", ...SUPPORTED_LOCALES] as const satisfies readonly UiLocale[];
@@ -7,7 +7,7 @@ const CONFIGURABLE_LOCALES = ["auto", ...SUPPORTED_LOCALES] as const satisfies r
 export async function handleLocaleCommand(
   args: string,
   deps: CommandCenterDeps,
-): Promise<TuiSubmitPromptResult> {
+): Promise<CommandCenterSubmitPromptResult> {
   const current = (await readCurrentLocale(deps)) ?? "en-US";
 
   if (args.length === 0 || args === "status" || args === "list") {

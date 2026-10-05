@@ -1,4 +1,4 @@
-import type { RuntimeInputPresentation } from "@zcode/contracts";
+import type { RuntimeInputPresentation } from "@social-harness/contracts";
 /* eslint-disable max-lines -- Runtime 类型集中承载 core/runtime 对外结构，拆分需要单独迁移。 */
 import { PermissionService, ToolScheduler } from "./deps.js";
 import type {
@@ -19,9 +19,9 @@ import type {
   StableForkTargetMetadata,
   WorkspaceHookBundleSnapshot,
   WorkspaceId,
-} from "@zcode/contracts";
-import type { ZCodeProviderAccountAccess } from "@zcode/shared";
-import type { EffectiveModelSelectionResult } from "@zcode/shared/model-selection";
+} from "@social-harness/contracts";
+import type { ZCodeProviderAccountAccess } from "@social-harness/shared";
+import type { EffectiveModelSelectionResult } from "@social-harness/shared/model-selection";
 import type { RuntimeMessageEntry } from "../agent/message-history.js";
 import type {
   CompactPhase,
@@ -71,6 +71,7 @@ import type {
   BrowserControlPort,
   ExecutionShellSelection,
   AutomationPort,
+  SocialAgentPort,
   OffPeakPort,
   FileSystemPort,
   HttpClientPort,
@@ -86,6 +87,7 @@ import type {
   WorkflowPort,
   WorkflowEscalatePort,
   WorkflowSubmitPort,
+  SocialProjectPort,
   TraceContext,
   TraceId,
   TurnId,
@@ -206,7 +208,7 @@ export interface AgentRuntimeConfig {
   taskType?: SessionTaskType;
   /**
    * 动态工作流灰度门：Host 判定后经
-   * ZCode Protocol 下发，runtime 只消费。**缺席即开启**——TUI、headless `-p` 与
+   * ZCode Protocol 下发，runtime 只消费。**缺席即开启**——headless `-p` 与
    * workflow_child 都不会设置它，它们必须保留完整工具面；只有受信 Host
    * 创建的 protocol session 才会显式写 false 把十个工作流工具关掉。
    */
@@ -366,6 +368,8 @@ export interface AgentRuntimeDeps {
   runtimeTaskRegistry?: RuntimeTaskRegistry;
   artifactStore?: ToolArtifactStorePort;
   automationPort?: AutomationPort;
+  socialAgentPort?: SocialAgentPort;
+  socialProjectPort?: SocialProjectPort;
   offPeakPort?: OffPeakPort;
   contextSourcePort?: ContextSourcePort;
   eventSink?: SessionEventSink;
@@ -472,7 +476,7 @@ export interface ExecuteTurnOptionsBase {
 }
 
 export type ExecuteTurnOptions = ExecuteTurnOptionsBase &
-  import("@zcode/contracts").TurnBackgroundAttribution;
+  import("@social-harness/contracts").TurnBackgroundAttribution;
 
 /**
  * Core prompt admission 的调用参数。Bootstrap 只提供输入事实和期望投递语义，
@@ -731,7 +735,7 @@ export interface ExecuteToolsOptions {
   signal?: AbortSignal;
   traceContext?: TraceContext;
   /** 仅透传给当前 turn 同步等待的 Agent child。 */
-  subagentModelOverride?: import("@zcode/contracts").SubagentRunOptions["modelOverride"];
+  subagentModelOverride?: import("@social-harness/contracts").SubagentRunOptions["modelOverride"];
   model?: Model;
   onBatchStart?: (toolCallIds: string[]) => Promise<void>;
 }

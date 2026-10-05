@@ -13,8 +13,8 @@ import type {
   UsageEntitlementSnapshot,
   UsageStatsRequest,
   UsageStatsSnapshot,
-} from "@zcode/shared";
-import { ServiceChannels } from "@zcode/shared";
+} from "@social-harness/shared";
+import { ServiceChannels } from "@social-harness/shared";
 import { createServiceDescriptor } from "../descriptors.js";
 
 export interface IUsageStatsService {

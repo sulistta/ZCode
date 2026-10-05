@@ -1,10 +1,10 @@
-import type { ConfigResult } from "@zcode/adapters/config";
-import { detectLocale, resolveLocale } from "@zcode/i18n";
-import type { RuntimeConfigPatch, SupportedLocale, UiLocale } from "@zcode/contracts";
+import type { ConfigResult } from "@social-harness/adapters/config";
+import { detectLocale, resolveLocale } from "@social-harness/i18n";
+import type { RuntimeConfigPatch, SupportedLocale, UiLocale } from "@social-harness/contracts";
 import type { ZCodeAppOptions } from "./types.js";
 
 export function isMessageEnabled(env: NodeJS.ProcessEnv): boolean {
-  return env.ZCODE_MESSAGE_ENABLED === "1" || env.ZCODE_MESSAGE_ENABLED === "true";
+  return env.SOCIAL_HARNESS_MESSAGE_ENABLED === "1" || env.SOCIAL_HARNESS_MESSAGE_ENABLED === "true";
 }
 
 export function createConfigCliOverrides(options: ZCodeAppOptions): RuntimeConfigPatch | undefined {

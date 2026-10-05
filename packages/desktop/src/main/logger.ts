@@ -1,12 +1,14 @@
 import { mkdirSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
-import { formatTimestamp } from "@zcode/shared";
+import { formatTimestamp } from "@social-harness/shared";
 import { cleanupExpiredLogFiles, LOG_RETENTION_DAYS } from "./logRetention.js";
-import { getAppConfigDir, maybeThrowInjectedFsFault } from "@zcode/services/node";
+import { getAppConfigDir, maybeThrowInjectedFsFault } from "@social-harness/services/node";
 
 function getLogDir() {
   const e2eLogDir =
-    process.env.ZCODE_ENV === "test" ? process.env.ZCODE_E2E_RUNTIME_LOG_DIR?.trim() : undefined;
+    process.env.SOCIAL_HARNESS_ENV === "test"
+      ? process.env.SOCIAL_HARNESS_E2E_RUNTIME_LOG_DIR?.trim()
+      : undefined;
   if (e2eLogDir) {
     return e2eLogDir;
   }
@@ -92,7 +94,7 @@ function write(level: LogLevel, source: string, ...args: unknown[]) {
 }
 
 /**
- * main 进程日志，默认写入 ~/.zcode/v2/logs/YYYY-MM-DD.log；E2E 测试使用 worker 专属目录。
+ * Main 日志写入 Social Harness 的配置根；E2E 测试使用 worker 专属目录。
  * 同时保留 console 输出方便开发调试
  */
 export const logger = {

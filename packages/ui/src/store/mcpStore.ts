@@ -15,8 +15,8 @@ import type {
   ZCodeMcpListMode,
   ZCodeMcpServerStatusSnapshot,
   ZCodeMcpServer,
-} from "@zcode/shared";
-import { convertToZCodeAgentMcpServer } from "@zcode/shared";
+} from "@social-harness/shared";
+import { convertToZCodeAgentMcpServer } from "@social-harness/shared";
 import { logger } from "@/logger.js";
 import {
   fetchNativeMcpServers,
@@ -251,8 +251,8 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
 
     loadConfig: () => {
       const config = loadPersistedConfig();
-      // MCP 启停状态已经迁移到 ~/.zcode/cli/config.json，不能再读取旧 localStorage，
-      // 否则旧的本地开关会覆盖新的 ZCode Agent 配置来源。
+      // MCP 启停状态位于 Social Harness cli/config.json，不能再读取旧 localStorage，
+      // 否则旧的本地开关会覆盖当前 Agent 配置来源。
       const enabledStates: Record<string, boolean> = {};
       const deletedPreload = new Set<string>(safeReadJson<string[]>(MCP_DELETED_PRELOAD_KEY, []));
       const servers = buildServerList(config, [], enabledStates, deletedPreload, []);

@@ -1,32 +1,38 @@
 import { access, readFile, mkdir, rename } from "node:fs/promises";
-import { join } from "node:path";
-import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import type {
   AppSettings,
   ProviderFamilyDomain,
   ProviderFamilyConnectionSelectionSettings,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   appSettingsPatchSchema,
   appSettingsSchema,
   formatLogPrefix,
   formatZodError,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import type { ISettingService } from "./setting.js";
 import { normalizeSettingsPatch } from "#src/setting/normalizeSettingsPatch.js";
-import { copyDataDirectory, getDataBaseDir, validateDataBaseDirTarget } from "../paths.js";
+import { getDataBaseDir } from "../paths.js";
 import { isEffectiveDevelopmentNodeEnv } from "../runtime-tools/nodeEnv.js";
 import { maybeThrowInjectedFsFault } from "../fs/fsFaultInjection.js";
 import { atomicWriteText } from "../fs/atomicFileUtils.js";
 import { withSettingsWriteQueueTimeout } from "./settingsWriteQueue.js";
 import {
   migrateLegacyAccountConnectionSettings,
-  needsLegacyAccountConnectionMigration,
   readLegacyAccountConnectionSettingsFile,
   readIncompleteLegacyTeamConnections,
   retainLegacyAccountConnectionFields,
   type LegacyTeamConnection,
 } from "#src/setting/legacyAccountConnectionSettings.js";
+import { shouldPersistSettingsMigrations } from "#src/setting/settingsMigrationPersistence.js";
+import {
+  getLegacyHomeSettingsFile,
+  getSettingsFile,
+  persistDataBaseDirBootstrapPointer,
+  readSettingsFileWithLegacyFallback,
+  updateSettingsDataBaseDir,
+} from "#src/setting/settingsDataDirectory.js";
 const MAX_RECENT_PROJECTS = 10;
 const DEFAULT_PROJECT_NAME = "ZCodeProject";
 const SETTINGS_PARSE_RETRY_DELAY_MS = 300;
@@ -35,30 +41,12 @@ const SETTINGS_PARSE_RETRY_COUNT = 3;
 const log = (...args: unknown[]) =>
   console.log(formatLogPrefix("settingService", process.pid), ...args);
 const debugLog = (...args: unknown[]) => {
-  // NODE_ENV 来自用户 shell 时会误导服务层 debug 开关；统一使用 ZCODE_RUNTIME_ENV。
+  // NODE_ENV 来自用户 shell 时会误导服务层 debug 开关；统一使用 SOCIAL_HARNESS_RUNTIME_ENV。
   if (!isEffectiveDevelopmentNodeEnv()) {
     return;
   }
   console.debug(formatLogPrefix("settingService", process.pid), ...args);
 };
-
-function resolveUserHomeDir() {
-  // 独立桌面 Dev 实例已设置自己的 home，设置服务却仍写真实 HOME，
-  // 导致启动迁移和外观操作污染其他实例。与 Electron 的显式 home 覆盖保持一致。
-  const envHome =
-    process.env.ZCODE_DESKTOP_HOME_DIR?.trim() ||
-    process.env.HOME?.trim() ||
-    process.env.USERPROFILE?.trim();
-  return envHome && envHome.length > 0 ? envHome : homedir();
-}
-
-function getSettingsDir() {
-  return join(resolveUserHomeDir(), ".zcode", "v2");
-}
-
-function getSettingsFile() {
-  return join(getSettingsDir(), "setting.json");
-}
 
 function defaultSettings(): AppSettings {
   return appSettingsSchema.parse({});
@@ -97,17 +85,6 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function shouldPersistSettingsMigrations(rawValue: unknown): boolean {
-  if (!rawValue || typeof rawValue !== "object" || Array.isArray(rawValue)) return false;
-  const raw = rawValue as Record<string, unknown>;
-  return (
-    (needsLegacyAccountConnectionMigration(rawValue) &&
-      readIncompleteLegacyTeamConnections(rawValue).length === 0) ||
-    raw.closeToTrayOnWindowsMigrationInitialized !== true ||
-    raw.messageStreamShowReasoningMigrationInitialized !== true
-  );
-}
-
 interface ReadSettingsResult {
   settings: AppSettings;
   needsMigrationPersist: boolean;
@@ -115,11 +92,17 @@ interface ReadSettingsResult {
 
 async function readSettingsWithMeta(): Promise<ReadSettingsResult> {
   const settingsFile = getSettingsFile();
+  const legacyHomeSettingsFile = getLegacyHomeSettingsFile();
+  let rawFile = settingsFile;
+  let legacySettingsMigration = false;
   try {
     // settingService.get() 会被 UI 和远程会话高频调用。
     // 之前每次读取都把完整配置写入生产日志，导致日志暴涨且暴露路径/配置细节；普通读取只保留开发态 debug。
     debugLog("reading settings from:", settingsFile);
-    const raw = await readFile(settingsFile, "utf-8");
+    const loaded = await readSettingsFileWithLegacyFallback(settingsFile, legacyHomeSettingsFile);
+    const raw = loaded.raw;
+    rawFile = loaded.sourceFile;
+    legacySettingsMigration = loaded.needsRootMigration;
     let rawValue: unknown;
     try {
       rawValue = JSON.parse(raw);
@@ -130,14 +113,14 @@ async function readSettingsWithMeta(): Promise<ReadSettingsResult> {
       for (let retryAttempt = 1; retryAttempt <= SETTINGS_PARSE_RETRY_COUNT; retryAttempt += 1) {
         await delay(SETTINGS_PARSE_RETRY_DELAY_MS);
         try {
-          rawValue = JSON.parse(await readFile(settingsFile, "utf-8"));
+          rawValue = JSON.parse(await readFile(rawFile, "utf-8"));
           break;
         } catch (retryParseError) {
           lastParseError = retryParseError;
         }
       }
       if (rawValue === undefined) {
-        await quarantineCorruptSettingsFile(settingsFile, lastParseError);
+        await quarantineCorruptSettingsFile(rawFile, lastParseError);
         return {
           settings: defaultSettings(),
           needsMigrationPersist: false,
@@ -155,12 +138,36 @@ async function readSettingsWithMeta(): Promise<ReadSettingsResult> {
         needsMigrationPersist: false,
       };
     }
+    if (legacySettingsMigration) {
+      // 旧版本把完整设置留在 home、其他状态放在自定义根；先迁移完整文档，再切启动指针，
+      // 这样写入失败时旧文件仍是权威来源。
+      await writeSettings(
+        result.data,
+        undefined,
+        undefined,
+        undefined,
+        false,
+        settingsFile,
+        rawFile,
+      );
+      await persistDataBaseDirBootstrapPointer(getDataBaseDir(), (error) =>
+        log(
+          "data directory pointer persisted; legacy bootstrap mirror could not be refreshed",
+          error,
+        ),
+      );
+    }
     debugLog("read result:", JSON.stringify(result.data));
     return {
       settings: result.data,
       needsMigrationPersist: shouldPersistSettingsMigrations(rawValue),
     };
   } catch (err) {
+    if (legacySettingsMigration) {
+      throw new Error("Could not migrate Social Harness settings into the selected data root", {
+        cause: err,
+      });
+    }
     if (
       err &&
       typeof err === "object" &&
@@ -193,17 +200,16 @@ async function writeSettings(
   runExclusiveCommit: (commit: () => Promise<void>) => Promise<void> = (commit) => commit(),
   enterCommitPhase: () => void = () => undefined,
   commitAccountSelection = false,
+  settingsFile: string = getSettingsFile(),
+  legacySourceFile: string = settingsFile,
 ): Promise<void> {
-  const settingsDir = getSettingsDir();
-  const settingsFile = getSettingsFile();
-  // Windows 下测试只改了 HOME，模块顶层常量如果在导入时就把 homedir() 固化，
-  // 后续读写仍会串到真实用户目录。这里改成每次按当前环境解析配置路径，保证本地和测试都稳定。
+  const settingsDir = dirname(settingsFile);
   log("writing settings to:", settingsFile, JSON.stringify(settings));
   maybeThrowInjectedFsFault({ operation: "mkdir", path: settingsDir });
   await mkdir(settingsDir, { recursive: true });
   if (!shouldCommit()) return;
   maybeThrowInjectedFsFault({ operation: "writeFile", path: settingsFile });
-  const raw = await readLegacyAccountConnectionSettingsFile(settingsFile);
+  const raw = await readLegacyAccountConnectionSettingsFile(legacySourceFile);
   const rollbackFields = retainLegacyAccountConnectionFields(raw);
   const persisted = { ...rollbackFields, ...settings };
   // 旧 Team 尚待 OAuth 补组织时，schema 的默认 {} 不是用户的新选择。
@@ -337,24 +343,25 @@ export function createSettingServiceWithMigrations(): {
     },
 
     async updateDataBaseDir(newDir: string | undefined): Promise<void> {
-      const currentBaseDir = getDataBaseDir();
-      const targetBaseDir = newDir?.trim() || homedir();
-      const validation = validateDataBaseDirTarget(targetBaseDir);
-      if (!validation.ok) {
-        // Windows 安装目录由安装器/自动更新管理，把 .zcode/v2 放进去可能在升级时被覆盖。
-        // 迁移前在 service 层拦截，避免 UI 入口变化或 RPC 调用绕过前端判断。
-        const error = new Error(`${validation.code}: ${validation.forbiddenDir}`);
-        (error as Error & { code: string }).code = validation.code;
-        throw error;
-      }
-
-      if (currentBaseDir !== targetBaseDir) {
-        log("copying data directory from", currentBaseDir, "to", targetBaseDir);
-        await copyDataDirectory(currentBaseDir, targetBaseDir);
-        log("data directory copy done");
-      }
-
-      await this.update({ dataBaseDir: newDir });
+      await updateSettingsDataBaseDir(newDir, {
+        enqueueSettingsWrite,
+        readSettings,
+        persistSettings: (settings, shouldCommit, enterCommitPhase, destination, source) =>
+          writeSettings(
+            settings,
+            shouldCommit,
+            runSettingsCommit,
+            enterCommitPhase,
+            false,
+            getSettingsFile(destination),
+            getSettingsFile(source),
+          ),
+        logLegacyMirrorFailure: (error) =>
+          log(
+            "data directory pointer persisted; legacy bootstrap mirror could not be refreshed",
+            error,
+          ),
+      });
     },
 
     async ensureDefaultProject(userHomeDir: string): Promise<{ path: string; created: boolean }> {

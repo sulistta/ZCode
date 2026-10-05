@@ -14,6 +14,7 @@ import { isKnownRemoteResourcePackageId } from "./remoteResourcePackages.js";
 import { zcodeProviderSchema } from "./providers.js";
 import { zcodeAgentProviderSchema } from "./zcode-agent-policy.js";
 import { modelSelectionSchema } from "./model-selection.js";
+import { parseSocialAccountWorkspaceIdentity } from "./social-account.js";
 import { providerProvisioningTriggerSchema } from "./provider-provisioning.js";
 import {
   zcodeMcpTelemetryEventSchema,
@@ -364,17 +365,25 @@ export const hostFeedbackLogArchiveResultMessageSchema = z.object({
 
 // main → host：定时任务到点派发。会话内 cron 带 targetTaskId 时直接 sendPrompt 到当前会话；
 // 历史未绑定任务才 fallback createTask + sendPrompt 建 session。
-export const hostCronRunMessageSchema = z.object({
-  type: z.literal("cron-run"),
-  automationId: nonEmptyStringSchema,
-  runId: nonEmptyStringSchema,
-  workspacePath: nonEmptyStringSchema,
-  workspaceIdentity: z.string().optional(),
-  prompt: nonEmptyStringSchema,
-  targetTaskId: nonEmptyStringSchema.optional(),
-  modelSelection: modelSelectionSchema.optional(),
-  mode: z.string().optional(),
-});
+export const hostCronRunMessageSchema = z
+  .object({
+    type: z.literal("cron-run"),
+    automationId: nonEmptyStringSchema,
+    runId: nonEmptyStringSchema,
+    workspacePath: nonEmptyStringSchema,
+    workspaceIdentity: z.string().optional(),
+    prompt: z.string(),
+    targetTaskId: nonEmptyStringSchema.optional(),
+    modelSelection: modelSelectionSchema.optional(),
+    mode: z.string().optional(),
+  })
+  .refine(
+    // 旧的非空 prompt guard 丢弃了定时配方消息；仅放行 canonical 账户的空 prompt，source 仍由 Host 从已认领 run 读取。
+    (message) =>
+      message.prompt.length > 0 ||
+      Boolean(parseSocialAccountWorkspaceIdentity(message.workspaceIdentity)),
+    "Empty automation prompts require an account-owned recipe occurrence",
+  );
 
 // main → host：闲时任务派发（仿 cron-run，字段独立不复用）。首跑不带 conversationId/sessionId，
 // host createTask 新建 session；3h 续跑 / 中断恢复带上两者 resume 同一会话。
@@ -406,6 +415,27 @@ export const hostLocalMediaPreviewPathAuthorizeResultMessageSchema = z
     requestId: nonEmptyStringSchema,
     ok: z.boolean(),
     path: nonEmptyStringSchema.optional(),
+    error: z.string().optional(),
+  })
+  .strict();
+
+export const hostLocalMediaPreviewUrlCreateResultMessageSchema = z
+  .object({
+    type: z.literal("local-media-preview-url-create-result"),
+    requestId: nonEmptyStringSchema,
+    ok: z.boolean(),
+    url: z.string().url().optional(),
+    expiresAt: z.number().int().nonnegative().safe().optional(),
+    error: z.string().optional(),
+  })
+  .strict();
+
+export const hostInstagramCredentialResultMessageSchema = z
+  .object({
+    type: z.literal("instagram-credential-result"),
+    requestId: nonEmptyStringSchema,
+    ok: z.boolean(),
+    serializedCredential: z.string().max(16_384).nullable().optional(),
     error: z.string().optional(),
   })
   .strict();
@@ -473,6 +503,8 @@ export const hostIncomingMessageSchema = z.discriminatedUnion("type", [
   hostOffPeakRunMessageSchema,
   hostBrowserExecuteResultMessageSchema,
   hostLocalMediaPreviewPathAuthorizeResultMessageSchema,
+  hostLocalMediaPreviewUrlCreateResultMessageSchema,
+  hostInstagramCredentialResultMessageSchema,
   hostCuaPipFocusChangedMessageSchema,
   hostProviderProvisioningExecuteMessageSchema,
 ]);
@@ -812,15 +844,21 @@ export const hostFeedbackLogArchiveRequestResponseSchema = z.object({
 });
 
 // host → main：定时任务派发结果。ok=已成功创建 session 且 prompt 已发出。
-export const hostCronRunResultResponseSchema = z.object({
-  type: z.literal("cron-run-result"),
-  runId: nonEmptyStringSchema,
-  ok: z.boolean(),
-  taskId: z.string().optional(),
-  sessionId: z.string().optional(),
-  error: z.string().optional(),
-  failureKind: z.enum(["transient", "permanent"]).optional(),
-});
+export const hostCronRunResultResponseSchema = z
+  .object({
+    type: z.literal("cron-run-result"),
+    runId: nonEmptyStringSchema,
+    ok: z.boolean(),
+    taskId: z.string().optional(),
+    sessionId: z.string().optional(),
+    error: z.string().optional(),
+    failureKind: z.enum(["transient", "permanent"]).optional(),
+    admissionUncertain: z.literal(true).optional(),
+  })
+  .refine(
+    (result) => !result.admissionUncertain || !result.ok,
+    "Uncertain admission cannot confirm dispatch",
+  );
 
 // host → main：闲时任务派发结果。ok=session 已确保存在且 prompt 已发出；迟到结果用 offPeakTaskId 兜底结算。
 export const hostOffPeakRunResultResponseSchema = z.object({
@@ -868,6 +906,29 @@ export const hostLocalMediaPreviewPathAuthorizeRequestResponseSchema = z
     type: z.literal("local-media-preview-path-authorize-request"),
     requestId: nonEmptyStringSchema,
     path: nonEmptyStringSchema,
+  })
+  .strict();
+
+export const hostLocalMediaPreviewUrlCreateRequestResponseSchema = z
+  .object({
+    type: z.literal("local-media-preview-url-create-request"),
+    requestId: nonEmptyStringSchema,
+    path: nonEmptyStringSchema,
+  })
+  .strict();
+
+export const hostInstagramCredentialRequestResponseSchema = z
+  .object({
+    type: z.literal("instagram-credential-request"),
+    requestId: nonEmptyStringSchema,
+    operation: z.enum(["get", "set", "delete"]),
+    accountId: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120)
+      .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/),
+    serializedCredential: z.string().max(16_384).optional(),
   })
   .strict();
 
@@ -972,6 +1033,8 @@ export const hostResponseMessageSchema = z.discriminatedUnion("type", [
   hostFeedbackLogArchiveRequestResponseSchema,
   hostBrowserExecuteRequestResponseSchema,
   hostLocalMediaPreviewPathAuthorizeRequestResponseSchema,
+  hostLocalMediaPreviewUrlCreateRequestResponseSchema,
+  hostInstagramCredentialRequestResponseSchema,
   hostNetworkTelemetryBatchResponseSchema,
   hostProviderProvisioningSourceChangedResponseSchema,
   hostProviderProvisioningExecutionResultResponseSchema,

@@ -1,4 +1,4 @@
-import type { ModelSelection, PersonalProviderConfigRepository } from "@zcode/provider";
+import type { ModelSelection, PersonalProviderConfigRepository } from "@social-harness/provider";
 
 export interface NodeModelSelectionConfigRepositoryOptions {
   readonly personalRepository: PersonalProviderConfigRepository;

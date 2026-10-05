@@ -12,6 +12,7 @@ import type {
   BrowserControlPort,
   ExecutionShellSelection,
   AutomationPort,
+  SocialAgentPort,
   OffPeakPort,
   FileSystemPort,
   HttpClientPort,
@@ -33,7 +34,8 @@ import type {
   WorkflowPort,
   WorkflowEscalatePort,
   WorkflowSubmitPort,
-} from "@zcode/contracts";
+  SocialProjectPort,
+} from "@social-harness/contracts";
 import type { HookRunner } from "../../hooks/index.js";
 import type { PermissionService } from "../../permission/service.js";
 import type { RuntimeTaskRegistry } from "../../runtime-task/registry.js";
@@ -105,6 +107,8 @@ export interface ToolExecutorOptions {
   workflowEscalatePort?: WorkflowEscalatePort;
   artifactStore?: ToolArtifactStorePort;
   automationPort?: AutomationPort;
+  socialAgentPort?: SocialAgentPort;
+  socialProjectPort?: SocialProjectPort;
   offPeakPort?: OffPeakPort;
   sessionStore?: SessionStorePort;
   sessionModePort?: SessionModePort;
@@ -209,6 +213,8 @@ export interface ToolExecutorDeps {
   workflowEscalatePort?: WorkflowEscalatePort;
   artifactStore?: ToolArtifactStorePort;
   automationPort?: AutomationPort;
+  socialAgentPort?: SocialAgentPort;
+  socialProjectPort?: SocialProjectPort;
   offPeakPort?: OffPeakPort;
   sessionStore?: SessionStorePort;
   sessionModePort?: SessionModePort;

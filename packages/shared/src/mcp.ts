@@ -7,13 +7,13 @@ import type { SettingsDirectoryLocation } from "./settings-source.js";
 import type { McpServerFailureKind } from "./zcode-protocol/index.js";
 
 // CUA official plugin 身份常量（port 自 feat；UI 设置面板 + bootstrap 复用以避免字面量漂移）。
-export const ZCODE_CUA_OFFICIAL_PLUGIN_ID = "computer-use@zcode-plugins-official";
+export const SOCIAL_HARNESS_CUA_OFFICIAL_PLUGIN_ID = "computer-use@zcode-plugins-official";
 // CUA server 身份串（port 自 feat mcp.ts）：server key = 模型可见工具前缀段（刻意不带 zcode-）；
 // namespace name = official plugin 运行时命名空间 plugin:<pluginId>:<serverKey>。
-export const ZCODE_CUA_OFFICIAL_MCP_NAMESPACE_NAME = "plugin:computer-use:computer-use";
+export const SOCIAL_HARNESS_CUA_OFFICIAL_MCP_NAMESPACE_NAME = "plugin:computer-use:computer-use";
 // 插件身份 env key：resolver（adapters/src/plugins/mcp.ts）权威写入 loaded.id，manifest/user env 不可覆盖。
 // bootstrap + cli/plugin-host-command.ts 复用此常量识别 official zcode-cua plugin server，避免字面量漂移。
-export const ZCODE_PLUGIN_ID_ENV_KEY = "ZCODE_PLUGIN_ID";
+export const SOCIAL_HARNESS_PLUGIN_ID_ENV_KEY = "SOCIAL_HARNESS_PLUGIN_ID";
 
 export type McpSource = "mcp" | "zcodeagentmcp";
 export type CliMcpSource = Exclude<McpSource, "mcp">;
@@ -209,7 +209,7 @@ export function getMcpServerRequestHeaders(
   return config.headers ?? config.http_headers;
 }
 
-// zcode-cua MCP server 识别的单一事实源。desktop 产品 broker resolver（@zcode/services 的
+// zcode-cua MCP server 识别的单一事实源。desktop 产品 broker resolver（@social-harness/services 的
 // mcpBrokerInjection）与 CLI bootstrap（apps/zcode-cli 的 mcp-config）两条注入入口必须用
 // 完全一致的判定；否则同一 MCP 配置在不同入口行为不同，可能漏注入 product broker，让
 // Python/uvx 自己持有 macOS TCC 权限（违反 fail-closed 边界）。改这里即同时改两条链路。

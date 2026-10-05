@@ -1,12 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
-import { SqliteSessionStore, type SqliteMigrationProgress } from "@zcode/adapters/storage";
+import { SqliteSessionStore, type SqliteMigrationProgress } from "@social-harness/adapters/storage";
 import {
   classifyDatabaseStartupError,
   databaseStartupErrorDetails,
   zcodeProtocolNotifications,
   zcodeStorageStartupStateSchema,
   type ZCodeStorageStartupState,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 
 export async function openProtocolStartupStorage(options: {
   dbPath: string;
@@ -64,7 +64,7 @@ export async function prepareProtocolStartupStorage(options: {
 }): Promise<void> {
   const { createInterface } = await import("node:readline");
   const { zcodeStoragePathReadySchema, classifyDatabaseStartupError } =
-    await import("@zcode/shared");
+    await import("@social-harness/shared");
   const lines = createInterface({ input: options.input });
   let timer: ReturnType<typeof setTimeout>;
   const acknowledgement = new Promise<boolean>((resolve, reject) => {

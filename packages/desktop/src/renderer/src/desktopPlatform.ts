@@ -1,5 +1,9 @@
-import { recordArmsCustomEventForE2E } from "@zcode/ui";
-import { DesktopCommandIds, buildLocalMediaPreviewUrl, type IPlatformService } from "@zcode/shared";
+import { recordArmsCustomEventForE2E } from "@social-harness/ui";
+import {
+  DesktopCommandIds,
+  buildLocalMediaPreviewUrl,
+  type IPlatformService,
+} from "@social-harness/shared";
 
 import { desktopBrowserPlatformBridge } from "./desktopBrowserPlatformBridge.js";
 
@@ -32,6 +36,7 @@ export function createDesktopPlatform(options: {
     loadMcpFromUserDirectory: (payload) => window.zcode.loadMcpFromUserDirectory(payload),
     saveMcpToUserDirectory: (payload) => window.zcode.saveMcpToUserDirectory(payload),
     migrateLegacyCommonMcp: (payload) => window.zcode.migrateLegacyCommonMcp(payload),
+    copyTextToClipboard: (text) => navigator.clipboard.writeText(text),
     openExternal: (url) => window.zcode.openExternal(url),
     openFeedback: () => window.zcode.executeDesktopCommand(DesktopCommandIds.OpenFeedback),
     openCommunity: () => window.zcode.executeDesktopCommand(DesktopCommandIds.OpenCommunity),
@@ -53,8 +58,6 @@ export function createDesktopPlatform(options: {
       : undefined,
     registerOAuthState: (payload) => window.zcode.registerOAuthState(payload),
     onOAuthCallback: (callback) => window.zcode.onOAuthCallback(callback),
-    onPaymentCallback: (callback) => window.zcode.onPaymentCallback(callback),
-    onShareImport: (callback) => window.zcode.onShareImport?.(callback) ?? (() => {}),
     notifyRendererReady: () => window.zcode.notifyRendererReady(),
     reportTelemetryEvent: (payload) => window.zcode.reportTelemetryEvent(payload),
     reportArmsCustomEvent: (payload) => {
@@ -92,14 +95,6 @@ export function createDesktopPlatform(options: {
     browserViewScreenshotSurfaceReady: (payload) =>
       window.zcode.browserViewScreenshotSurfaceReady?.(payload),
     ...desktopBrowserPlatformBridge,
-    onNewTask: (handler) => window.zcode.onNewTask(handler),
-    onOpenWorkspace: (handler) => {
-      // 开发态或升级后的旧窗口可能仍运行未暴露 onOpenWorkspace 的 preload，
-      // renderer 直接调用会在启动时崩溃。这里和 activateOrSetWorkspace 一样做兼容兜底，
-      // 缺少该 bridge 时只禁用原生菜单回调，不影响应用继续打开。
-      return window.zcode.onOpenWorkspace?.(handler) ?? (() => {});
-    },
-    onOpenWorkspacePath: (handler) => window.zcode.onOpenWorkspacePath?.(handler) ?? (() => {}),
     onOpenFeedbackDialog: (handler) => window.zcode.onOpenFeedbackDialog?.(handler) ?? (() => {}),
     onOpenTicketsPanel: (handler) => window.zcode.onOpenTicketsPanel?.(handler) ?? (() => {}),
     onWindowFullscreenChanged: (handler) => window.zcode.onWindowFullscreenChanged(handler),
@@ -159,6 +154,7 @@ export function createDesktopPlatform(options: {
       Promise.resolve(navigator.language.toLowerCase().startsWith("zh") ? "zh-CN" : "en-US"),
     setTitleBarTheme: (theme) => window.zcode.setTitleBarTheme(theme),
     getDeviceId: () =>
-      (window as Window & { __ZCODE_DEVICE_ID__?: string }).__ZCODE_DEVICE_ID__ ?? "",
+      (window as Window & { __SOCIAL_HARNESS_DEVICE_ID__?: string }).__SOCIAL_HARNESS_DEVICE_ID__ ??
+      "",
   };
 }

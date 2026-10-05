@@ -1,21 +1,16 @@
 /* oxlint-disable eslint(max-lines) -- settings helper 聚合多个设置分组；终端、网络与自动归档多侧能力暂时超过行数限制。 */
-import type {
-  IntegratedTerminalShellOption,
-  IntegratedTerminalShellSelection,
-  LocalePreference,
-  ZCodeInteractionBehavior,
-} from "@zcode/shared";
+import type { LocalePreference, ZCodeInteractionBehavior } from "@social-harness/shared";
 import {
   TID_SETTINGS_ASK_USER_QUESTION_AUTO_RESOLUTION_SWITCH,
   TID_SETTINGS_NATIVE_SEARCH_SWITCH,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { useState, useCallback, useEffect } from "react";
-import type { IPlatformService } from "@zcode/shared";
+import type { IPlatformService } from "@social-harness/shared";
 import {
   TID_SETTINGS_LOCALE_SELECT_ITEM,
   TID_SETTINGS_LOCALE_SELECT_TRIGGER,
   testId,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   Select,
   SelectContent,
@@ -38,12 +33,15 @@ import {
   type SettingsSectionId,
 } from "@/settings/settingsPageConfig.js";
 
-export type { Locale, LocalePreference } from "@zcode/shared";
+export type { Locale, LocalePreference } from "@social-harness/shared";
 export { type SettingsSectionId };
 export { createSettingsPageConfig, resolveSettingsSectionForPlatform };
 
 const TASK_AUTO_ARCHIVE_DAY_OPTIONS = [3, 7, 14, 30] as const;
-const ZCODE_INTERACTION_BEHAVIOR_OPTIONS: readonly ZCodeInteractionBehavior[] = ["queue", "guide"];
+const SOCIAL_HARNESS_INTERACTION_BEHAVIOR_OPTIONS: readonly ZCodeInteractionBehavior[] = [
+  "queue",
+  "guide",
+];
 
 export function GeneralSectionContent({
   localePreference,
@@ -57,10 +55,6 @@ export function GeneralSectionContent({
   receivePreviewUpdates,
   autoDownloadAndInstallUpdates,
   dataBaseDir,
-  terminalInheritSystemProfile = true,
-  terminalFontFamily = "",
-  integratedTerminalShell = { mode: "auto" },
-  integratedTerminalShellOptions = [],
   nativeSearchEnhancementsEnabled,
   httpProxy = "",
   httpProxyNoProxy = "",
@@ -68,7 +62,6 @@ export function GeneralSectionContent({
   defaultHomeDir,
   isDesktop,
   isWindowsDesktop,
-  showIntegratedTerminalShell = false,
   setLocalePreference,
   setNotificationEnabled,
   setNotificationSoundEnabled,
@@ -84,9 +77,6 @@ export function GeneralSectionContent({
   modelIoFullRetentionEnabled = false,
   onDataBaseDirChange,
   onSelectDataBaseDir,
-  onTerminalInheritSystemProfileChange = async () => {},
-  onTerminalFontFamilyChange = async () => {},
-  onIntegratedTerminalShellChange = async () => {},
   onNativeSearchEnhancementsEnabledChange,
   onHttpProxyChange = async () => {},
   onHttpProxyNoProxyChange = async () => {},
@@ -119,10 +109,6 @@ export function GeneralSectionContent({
   receivePreviewUpdates: boolean;
   autoDownloadAndInstallUpdates: boolean;
   dataBaseDir: string;
-  terminalInheritSystemProfile: boolean;
-  terminalFontFamily: string;
-  integratedTerminalShell?: IntegratedTerminalShellSelection;
-  integratedTerminalShellOptions?: IntegratedTerminalShellOption[];
   nativeSearchEnhancementsEnabled: boolean;
   httpProxy?: string;
   httpProxyNoProxy?: string;
@@ -130,7 +116,6 @@ export function GeneralSectionContent({
   defaultHomeDir: string;
   isDesktop?: boolean;
   isWindowsDesktop?: boolean;
-  showIntegratedTerminalShell?: boolean;
   platform?: IPlatformService;
   setLocalePreference: (locale: LocalePreference) => void;
   setNotificationEnabled: (enabled: boolean) => void;
@@ -147,9 +132,6 @@ export function GeneralSectionContent({
   modelIoFullRetentionEnabled?: boolean;
   onDataBaseDirChange: (dir: string) => Promise<void>;
   onSelectDataBaseDir: () => Promise<string | null>;
-  onTerminalInheritSystemProfileChange: (enabled: boolean) => Promise<void>;
-  onTerminalFontFamilyChange: (fontFamily: string) => Promise<void>;
-  onIntegratedTerminalShellChange?: (selection: IntegratedTerminalShellSelection) => Promise<void>;
   onNativeSearchEnhancementsEnabledChange: (enabled: boolean) => Promise<void>;
   onHttpProxyChange?: (httpProxy: string) => Promise<void>;
   onHttpProxyNoProxyChange?: (noProxy: string) => Promise<void>;
@@ -173,66 +155,6 @@ export function GeneralSectionContent({
 }) {
   const { intl } = useZCodeIntl();
   const hasServices = Boolean(useOptionalServices());
-  // 部分 SSR 单测会用精简 props 直接渲染本组件，新增终端设置项后旧 helper 未必同步传值。
-  // 这里把运行时缺省值兜到“继承系统 profile”，避免 undefined.trim() 把无关测试打断。
-  const [localTerminalFontFamily, setLocalTerminalFontFamily] = useState(terminalFontFamily);
-
-  useEffect(() => {
-    setLocalTerminalFontFamily(terminalFontFamily);
-  }, [terminalFontFamily]);
-
-  const normalizedTerminalFontFamily = localTerminalFontFamily.trim();
-  const isTerminalFontFamilyDirty = normalizedTerminalFontFamily !== terminalFontFamily;
-  const integratedTerminalShellValue =
-    integratedTerminalShell.mode === "shell" ? integratedTerminalShell.id : "auto";
-  const selectedIntegratedTerminalShellOption =
-    integratedTerminalShell.mode === "shell"
-      ? (integratedTerminalShellOptions.find(
-          (option) => option.id === integratedTerminalShell.id,
-        ) ?? {
-          dialect: integratedTerminalShell.dialect,
-          id: integratedTerminalShell.id,
-          label: integratedTerminalShell.label,
-          path: integratedTerminalShell.path,
-          source: "system" as const,
-        })
-      : undefined;
-  const visibleIntegratedTerminalShellOptions = selectedIntegratedTerminalShellOption
-    ? [
-        selectedIntegratedTerminalShellOption,
-        ...integratedTerminalShellOptions.filter(
-          (option) => option.id !== selectedIntegratedTerminalShellOption.id,
-        ),
-      ]
-    : integratedTerminalShellOptions;
-
-  const handleTerminalFontFamilySave = useCallback(async () => {
-    await onTerminalFontFamilyChange(normalizedTerminalFontFamily);
-  }, [normalizedTerminalFontFamily, onTerminalFontFamilyChange]);
-
-  const handleIntegratedTerminalShellChange = useCallback(
-    async (value: string) => {
-      if (value === "auto") {
-        await onIntegratedTerminalShellChange({ mode: "auto" });
-        return;
-      }
-      const option = visibleIntegratedTerminalShellOptions.find(
-        (candidate) => candidate.id === value,
-      );
-      if (!option) {
-        return;
-      }
-      await onIntegratedTerminalShellChange({
-        mode: "shell",
-        dialect: option.dialect,
-        id: option.id,
-        label: option.label,
-        path: option.path,
-      });
-    },
-    [onIntegratedTerminalShellChange, visibleIntegratedTerminalShellOptions],
-  );
-
   const [localHttpProxy, setLocalHttpProxy] = useState(httpProxy);
 
   useEffect(() => {
@@ -351,80 +273,6 @@ export function GeneralSectionContent({
       </SettingsGroupCard>
 
       <SettingsGroupCard>
-        <SettingsRow
-          label={intl.formatMessage({ id: "settings.terminalProfile" })}
-          description={intl.formatMessage({ id: "settings.terminalProfileDescription" })}
-          control={
-            <Switch
-              checked={terminalInheritSystemProfile}
-              onCheckedChange={(checked) => {
-                void onTerminalInheritSystemProfileChange(checked);
-              }}
-            />
-          }
-        />
-        <SettingsRow
-          label={intl.formatMessage({ id: "settings.terminalFontFamily" })}
-          description={intl.formatMessage({ id: "settings.terminalFontFamilyDescription" })}
-          control={
-            <Button
-              type="button"
-              size="lg"
-              disabled={!isTerminalFontFamilyDirty}
-              onClick={() => void handleTerminalFontFamilySave()}
-            >
-              {intl.formatMessage({ id: "settings.dataBaseDirSave" })}
-            </Button>
-          }
-          detail={
-            <Input
-              size="lg"
-              value={localTerminalFontFamily}
-              placeholder={intl.formatMessage({
-                id: "settings.terminalFontFamilyPlaceholder",
-              })}
-              onChange={(event) => {
-                setLocalTerminalFontFamily(event.currentTarget.value);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && isTerminalFontFamilyDirty) {
-                  void handleTerminalFontFamilySave();
-                }
-              }}
-              className="max-w-[520px] font-mono"
-            />
-          }
-        />
-        {showIntegratedTerminalShell ? (
-          <SettingsRow
-            label={intl.formatMessage({ id: "settings.integratedTerminalShell" })}
-            description={intl.formatMessage({
-              id: "settings.integratedTerminalShellDescription",
-            })}
-            control={
-              <Select
-                value={integratedTerminalShellValue}
-                onValueChange={(value) => {
-                  void handleIntegratedTerminalShellChange(value);
-                }}
-              >
-                <SelectTrigger size="lg" className="w-[260px] min-w-0 justify-between">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">
-                    {intl.formatMessage({ id: "settings.integratedTerminalShell.auto" })}
-                  </SelectItem>
-                  {visibleIntegratedTerminalShellOptions.map((option) => (
-                    <SelectItem key={option.id} value={option.id}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            }
-          />
-        ) : null}
         <SettingsRow
           label={intl.formatMessage({
             id: "settings.nativeSearchEnhancements",
@@ -686,7 +534,7 @@ export function GeneralSectionContent({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {ZCODE_INTERACTION_BEHAVIOR_OPTIONS.map((behavior) => (
+                {SOCIAL_HARNESS_INTERACTION_BEHAVIOR_OPTIONS.map((behavior) => (
                   <SelectItem key={behavior} value={behavior}>
                     {intl.formatMessage({
                       id: `settings.zcodeInteractionBehavior.option.${behavior}`,

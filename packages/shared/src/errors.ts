@@ -27,7 +27,8 @@ export interface NormalizedUnknownError {
   code?: string;
 }
 
-export const ZCODE_FILE_LOCK_TIMEOUT_ERROR_CODE = "ZCODE_FILE_LOCK_TIMEOUT" as const;
+export const SOCIAL_HARNESS_FILE_LOCK_TIMEOUT_ERROR_CODE =
+  "SOCIAL_HARNESS_FILE_LOCK_TIMEOUT" as const;
 
 export function stringifyUnknownValue(value: unknown): string {
   if (typeof value === "string") {
@@ -88,5 +89,5 @@ export function normalizeUnknownError(error: unknown): NormalizedUnknownError {
 }
 
 export function isZCodeFileLockTimeoutError(error: unknown): boolean {
-  return normalizeUnknownError(error).code === ZCODE_FILE_LOCK_TIMEOUT_ERROR_CODE;
+  return normalizeUnknownError(error).code === SOCIAL_HARNESS_FILE_LOCK_TIMEOUT_ERROR_CODE;
 }

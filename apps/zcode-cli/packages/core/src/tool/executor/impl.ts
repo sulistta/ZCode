@@ -1,4 +1,4 @@
-import type { TraceContext, TurnId } from "@zcode/contracts";
+import type { TraceContext, TurnId } from "@social-harness/contracts";
 import { createDenyPermissionBroker } from "../../permission/broker.js";
 import type { ToolSchedule } from "../scheduler.js";
 import type { ExecutableToolCall, ToolBatchEvent, ToolExecutionResult } from "../types.js";
@@ -50,6 +50,8 @@ export class ToolExecutorImpl implements ToolExecutor {
       workflowEscalatePort: options.workflowEscalatePort,
       artifactStore: options.artifactStore,
       automationPort: options.automationPort,
+      socialAgentPort: options.socialAgentPort,
+      socialProjectPort: options.socialProjectPort,
       offPeakPort: options.offPeakPort,
       sessionStore: options.sessionStore,
       sessionModePort: options.sessionModePort,

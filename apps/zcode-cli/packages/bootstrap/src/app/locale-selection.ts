@@ -1,4 +1,4 @@
-import type { ConfigResult } from "@zcode/adapters/config";
+import type { ConfigResult } from "@social-harness/adapters/config";
 
 export function getLocaleConfigPath(configResult: ConfigResult): string {
   const project = configResult.sources.project;

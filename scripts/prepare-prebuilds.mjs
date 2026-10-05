@@ -41,7 +41,7 @@ const rootDir = resolve(scriptDir, "..");
 const desktopDir = join(rootDir, "packages/desktop");
 const mockCdnDir = join(desktopDir, "mock-cdn");
 const version = require(join(rootDir, "package.json")).version;
-const ZCODE_AGENT_RUNTIME = {
+const SOCIAL_HARNESS_AGENT_RUNTIME = {
   glm: {
     version: readZCodeAgentRuntimeVersion(),
   },
@@ -51,10 +51,10 @@ const nodeVersion = "v22.16.0";
 const componentSchemaVersion = 1;
 const remotePlatforms = ["linux-arm64", "linux-x64", "darwin-arm64", "darwin-x64"];
 const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-const isBootstrapWithRemote = process.env.ZCODE_BOOTSTRAP_WITH_REMOTE === "1";
+const isBootstrapWithRemote = process.env.SOCIAL_HARNESS_BOOTSTRAP_WITH_REMOTE === "1";
 
 /**
- * Node dist 下载源。默认走国内镜像，`ZCODE_NODE_DIST_MIRROR` 可覆盖（与
+ * Node dist 下载源。默认走国内镜像，`SOCIAL_HARNESS_NODE_DIST_MIRROR` 可覆盖（与
  * `.gitlab/ci/00-workflow.yml` 的同名 CI 变量、`scripts/cua-helper-sea-base.mjs` 同一约定）。
  *
  * 这里原本硬编码 `https://nodejs.org/dist`，而 macOS
@@ -69,12 +69,12 @@ const isBootstrapWithRemote = process.env.ZCODE_BOOTSTRAP_WITH_REMOTE === "1";
 export const DEFAULT_NODE_DIST_BASE = "https://cdn.npmmirror.com/binaries/node";
 
 export function nodeDistBase(env = process.env) {
-  const mirror = env.ZCODE_NODE_DIST_MIRROR?.trim();
+  const mirror = env.SOCIAL_HARNESS_NODE_DIST_MIRROR?.trim();
   return (mirror || DEFAULT_NODE_DIST_BASE).replace(/\/+$/u, "");
 }
-const BROWSER_USE_PLUGIN_PACKAGE_NAME = "@zcode/browser-use-plugin";
-// node_repl 宿主抽成独立包 @zcode/node-repl-host 之后，browser-use
-// 不再产出 dist/mcp/server.js，CUA 资产也已归 @zcode/zcode-cua-plugin。这是**第三份**平行清单
+const BROWSER_USE_PLUGIN_PACKAGE_NAME = "@social-harness/browser-use-plugin";
+// node_repl 宿主抽成独立包 @social-harness/node-repl-host 之后，browser-use
+// 不再产出 dist/mcp/server.js，CUA 资产也已归 @social-harness/zcode-cua-plugin。这是**第三份**平行清单
 // （另两份：packages/desktop/scripts/prepare-agent-node-bundle.mjs 的生产打包、
 // scripts/build-desktop-agent-cli.mjs 的 dev 构建），当时只改了 dev 那份，于是先后在
 // build:macos:arm64 与 build:remote:assets 上以 "missing runtime" 挂掉两次。
@@ -97,9 +97,9 @@ const remoteOfficialPluginPackages = [
   // 清单、packages/server/src/remote/zcodeAgentOfficialPluginAssets.ts 的远端合同保持一致。
   {
     // 远端 shared-host 必须部署 node_repl runtime，否则只剩 skill 而没有 mcp__node_repl__js ——
-    // 该 runtime 现由 @zcode/node-repl-host 提供（见下一个条目），browser-use 只带自己的
+    // 该 runtime 现由 @social-harness/node-repl-host 提供（见下一个条目），browser-use 只带自己的
     // client script 与 skill/docs。
-    packageName: "@zcode/browser-use-plugin",
+    packageName: "@social-harness/browser-use-plugin",
     relativePath: "apps/zcode-cli/packages/browser-use-plugin",
     requiresRuntime: true,
     requiredRuntimePaths: browserUseRequiredRuntimePaths,
@@ -109,7 +109,7 @@ const remoteOfficialPluginPackages = [
   {
     // node_repl 宿主：Browser Use 与 Computer Use 共用的 MCP runtime。远端 shared-host 缺它
     // 就没有 mcp__node_repl__js，bua/cua 两边都会连不上。
-    packageName: "@zcode/node-repl-host",
+    packageName: "@social-harness/node-repl-host",
     relativePath: "apps/zcode-cli/packages/node-repl-host",
     requiresRuntime: true,
     requiredRuntimePaths: ["dist/mcp/server.js"],
@@ -228,45 +228,6 @@ async function extractArchiveMember(url, destinationDir, archiveMember) {
   }
 }
 
-function resolveDedicatedPackageRoot(packageName, fromDir) {
-  const packageEntryPath = require.resolve(packageName, { paths: [fromDir] });
-  let currentDir = dirname(packageEntryPath);
-
-  while (true) {
-    const packageJsonPath = join(currentDir, "package.json");
-    if (existsSync(packageJsonPath)) {
-      const packageJson = require(packageJsonPath);
-      if (packageJson?.name === packageName) {
-        return currentDir;
-      }
-    }
-
-    const parentDir = dirname(currentDir);
-    if (parentDir === currentDir) {
-      break;
-    }
-    currentDir = parentDir;
-  }
-
-  throw new Error(
-    `Unable to resolve package root for ${packageName} from entry ${packageEntryPath}`,
-  );
-}
-
-function resolveNodePtyPackageName(platformKey) {
-  return `@lydell/node-pty-${platformKey}`;
-}
-
-function resolveNodePtyPackageVersion(platformKey) {
-  const packageName = resolveNodePtyPackageName(platformKey);
-  const packageRoot = resolveDedicatedPackageRoot(packageName, join(rootDir, "packages/server"));
-  const packageJson = require(join(packageRoot, "package.json"));
-  if (typeof packageJson?.version !== "string" || !packageJson.version.trim()) {
-    throw new Error(`Unable to resolve version for ${packageName}`);
-  }
-  return packageJson.version.trim();
-}
-
 async function prepareNodeBinaries() {
   for (const platformKey of remotePlatforms) {
     const nodeDir = join(releaseDir, "node", platformKey);
@@ -291,7 +252,7 @@ async function prepareNodeBinaries() {
     } catch (error) {
       console.error(`  [error] 下载或解压失败: ${url}`);
       console.error(
-        `  [error] 请检查 CI runner 的外网访问、tar/xz 依赖，或用 ZCODE_NODE_DIST_MIRROR 覆盖下载源（当前 ${nodeDistBase()}）`,
+        `  [error] 请检查 CI runner 的外网访问、tar/xz 依赖，或用 SOCIAL_HARNESS_NODE_DIST_MIRROR 覆盖下载源（当前 ${nodeDistBase()}）`,
       );
       throw error;
     }
@@ -342,58 +303,6 @@ function copyServerBundle() {
     join(serverDir, "zcode-server.cjs"),
   );
   console.log("  [ok] mock-cdn server/zcode-server.cjs");
-}
-
-function copyNodePtyPrebuilds() {
-  console.log("==> Copying node-pty prebuilds from @lydell/node-pty");
-
-  for (const platformKey of remotePlatforms) {
-    const ptyDir = join(releaseDir, "node-pty", platformKey);
-    const targetBinaryPath = join(ptyDir, "pty.node");
-    const targetSpawnHelperPath = join(ptyDir, "spawn-helper");
-    const requiresSpawnHelper = platformKey.startsWith("darwin-");
-
-    if (
-      existsSync(targetBinaryPath) &&
-      (!requiresSpawnHelper || existsSync(targetSpawnHelperPath))
-    ) {
-      console.log(`  [skip] mock-cdn node-pty/${platformKey} already exists`);
-      continue;
-    }
-
-    mkdirSync(ptyDir, { recursive: true });
-
-    const packageName = resolveNodePtyPackageName(platformKey);
-    let packageRoot;
-    try {
-      packageRoot = resolveDedicatedPackageRoot(packageName, join(rootDir, "packages/server"));
-    } catch {
-      console.log(`  [warn] ${packageName} not found, run: pnpm install`);
-      continue;
-    }
-
-    const sourcePrebuildDir = join(packageRoot, "prebuilds", platformKey);
-    const sourceBinaryPath = join(sourcePrebuildDir, "pty.node");
-    if (!existsSync(sourceBinaryPath)) {
-      console.log(`  [warn] binary not found at ${sourceBinaryPath}`);
-      continue;
-    }
-
-    // Darwin 平台 node-pty 除了 pty.node 还依赖 spawn-helper。
-    // 之前 mock-cdn 只复制了 pty.node，远端部署后会在 terminal.create 阶段报 posix_spawn ENOENT。
-    // 这里把 spawn-helper 一并拷贝进 remote 资产目录，避免远端终端启动时缺关键二进制。
-    copyFileSync(sourceBinaryPath, targetBinaryPath);
-    if (requiresSpawnHelper) {
-      const sourceSpawnHelperPath = join(sourcePrebuildDir, "spawn-helper");
-      if (!existsSync(sourceSpawnHelperPath)) {
-        console.log(`  [warn] spawn-helper not found at ${sourceSpawnHelperPath}`);
-        continue;
-      }
-      copyFileSync(sourceSpawnHelperPath, targetSpawnHelperPath);
-      chmodSync(targetSpawnHelperPath, 0o755);
-    }
-    console.log(`  [ok] mock-cdn node-pty/${platformKey} (copied from ${packageName})`);
-  }
 }
 
 function buildRemoteOfficialPluginRuntimes() {
@@ -485,34 +394,34 @@ function stageRemoteOfficialPlugins(glmDir) {
   }
 }
 
-// 远端 agent 现在跑编译出来的 zcode.cjs（而不是各平台独立的原生二进制）：
-// 远端部署时已经有一份独立 node（跑 zcode-server.cjs），agent 复用它执行 zcode.cjs 即可，
-// 不必再为每个平台准备一份内嵌 node 的 SEA 二进制。zcode.cjs 跨平台同一份，逐平台只是放进各自的
+// 远端 agent 现在跑编译出来的 social-harness.cjs（而不是各平台独立的原生二进制）：
+// 远端部署时已经有一份独立 node（跑 zcode-server.cjs），agent 复用它执行 social-harness.cjs 即可，
+// 不必再为每个平台准备一份内嵌 node 的 SEA 二进制。social-harness.cjs 跨平台同一份，逐平台只是放进各自的
 // glm/<platform> 组件目录，保持现有 manifest 组件结构不变。
 function stageRemoteAgentBundles() {
   console.log("==> Building zcode-cli bundle for remote agents");
-  // 复用桌面同款构建脚本（turbo build:desktop-agent --filter=@zcode/cli），命中缓存时几乎瞬时。
+  // 复用桌面同款构建脚本（turbo build:desktop-agent --filter=@social-harness/cli），命中缓存时几乎瞬时。
   runCommand(process.execPath, [join(rootDir, "scripts/build-desktop-agent-cli.mjs")], {
     cwd: rootDir,
     env: process.env,
   });
-  // browser-use runtime 的 tsc 依赖 @zcode/core/dist。远端资产也必须先构建
+  // browser-use runtime 的 tsc 依赖 @social-harness/core/dist。远端资产也必须先构建
   // agent CLI 依赖，避免 CI 干净检出时被开发机缓存掩盖的 TS2307。
   buildRemoteOfficialPluginRuntimes();
-  const cliBundlePath = join(rootDir, "apps/zcode-cli/packages/cli/dist/zcode.cjs");
+  const cliBundlePath = join(rootDir, "apps/zcode-cli/packages/cli/dist/social-harness.cjs");
   if (!existsSync(cliBundlePath)) {
     throw new Error(`[prepare-prebuilds] expected cli bundle missing: ${cliBundlePath}`);
   }
 
   for (const platformKey of remotePlatforms) {
     const glmDir = join(releaseDir, "glm", platformKey);
-    // 干净重建：glm 组件现在只含 zcode.cjs，清掉历史遗留的原生二进制 / 旧 meta，
+    // 干净重建：glm 组件现在只含 social-harness.cjs，清掉历史遗留的原生二进制 / 旧 meta，
     // 避免被打进组件 tar 把远端资源撑大。
     rmSync(glmDir, { recursive: true, force: true });
     mkdirSync(glmDir, { recursive: true });
-    copyFileSync(cliBundlePath, join(glmDir, "zcode.cjs"));
+    copyFileSync(cliBundlePath, join(glmDir, "social-harness.cjs"));
     stageRemoteOfficialPlugins(glmDir);
-    console.log(`  [ok] mock-cdn glm/${platformKey}/zcode.cjs`);
+    console.log(`  [ok] mock-cdn glm/${platformKey}/social-harness.cjs`);
   }
 }
 
@@ -605,7 +514,7 @@ function resolveComponentSemanticVersion(componentVersion) {
 }
 
 // glm 承载 zcode-cli app-server 协议 schema。即使 runtime 版本未变化，
-// zcode.cjs 也可能随 app 代码变更；跨 release 复用旧 glm 会让远端 agent 拒绝新协议字段。
+// social-harness.cjs 也可能随 app 代码变更；跨 release 复用旧 glm 会让远端 agent 拒绝新协议字段。
 const nonReusableReleaseAssetIds = new Set(["server-bundle", "glm"]);
 
 function readJsonFile(filePath) {
@@ -763,12 +672,10 @@ function buildReusableComponentRequiredPaths(componentId, platformKey) {
   switch (componentId) {
     case "node-runtime":
       return ["node"];
-    case "node-pty":
-      return platformKey.startsWith("darwin-") ? ["pty.node", "spawn-helper"] : ["pty.node"];
     case "glm":
-      // GLM 现在是编译产物 zcode.cjs（跨平台同一份），远端用已部署的 node 执行它。
+      // GLM 现在是编译产物 social-harness.cjs（跨平台同一份），远端用已部署的 node 执行它。
       // 复用时还要确认官方插件 seed 资源完整，否则旧 release 会继续产出 0 builtin plugin 的远端资源包。
-      return ["zcode.cjs", ...remoteOfficialPluginRequiredPaths];
+      return ["social-harness.cjs", ...remoteOfficialPluginRequiredPaths];
     case "bfs":
       return ["bfs"];
     case "ripgrep":
@@ -795,18 +702,10 @@ export function buildRemoteComponentDefinitions(platformKey) {
       sourcePath: join(releaseDir, "node", platformKey),
     },
     {
-      id: "node-pty",
-      // node-pty 组件之前固定成 v1，平台包升级后客户端仍会命中旧 cache。
-      // 这里使用实际复制来源包的版本，让 @lydell/node-pty-<platform> 升级时组件 cache 自动失效。
-      semanticPrefix: resolveNodePtyPackageVersion(platformKey),
-      mount: joinPosix("node-pty", platformKey),
-      sourcePath: join(releaseDir, "node-pty", platformKey),
-    },
-    {
       id: "glm",
       // GLM native binary 之前固定成 v1，二进制版本升级后不会触发组件 cache 失效。
-      // 这里复用 ZCODE_AGENT_RUNTIME.glm.version，保持 manifest 版本与运行时描述一致。
-      semanticPrefix: ZCODE_AGENT_RUNTIME.glm.version,
+      // 这里复用 SOCIAL_HARNESS_AGENT_RUNTIME.glm.version，保持 manifest 版本与运行时描述一致。
+      semanticPrefix: SOCIAL_HARNESS_AGENT_RUNTIME.glm.version,
       mount: joinPosix("glm", platformKey),
       sourcePath: join(releaseDir, "glm", platformKey),
     },
@@ -1010,13 +909,11 @@ async function main() {
   await prepareNodeBinaries();
   buildServerBundle();
   copyServerBundle();
-  copyNodePtyPrebuilds();
   stageRemoteAgentBundles();
   await prepareRemoteNativeSearchTools();
-  // 修复：server、pty、agent 均可独立下载，需在组件哈希计算前补齐各自的声明。
+  // server 与 agent 可独立下载，需在组件哈希计算前补齐各自的声明。
   await stageThirdPartyNotices(join(releaseDir, "server"), rootDir);
   for (const platformKey of remotePlatforms) {
-    await stageThirdPartyNotices(join(releaseDir, "node-pty", platformKey), rootDir);
     await stageThirdPartyNotices(join(releaseDir, "glm", platformKey), rootDir);
   }
   prepareRemoteComponentArtifacts();

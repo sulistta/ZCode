@@ -36,7 +36,7 @@ import {
   type FileSystemStatResult,
   type FileSystemWriteTextRequest,
   type FileSystemWriteTextResult,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import {
   applyRequestedLineEndings,
   decodeTextBuffer,

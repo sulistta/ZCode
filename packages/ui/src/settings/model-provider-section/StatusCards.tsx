@@ -8,7 +8,7 @@ import {
   type UsageQuotaLimit,
   type ZCodeAccountAccess,
   type ZCodeProviderAccountAccess,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import { InfoIcon, Loader2Icon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button.js";

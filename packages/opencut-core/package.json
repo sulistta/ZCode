@@ -1,0 +1,15 @@
+{
+  "name": "@social-harness/opencut-core",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./contract": "./src/contract.ts"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@social-harness/shared": "workspace:*"
+  }
+}

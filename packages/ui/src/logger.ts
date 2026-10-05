@@ -1,4 +1,4 @@
-import { formatLogPrefix } from "@zcode/shared";
+import { formatLogPrefix } from "@social-harness/shared";
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -24,9 +24,9 @@ function isRendererLoggingDisabled(): boolean {
   return (
     (
       globalThis as typeof globalThis & {
-        __ZCODE_RENDERER_DISABLE_LOGGING__?: boolean;
+        __SOCIAL_HARNESS_RENDERER_DISABLE_LOGGING__?: boolean;
       }
-    ).__ZCODE_RENDERER_DISABLE_LOGGING__ === true
+    ).__SOCIAL_HARNESS_RENDERER_DISABLE_LOGGING__ === true
   );
 }
 

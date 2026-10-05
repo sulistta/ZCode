@@ -1,6 +1,6 @@
 /* eslint-disable max-lines -- codeViewer 集中维护文件、文本、图片和 diff 预览提取；本次只收敛 tool identity，不顺手拆文件以免扩大回归面。 */
 import type { BundledLanguage } from "shiki";
-import { getMediaPreviewFormat, type MediaPreviewKind } from "@zcode/shared";
+import { getMediaPreviewFormat, type MediaPreviewKind } from "@social-harness/shared";
 import type { TaskChatToolCall as ChatToolCall } from "@/lib/taskChatMessageTypes.js";
 import type { CodeViewerWorkspaceScope } from "@/lib/codeViewerWorkspaceScope.js";
 import {
@@ -27,22 +27,6 @@ export interface FileCodeViewerSource extends CodeViewerWorkspaceScope {
   type: "file";
   title: string;
   path: string;
-}
-
-export interface CodeReviewAnchor {
-  requestId: string;
-  title: string;
-  body: string;
-  priority?: 0 | 1 | 2 | 3;
-  startLine?: number;
-  endLine?: number;
-}
-
-export interface CodeReviewCodeViewerSource extends CodeViewerWorkspaceScope {
-  type: "code-review";
-  title: string;
-  path: string;
-  review: CodeReviewAnchor;
 }
 
 export interface TextCodeViewerSource extends CodeViewerWorkspaceScope {
@@ -104,7 +88,6 @@ export interface PptxReferencePreviewNavigation {
 
 export type CodeViewerSource =
   | FileCodeViewerSource
-  | CodeReviewCodeViewerSource
   | TextCodeViewerSource
   | PatchCodeViewerSource
   | MultiFileDiffCodeViewerSource

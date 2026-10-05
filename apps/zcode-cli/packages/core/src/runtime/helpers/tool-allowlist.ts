@@ -1,16 +1,52 @@
 import {
+  ESCALATE_TOOL_NAME,
+  SUBMIT_RESULT_TOOL_NAME,
   AMEND_WORKFLOW_TOOL_NAME,
   CREATE_WORKFLOW_TOOL_NAME,
   RESOLVE_WORKFLOW_QUESTION_TOOL_NAME,
   RESPOND_TO_COORDINATOR_TOOL_NAME,
   RESUME_WORKFLOW_RUN_TOOL_NAME,
   SAVE_WORKFLOW_TOOL_NAME,
-} from "@zcode/contracts";
+  SOCIAL_PROJECT_COMMAND_TOOL_NAME,
+  SOCIAL_PROJECT_LIST_TOOL_NAME,
+  SOCIAL_PROJECT_READ_TOOL_NAME,
+  SOCIAL_AGENT_CONTEXT_TOOL_NAME,
+  SOCIAL_MEDIA_LIST_TOOL_NAME,
+  SOCIAL_YOUTUBE_SEARCH_TOOL_NAME,
+  SOCIAL_CLIP_CANDIDATES_TOOL_NAME,
+  SOCIAL_PUBLICATION_REQUEST_TOOL_NAME,
+  SOCIAL_PRODUCTION_TOOL_NAMES,
+  LIST_SAVED_WORKFLOWS_TOOL_NAME,
+  LIST_WORKFLOW_RUNS_TOOL_NAME,
+  GET_WORKFLOW_RUN_TOOL_NAME,
+} from "@social-harness/contracts";
+import { parseSocialAccountWorkspaceIdentity } from "@social-harness/shared";
 import { EXPLORE_AGENT_ALLOWED_TOOLS } from "../../subagent/explore-tools.js";
 import type { AgentRuntimeConfig } from "../types.js";
 import { normalizeToolNameAlias } from "../../tool/tool-visibility.js";
 
 const EXPLORE_AGENT_ALLOWED_TOOL_SET = new Set<string>(EXPLORE_AGENT_ALLOWED_TOOLS);
+const SOCIAL_ACCOUNT_RUNTIME_TOOLS = [
+  SOCIAL_PROJECT_LIST_TOOL_NAME,
+  SOCIAL_PROJECT_READ_TOOL_NAME,
+  SOCIAL_PROJECT_COMMAND_TOOL_NAME,
+  SOCIAL_AGENT_CONTEXT_TOOL_NAME,
+  SOCIAL_MEDIA_LIST_TOOL_NAME,
+  SOCIAL_YOUTUBE_SEARCH_TOOL_NAME,
+  SOCIAL_CLIP_CANDIDATES_TOOL_NAME,
+  SOCIAL_PUBLICATION_REQUEST_TOOL_NAME,
+  ...SOCIAL_PRODUCTION_TOOL_NAMES,
+] as const;
+
+const SOCIAL_ACCOUNT_RECIPE_TOOLS = [
+  LIST_SAVED_WORKFLOWS_TOOL_NAME,
+  SAVE_WORKFLOW_TOOL_NAME,
+  CREATE_WORKFLOW_TOOL_NAME,
+  LIST_WORKFLOW_RUNS_TOOL_NAME,
+  GET_WORKFLOW_RUN_TOOL_NAME,
+  RESUME_WORKFLOW_RUN_TOOL_NAME,
+  RESOLVE_WORKFLOW_QUESTION_TOOL_NAME,
+] as const;
 
 /**
  * workflow child 运行时额外不注册的工具。
@@ -63,7 +99,7 @@ export function resolveRuntimeDisallowedTools(
 
 /**
  * 动态工作流灰度门在 registerBuiltInTools 上的取值。
- * **缺席即开启**：TUI、headless `-p` 和 workflow_child 都不写这个字段，它们必须保留完整工具面；
+ * **缺席即开启**：headless `-p` 和 workflow_child 都不写这个字段，它们必须保留完整工具面；
  * 只有受信 Host 创建的 protocol session 会显式写 false。fail-closed 的缺省值在协议服务端的
  * appRuntimePreferences，不在这一层。
  *
@@ -73,6 +109,8 @@ export function resolveRuntimeDisallowedTools(
  * 「缺席即开启」把十个工具原样加回注册表，灰度关闭的会话里模型仍然调到了 ListSavedWorkflows。
  */
 export function resolveRuntimeDynamicWorkflowToolsIncluded(config: AgentRuntimeConfig): boolean {
+  if (isSocialAccountRuntime(config))
+    return Boolean(parseSocialAccountWorkspaceIdentity(config.workspaceIdentity?.toString()));
   return config.dynamicWorkflowEnabled !== false;
 }
 
@@ -80,6 +118,23 @@ export function resolveBuiltInToolAllowlist(
   config: AgentRuntimeConfig,
 ): readonly string[] | undefined {
   const normalizedAllowlist = normalizeBuiltInToolAllowlist(config.toolAllowlist);
+
+  if (isSocialAccountRuntime(config)) {
+    const configuredTools = normalizedAllowlist && new Set(normalizedAllowlist);
+    const eligibleTools =
+      config.taskType !== "workflow_child" &&
+      config.taskType !== "subagent_child" &&
+      parseSocialAccountWorkspaceIdentity(config.workspaceIdentity?.toString())
+        ? [...SOCIAL_ACCOUNT_RUNTIME_TOOLS, ...SOCIAL_ACCOUNT_RECIPE_TOOLS]
+        : [...SOCIAL_ACCOUNT_RUNTIME_TOOLS];
+    const tools = configuredTools
+      ? eligibleTools.filter((toolName) => configuredTools.has(toolName))
+      : eligibleTools;
+    // 账户 actor 的结果与升级仍归原引擎；工具收窄不能移除结算通道，也不能增加原生工具。
+    return config.taskType === "workflow_child"
+      ? [...tools, SUBMIT_RESULT_TOOL_NAME, ESCALATE_TOOL_NAME]
+      : tools;
+  }
 
   if (config.toolset !== "explore") {
     return appendChildControlTool(config, normalizedAllowlist);
@@ -93,6 +148,14 @@ export function resolveBuiltInToolAllowlist(
     config,
     normalizedAllowlist.filter((toolName) => EXPLORE_AGENT_ALLOWED_TOOL_SET.has(toolName)),
   );
+}
+
+export function isSocialAccountRuntime(
+  config: Pick<AgentRuntimeConfig, "workspaceIdentity">,
+): boolean {
+  // Malformed social-account identities still fail closed; Host scope validation rejects them
+  // before runtime creation, and this prefix guard prevents an alternate generic tool surface.
+  return config.workspaceIdentity?.toString().startsWith("social-account:") ?? false;
 }
 
 function appendChildControlTool(

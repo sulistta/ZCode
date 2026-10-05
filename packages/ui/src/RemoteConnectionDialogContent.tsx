@@ -7,15 +7,19 @@ import type {
   RemoteWorkspaceSessionEntry,
   SSHConfigAliasOption,
   WSLDistro,
-} from "@zcode/shared";
-import { TID_REMOTE_KIND_DOCKER, TID_REMOTE_KIND_SSH, TID_REMOTE_KIND_WSL } from "@zcode/shared";
+} from "@social-harness/shared";
+import {
+  TID_REMOTE_KIND_DOCKER,
+  TID_REMOTE_KIND_SSH,
+  TID_REMOTE_KIND_WSL,
+} from "@social-harness/shared";
 import type {
   IMcpSyncService,
   IPluginSyncService,
   IServiceAccessor,
   ISkillSyncService,
   IZCodeAgentService,
-} from "@zcode/services";
+} from "@social-harness/services";
 import {
   AlertTriangleIcon,
   ChevronRightIcon,

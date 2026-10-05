@@ -15,6 +15,7 @@
  */
 import { createHostDatabaseStartup } from "./hostDatabaseStartup.js";
 import { randomUUID } from "node:crypto";
+import { instagramSecureCredentialSchema } from "@social-harness/shared";
 import {
   MessagePortProtocol,
   ChannelServer,
@@ -22,7 +23,7 @@ import {
   type IChannelServer,
   LoggingChannelServer,
   NetworkTelemetryChannelServer,
-} from "@zcode/rpc";
+} from "@social-harness/rpc";
 import { registerHostNetworkTelemetry, stopHostNetworkTelemetry } from "./hostNetworkTelemetry.js";
 import { registerHostServiceResourceTelemetry } from "./hostServiceResourceTelemetry.js";
 import { resolveResourceTelemetryEnvironmentKey } from "./hostResourceTelemetryEnvironment.js";
@@ -46,7 +47,7 @@ import {
   createZCodeAgentConnectionScope,
   type ZCodeAgentV4ClientMode,
   collectServiceMemoryDiagnostics,
-} from "@zcode/services";
+} from "@social-harness/services";
 import {
   createLocalServices,
   getOffPeakRequestAuthBuilder,
@@ -63,7 +64,7 @@ import {
   OffPeakPermanentDispatchError,
   type HostApiNetworkTransport,
   type OffPeakRequestAuthBuilder,
-} from "@zcode/services/node";
+} from "@social-harness/services/node";
 import { createHostResourceUsageResponder } from "./hostResourceUsage.js";
 import {
   assertBoundSessionDispatchable,
@@ -72,7 +73,7 @@ import {
 import {
   HostMessageTypes,
   HostResponseTypes,
-  ZCODE_VERSION,
+  SOCIAL_HARNESS_VERSION,
   formatLogPrefix,
   formatZCodeHostProcessName,
   formatZodError,
@@ -93,7 +94,7 @@ import {
   type ZCodeAutomationRun,
   type ZCodeAutomationRunOutcome,
   type ModelSelection,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   parseHostIncomingMessageEvent,
   rejectUnavailableAttachedServicePort,
@@ -108,8 +109,8 @@ import type {
   RemoteRuntimeNetworkOptions,
   RemoteAssetNetworkPort,
   RemoteConnection,
-} from "@zcode/server/remote";
-import type { RemoteTarget } from "@zcode/shared";
+} from "@social-harness/server/remote";
+import type { RemoteTarget } from "@social-harness/shared";
 import { wrapElectronPort } from "./electronPort.js";
 import { createTaskRealtimeBridgeForHostInit } from "./taskRealtimeBridge.js";
 import { resolveRpcLogLevel } from "./rpcLogLevel.js";
@@ -134,6 +135,10 @@ import {
   settleManualDispatchFailureBestEffort,
 } from "./cronRunLifecycle.js";
 import {
+  dispatchAccountRecipeOccurrence,
+  AccountRecipeAdmissionUncertainError,
+} from "./accountRecipeCronDispatch.js";
+import {
   createRemotePromptAttachmentSessionService,
   createRemotePromptAttachmentTaskService,
   materializeRemotePromptAttachments,
@@ -147,7 +152,7 @@ import {
 } from "./windowRemoteConnectionRegistry.js";
 import { createWindowHostControllerRuntime } from "./windowHostControllerService.js";
 import { resolveAutomationSubmissionModelSelection } from "./automationModelSelection.js";
-import { createRemoteConnectionProgressContext } from "@zcode/server/remote/remoteConnectionProgressContext.js";
+import { createRemoteConnectionProgressContext } from "@social-harness/server/remote/remoteConnectionProgressContext.js";
 import { startHostSelfResourceTelemetry } from "./hostSelfResourceTelemetry.js";
 type RemoteBackendHostConnection = RemoteConnection & {
   backend: IRemoteBackend;
@@ -173,7 +178,7 @@ const hostRemoteMediaRequestLimiter = {
   getState: () => ({ active: activeRemoteMediaRequests, limit: 4 }),
 };
 const remoteMediaRangePreviewEnabled =
-  process.env["ZCODE_REMOTE_MEDIA_RANGE_PREVIEW_ENABLED"] !== "0";
+  process.env["SOCIAL_HARNESS_REMOTE_MEDIA_RANGE_PREVIEW_ENABLED"] !== "0";
 
 type RemoteAssetDirs = Pick<
   ConnectOptions,
@@ -184,7 +189,7 @@ const { parentPort } = process;
 
 // 进程检索体验优化：host 由 utilityProcess 拉起时外壳仍是 Electron Helper，
 // 这里根据 main 传入的窗口 label 补一层稳定的 zcode-* title，方便系统进程列表过滤。
-process.title = formatZCodeHostProcessName(process.env["ZCODE_PROCESS_LABEL"]);
+process.title = formatZCodeHostProcessName(process.env["SOCIAL_HARNESS_PROCESS_LABEL"]);
 
 type HostLogLevel = "info" | "warn" | "error";
 
@@ -199,12 +204,70 @@ interface PendingLocalMediaPreviewPathAuthorization {
   reject: (error: Error) => void;
 }
 
+interface PendingLocalMediaPreviewUrlCreate {
+  resolve: (result: { url: string; expiresAt: number }) => void;
+  reject: (error: Error) => void;
+}
+
+interface PendingInstagramCredentialRequest {
+  resolve: (serializedCredential: string | null) => void;
+  reject: (error: Error) => void;
+}
+
 const pendingFeedbackLogArchiveRequests = new Map<string, PendingFeedbackLogArchiveRequest>();
 let nextFeedbackLogArchiveRequestSeq = 0;
 const pendingLocalMediaPreviewPathAuthorizations = new Map<
   string,
   PendingLocalMediaPreviewPathAuthorization
 >();
+const pendingLocalMediaPreviewUrlCreates = new Map<string, PendingLocalMediaPreviewUrlCreate>();
+const pendingInstagramCredentialRequests = new Map<string, PendingInstagramCredentialRequest>();
+
+function requestInstagramCredential(
+  operation: "get" | "set" | "delete",
+  accountId: string,
+  serializedCredential?: string,
+): Promise<string | null> {
+  if (!parentPort) return Promise.reject(new Error("parentPort unavailable"));
+  const requestId = randomUUID();
+  return new Promise((resolve, reject) => {
+    pendingInstagramCredentialRequests.set(requestId, { resolve, reject });
+    try {
+      parentPort.postMessage({
+        type: HostResponseTypes.InstagramCredentialRequest,
+        requestId,
+        operation,
+        accountId,
+        ...(serializedCredential === undefined ? {} : { serializedCredential }),
+      });
+    } catch {
+      pendingInstagramCredentialRequests.delete(requestId);
+      reject(new Error("OS secure credential request failed"));
+    }
+  });
+}
+
+function parseInstagramCredential(serializedCredential: string) {
+  try {
+    // 原解析器丢弃了媒体 key 与刷新时间，重启后发布会失去凭据；保留完整且严格校验的安全记录。
+    return instagramSecureCredentialSchema.parse(JSON.parse(serializedCredential));
+  } catch {
+    throw new Error("Stored Instagram credential is invalid");
+  }
+}
+
+const instagramCredentialStore = {
+  async load(accountId: string) {
+    const serializedCredential = await requestInstagramCredential("get", accountId);
+    return serializedCredential == null ? null : parseInstagramCredential(serializedCredential);
+  },
+  async store(accountId: string, tokens: { accessToken: string; expiresAt?: number }) {
+    await requestInstagramCredential("set", accountId, JSON.stringify(tokens));
+  },
+  async delete(accountId: string) {
+    await requestInstagramCredential("delete", accountId);
+  },
+};
 
 function authorizeLocalMediaPreviewPath(path: string): Promise<string> {
   if (!parentPort) {
@@ -221,6 +284,24 @@ function authorizeLocalMediaPreviewPath(path: string): Promise<string> {
       });
     } catch (error) {
       pendingLocalMediaPreviewPathAuthorizations.delete(requestId);
+      reject(error instanceof Error ? error : new Error(String(error)));
+    }
+  });
+}
+
+function createLocalMediaPreviewUrl(path: string): Promise<{ url: string; expiresAt: number }> {
+  if (!parentPort) return Promise.reject(new Error("parentPort unavailable"));
+  const requestId = randomUUID();
+  return new Promise((resolve, reject) => {
+    pendingLocalMediaPreviewUrlCreates.set(requestId, { resolve, reject });
+    try {
+      parentPort.postMessage({
+        type: HostResponseTypes.LocalMediaPreviewUrlCreateRequest,
+        requestId,
+        path,
+      });
+    } catch (error) {
+      pendingLocalMediaPreviewUrlCreates.delete(requestId);
       reject(error instanceof Error ? error : new Error(String(error)));
     }
   });
@@ -862,6 +943,17 @@ async function dispatchCronRun(request: CronRunDispatchRequest): Promise<{
   // 长期配置是原意图；首次派发在目标 Host 解析后固定。已有 run 必须直接复用，
   // 不能因账号变化或本次 Registry 读取失败重新解释历史执行选择。
   const existingRun = await cronAutomationRepo.getRun(request.runId);
+  const workspaceKey = resolveWorkspaceKey(request);
+  if (
+    !existingRun ||
+    existingRun.automationId !== request.automationId ||
+    existingRun.workspaceKey !== workspaceKey
+  ) {
+    throw new Error("Automation occurrence is unavailable for this workspace.");
+  }
+  // 传输允许账户配方的空 prompt，但不能把 NULL 快照的旧计划推断成配方并建立空会话。
+  if (!existingRun.recipeSnapshot && !existingRun.recipeSnapshotError && !request.prompt.trim())
+    throw new Error("Prompt automation instructions are empty; no recipe occurrence is available.");
   const resolvedSubmissionModelSelection = await resolveAutomationSubmissionModelSelection({
     selection: request.modelSelection,
     fixedSelection: existingRun?.modelSelection,
@@ -878,8 +970,71 @@ async function dispatchCronRun(request: CronRunDispatchRequest): Promise<{
     request.runId,
     resolvedSubmissionModelSelection,
   );
+  if (existingRun.recipeSnapshot || existingRun.recipeSnapshotError) {
+    const agent = targetServices.getOptional(IZCodeAgentService);
+    if (!agent) throw new Error("Account Agent service is unavailable.");
+    return dispatchAccountRecipeOccurrence({
+      ...request,
+      run: existingRun,
+      repo: cronAutomationRepo,
+      agent,
+      async createParent() {
+        const task = await zcodeTaskService.createTask({
+          workspacePath: request.workspacePath,
+          workspaceIdentity: request.workspaceIdentity,
+          model: formatModelPickerValue(submissionModelSelection),
+          mode: request.mode,
+          thoughtLevel: submissionModelSelection.options?.reasoningLevel,
+          automationId: request.automationId,
+          deferPersistenceUntilFirstPrompt: true,
+        });
+        return task.taskId;
+      },
+      async resumeParent(taskId) {
+        await zcodeTaskService.resumeTask({
+          taskId,
+          workspacePath: request.workspacePath,
+          workspaceIdentity: request.workspaceIdentity,
+          model: formatModelPickerValue(submissionModelSelection),
+          thoughtLevel: submissionModelSelection.options?.reasoningLevel,
+          automationId: request.automationId,
+        });
+        await applyCronRunConfigToExistingTask({
+          zcodeTaskService,
+          taskId,
+          traceId: request.runId as TraceId,
+          modelSelection: submissionModelSelection,
+          mode: request.mode,
+        });
+      },
+      async discardEmptyParent(taskId) {
+        await zcodeTaskService.deleteTask({
+          taskId,
+          workspacePath: request.workspacePath,
+          workspaceIdentity: request.workspaceIdentity,
+        });
+      },
+      registerTracker(tracker, sessionId) {
+        const key = cronRunSubscriptionKey(sessionId, request.runId as TraceId);
+        disposeCronRunSubscription(key);
+        cronRunSubscriptions.set(key, tracker);
+      },
+      onTrackerSettled(tracker, sessionId) {
+        const key = cronRunSubscriptionKey(sessionId, request.runId as TraceId);
+        if (cronRunSubscriptions.get(key) === tracker) cronRunSubscriptions.delete(key);
+      },
+      async setUnread(taskId) {
+        await zcodeTaskService.setTaskUnread({
+          taskId,
+          workspacePath: request.workspacePath,
+          workspaceIdentity: request.workspaceIdentity,
+          unread: true,
+        });
+      },
+      logWarn: (message, error) => logger.warn(message, error),
+    });
+  }
   let trackedKey: string | null = null;
-  const workspaceKey = resolveWorkspaceKey(request);
   const trigger = request.runId.includes(":manual:") ? "manual" : "schedule";
   const scheduledAt = parseCronRunScheduledAt(request.runId, request.automationId);
   try {
@@ -985,6 +1140,8 @@ async function dispatchManualAutomationRun(params: {
       `direct manual automation dispatch failed automation=${params.automation.automationId} runId=${params.run.runId}:`,
       error,
     );
+    // ACK 丢失后引擎仍可能运行；保留原 parent、tracker 和 claim，不能结算成未派发再创建新 occurrence。
+    if (error instanceof AccountRecipeAdmissionUncertainError) throw error;
     await settleManualDispatchFailureBestEffort({
       repo: cronAutomationRepo,
       automationId: params.automation.automationId,
@@ -2336,6 +2493,30 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
     return;
   }
 
+  if (msg.type === HostMessageTypes.LocalMediaPreviewUrlCreateResult) {
+    const pending = pendingLocalMediaPreviewUrlCreates.get(msg.requestId);
+    if (!pending) return;
+    pendingLocalMediaPreviewUrlCreates.delete(msg.requestId);
+    if (msg.ok && msg.url && msg.expiresAt && msg.expiresAt > Date.now()) {
+      pending.resolve({ url: msg.url, expiresAt: msg.expiresAt });
+    } else {
+      pending.reject(new Error("本地媒体预览授权失败"));
+    }
+    return;
+  }
+
+  if (msg.type === HostMessageTypes.InstagramCredentialResult) {
+    const pending = pendingInstagramCredentialRequests.get(msg.requestId);
+    if (!pending) return;
+    pendingInstagramCredentialRequests.delete(msg.requestId);
+    if (msg.ok) {
+      pending.resolve(msg.serializedCredential ?? null);
+    } else {
+      pending.reject(new Error("OS secure credential operation failed"));
+    }
+    return;
+  }
+
   if (msg.type === HostMessageTypes.CronRun) {
     if (databaseStartup?.coordinator.snapshot.phase !== "ready") {
       parentPort.postMessage({
@@ -2366,6 +2547,9 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
           ok: false,
           error: error instanceof Error ? error.message : String(error),
           failureKind: "transient",
+          ...(error instanceof AccountRecipeAdmissionUncertainError
+            ? { admissionUncertain: true }
+            : {}),
         });
       }
     })();
@@ -2809,6 +2993,8 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
               prepareLegacyAccountConnections,
               hostApiNetworkTransport,
               authorizeLocalMediaPreviewPath,
+              createLocalMediaPreviewUrl,
+              instagramCredentialStore,
               runtimeProcessEnvPatch: msg.runtimeProcessEnvPatch,
               agentRuntimeContext: {
                 getDeviceMid: () => msg.deviceMid,
@@ -2913,7 +3099,7 @@ async function setupRemoteConnection(
 ): Promise<HostRemoteConnection> {
   // 延迟加载 remote backend，避免 local 模式下因 ssh2 依赖链进入 asar 后崩溃
   const { createRemoteBackend, connectRemote, pickRemoteRuntimeEnv } =
-    await import("@zcode/server/remote");
+    await import("@social-harness/server/remote");
   const backend = await createRemoteBackend(target);
   const connection = await connectRemote(backend, {
     ...remoteAssets,
@@ -2921,8 +3107,8 @@ async function setupRemoteConnection(
     remoteRuntimeNetwork,
     signal,
     // SSH/Docker 远端 server 由 host process 单独启动，不能依赖桌面 main 的环境继承。
-    // 这里显式透传编译期版本，避免漏导入后生成裸 ZCODE_VERSION 引用导致 SSH 初始化直接 ReferenceError。
-    appVersion: ZCODE_VERSION,
+    // 这里显式透传编译期版本，避免漏导入后生成裸 SOCIAL_HARNESS_VERSION 引用导致 SSH 初始化直接 ReferenceError。
+    appVersion: SOCIAL_HARNESS_VERSION,
     // 远端 zcode-server/agent 是独立进程，不能继承 host 里的测试/生产 endpoint 选择。
     // 这里只透传 server 侧白名单允许的公开环境变量，避免把 credential/token 带到远端机器。
     remoteRuntimeEnv: pickRemoteRuntimeEnv(process.env),

@@ -16,11 +16,24 @@ import type {
 } from "./types.js";
 
 export function defaultLogDir(): string {
-  return join(homedir(), ".zcode", "cli", "log");
+  return join(
+    process.env.SOCIAL_HARNESS_DATA_BASE_DIR?.trim() || homedir(),
+    ".social-harness",
+    "v1",
+    "cli",
+    "log",
+  );
 }
 
 export function defaultDbPath(): string {
-  return join(homedir(), ".zcode", "cli", "db", "db.sqlite");
+  return join(
+    process.env.SOCIAL_HARNESS_DATA_BASE_DIR?.trim() || homedir(),
+    ".social-harness",
+    "v1",
+    "cli",
+    "db",
+    "db.sqlite",
+  );
 }
 
 export async function loadLogs(options: ObservationOptions): Promise<SourceLoadResult<LogRecord>> {

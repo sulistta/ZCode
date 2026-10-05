@@ -10,9 +10,9 @@
 // 表单只在打开时挂载——模型清单的订阅也随之只活在打开期间。
 
 import { useCallback, useMemo, useRef, useState, type RefObject } from "react";
-import { completeNewModelSelection } from "@zcode/provider";
-import { ZCODE_AGENT_PROVIDER } from "@zcode/shared";
-import type { CommandAck, WorkflowRunState } from "@zcode/shared/zcode-protocol-v4";
+import { completeNewModelSelection } from "@social-harness/provider";
+import { SOCIAL_HARNESS_AGENT_PROVIDER } from "@social-harness/shared";
+import type { CommandAck, WorkflowRunState } from "@social-harness/shared/zcode-protocol-v4";
 import { Button } from "@/components/ui/button.js";
 import { Popover, PopoverAnchor, PopoverContent, PopoverTitle } from "@/components/ui/popover.js";
 import { Spinner } from "@/components/ui/spinner.js";
@@ -152,7 +152,7 @@ function WorkflowRunSettingsForm({
     () =>
       view === null
         ? []
-        : buildRegistryModelSelectGroups(ZCODE_AGENT_PROVIDER, view, {
+        : buildRegistryModelSelectGroups(SOCIAL_HARNESS_AGENT_PROVIDER, view, {
             apiKeyLabel: format("settings.modelProvider.apiKey"),
             apiKeyBadgeLabel: format("settings.modelProvider.connectionMode.apiKeyBadge"),
             codingPlanLabel: format("settings.modelProvider.connectionMode.codingPlan"),

@@ -13,7 +13,7 @@ import {
   type AgentInput,
   type AgentOutput,
   type TraceContext,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import { TASK_TOOL_NAME } from "../compat.js";
 import type { ToolEntry, ToolHandler } from "../types.js";
 import { formatAgentProfilesForPrompt, type AgentProfile } from "../../subagent/profile.js";
@@ -85,7 +85,7 @@ const AGENT_TOOL_OUTPUT_SCHEMA = {
  * 动态工作流灰度门也管**工具描述**：
  * 关闭时十个工具不注册，但这条 bullet 仍在 Agent 的 provider 描述里写着「CreateWorkflow
  * 是强制的」，于是模型被指向一个根本不存在的工具，只会白白撞一次 tool_not_found。
- * 缺省 true：TUI、headless 与既有调用方（包括模块加载期烘焙的 AGENT_PROVIDER_DESCRIPTION）
+ * 缺省 true：headless 与既有调用方（包括模块加载期烘焙的 AGENT_PROVIDER_DESCRIPTION）
  * 行为不变，只有显式 false 才抹掉这一行。
  */
 function buildAgentProviderDescription(

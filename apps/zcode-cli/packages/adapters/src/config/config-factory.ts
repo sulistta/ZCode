@@ -9,17 +9,17 @@ import type {
   RuntimeConfig,
   RuntimeConfigPatch,
   WorkspaceHookBundleSnapshot,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import {
   ConfigScope,
   DefaultRuntimeConfig,
   createWorkspaceHookBundleSnapshot,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import {
   buildWorkspaceHookBundleSnapshot,
   resolveWorkspaceHookRuntimeRoot,
   type WorkspaceHookRuntimeRoot,
-} from "@zcode/shared/workspace-hook-discovery";
+} from "@social-harness/shared/workspace-hook-discovery";
 import { createConfigPort } from "./index.js";
 import { loadFileConfig, getDefaultConfigPath, type LoadedConfig } from "./file-config.adapter.js";
 import { parseEnvConfig } from "./env-config.adapter.js";
@@ -34,7 +34,7 @@ import {
 } from "./project-config.adapter.js";
 
 export interface ConfigFactoryOptions {
-  /** Path to user config file (default: ~/.zcode/cli/config.json) */
+  /** Path to user config file (default: ~/.social-harness/v1/cli/config.json) */
   userConfigPath?: string;
   /** Path to project config file */
   projectConfigPath?: string;
@@ -121,9 +121,9 @@ export interface PluginConfigSources {
  *
  * Priority (lowest to highest):
  * 1. System defaults
- * 2. User config file (~/.zcode/cli/config.json)
+ * 2. User config file (~/.social-harness/v1/cli/config.json)
  * 3. Project config files (root to cwd, then explicit projectConfigPath)
- * 4. Environment variables (ZCODE_*)
+ * 4. Environment variables (SOCIAL_HARNESS_*)
  * 5. CLI overrides
  */
 export function createConfig(options: ConfigFactoryOptions = {}): ConfigResult {
@@ -134,8 +134,8 @@ export function createConfig(options: ConfigFactoryOptions = {}): ConfigResult {
 
   // 2. User config file
   const userConfigResult: LoadedConfig = options.skipUserConfig
-    ? { config: {}, diagnostics: [], path: getDefaultConfigPath(), loaded: false }
-    : loadFileConfig(options.userConfigPath);
+    ? { config: {}, diagnostics: [], path: getDefaultConfigPath(options.env), loaded: false }
+    : loadFileConfig(options.userConfigPath, { env: options.env });
 
   if (userConfigResult.loaded) {
     configs.push(

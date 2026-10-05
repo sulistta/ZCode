@@ -4,16 +4,16 @@ import {
   zcodeProtocolMethods,
   zcodeWorkspaceCancelGenerateTextParamsSchema,
   zcodeWorkspaceHookTrustGrantParamsSchema,
-} from "@zcode/shared";
-import type { BrowserControlPort } from "@zcode/contracts";
-import { InMemoryWorkspaceHookPolicyProvider } from "@zcode/core";
+} from "@social-harness/shared";
+import type { BrowserControlPort } from "@social-harness/contracts";
+import { InMemoryWorkspaceHookPolicyProvider } from "@social-harness/core";
 import {
   V4_METHODS,
   V4_NOTIFICATIONS,
   parseConversationTopic,
   parseSessionsIndexTopic,
   parseWorkspaceConfigTopic,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import type {
   ZCodeProtocolError,
   ZCodeProtocolMessage,
@@ -22,7 +22,7 @@ import type {
   ZCodeProtocolRequest,
   ZCodeProtocolRequestId,
   ZCodeProtocolResponse,
-} from "@zcode/shared";
+} from "@social-harness/shared";
 import {
   cancelBackgroundTask,
   closeSession,
@@ -76,6 +76,8 @@ import { getSkillReferenceCatalog } from "./skill-reference-catalog.js";
 import {
   deleteSavedWorkflowOp,
   getSavedWorkflowOp,
+  saveSavedWorkflowOp,
+  validateSavedWorkflowOp,
   listSavedWorkflowRunsOp,
   listSavedWorkflowsOp,
   moveSavedWorkflowOp,
@@ -114,7 +116,7 @@ import {
   type ZCodeProtocolAgentServerContext,
   type ZCodeProtocolSessionRecord,
 } from "./server-types.js";
-import { createInMemorySessionEventStore } from "@zcode/contracts";
+import { createInMemorySessionEventStore } from "@social-harness/contracts";
 
 export type { ZCodeProtocolAgentDependencies, ZCodeProtocolSessionRecord };
 
@@ -655,6 +657,10 @@ export class ZCodeProtocolAgentServer {
         return await listSavedWorkflowsOp(this.context, request.params);
       case zcodeProtocolMethods.workflowsGet:
         return await getSavedWorkflowOp(this.context, request.params);
+      case zcodeProtocolMethods.workflowsSave:
+        return await saveSavedWorkflowOp(this.context, request.params);
+      case zcodeProtocolMethods.workflowsValidate:
+        return await validateSavedWorkflowOp(this.context, request.params);
       case zcodeProtocolMethods.workflowsUpdateMeta:
         return await updateSavedWorkflowMetaOp(this.context, request.params);
       case zcodeProtocolMethods.workflowsDelete:

@@ -1,1 +1,1 @@
-export * from "@zcode/shared/workspaceFileSearch";
+export * from "@social-harness/shared/workspaceFileSearch";

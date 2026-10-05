@@ -1,4 +1,4 @@
-import { type SessionId } from "@zcode/contracts";
+import { type SessionId } from "@social-harness/contracts";
 
 const SESSION_REFERENCE_PATTERN = /#(sess_[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*)/g;
 

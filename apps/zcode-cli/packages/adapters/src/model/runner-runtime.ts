@@ -4,8 +4,8 @@ import type {
   ModelRequestAuth,
   ModelTextRequest,
   TraceContext,
-} from "@zcode/contracts";
-import type { ZCodeProviderAccountAccess } from "@zcode/shared";
+} from "@social-harness/contracts";
+import type { ZCodeProviderAccountAccess } from "@social-harness/shared";
 import type { AiSdkResolvedModel } from "./model-execution.js";
 
 export type AiSdkGenerateTextOptions = Parameters<typeof aiGenerateText>[0];

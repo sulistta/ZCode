@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { CircleHelp, Loader2 } from "lucide-react";
-import { ZCODE_AGENT_PROVIDER, type ZCodeConfigOption } from "@zcode/shared";
+import { SOCIAL_HARNESS_AGENT_PROVIDER, type ZCodeConfigOption } from "@social-harness/shared";
 import { ThoughtLevelCycleControl } from "@/chat-input-toolbar/ThoughtLevelCycleControl.js";
 import type { useZCodeIntl } from "@/i18n/IntlProvider.js";
 
@@ -66,7 +66,7 @@ export function SubagentReasoningField({
     <ThoughtLevelCycleControl
       intl={intl}
       option={state.option}
-      provider={ZCODE_AGENT_PROVIDER}
+      provider={SOCIAL_HARNESS_AGENT_PROVIDER}
       onCurrentValueCommit={onValueCommit}
       showInvalidCurrentValue
       disabled={!interactive}

@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import type { UniqueIdentifier } from "@dnd-kit/core";
-import type { ZCodeTaskMeta } from "@zcode/shared";
+import type { ZCodeTaskMeta } from "@social-harness/shared";
 import { MessageCirclePlus } from "lucide-react";
 import { cn } from "@/components/lib/utils.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
@@ -58,7 +58,6 @@ function GroupedTaskItemComponent({
   workspaceLabel,
   onSelectTask,
   onCloseTask,
-  onOpenFileTree,
   onMoveTaskToGroup,
   onMoveTaskToTop,
   onStartRenameTask,
@@ -79,7 +78,6 @@ function GroupedTaskItemComponent({
   workspaceLabel: string;
   onSelectTask: (workspacePath: string, taskId: string, workspaceIdentity?: string) => void;
   onCloseTask: (task: ZCodeTaskMeta) => void;
-  onOpenFileTree?: (task: ZCodeTaskMeta) => void;
   onMoveTaskToGroup: (task: ZCodeTaskMeta, groupId: string | null) => void;
   onMoveTaskToTop: (task: ZCodeTaskMeta) => void;
   onStartRenameTask: (task: ZCodeTaskMeta) => void;
@@ -103,7 +101,6 @@ function GroupedTaskItemComponent({
         workspaceLabel={workspaceLabel}
         onSelectTask={onSelectTask}
         onCloseTask={onCloseTask}
-        onOpenFileTree={onOpenFileTree}
         onMoveTaskToGroup={onMoveTaskToGroup}
         onMoveTaskToTop={onMoveTaskToTop}
         onStartRenameTask={onStartRenameTask}

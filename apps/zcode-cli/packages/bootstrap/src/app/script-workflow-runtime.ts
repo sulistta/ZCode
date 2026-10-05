@@ -10,7 +10,7 @@ import {
   type SessionId,
   type TraceContext,
   type WorkflowAgentCallInput,
-} from "@zcode/contracts";
+} from "@social-harness/contracts";
 import type { PrepareUserExecutionBoundary } from "./types.js";
 import { readWorkflowScriptDocument, stableHash } from "./script-workflow-meta.js";
 import { prepareScriptWorkflowRun } from "./script-workflow-prepare.js";

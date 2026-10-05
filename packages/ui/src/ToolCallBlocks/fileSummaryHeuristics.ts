@@ -1,4 +1,4 @@
-import { computeLineChangeStat } from "@zcode/shared";
+import { computeLineChangeStat } from "@social-harness/shared";
 import { resolveFileDisplayDescriptor } from "@/lib/fileDisplay.js";
 import { getPathLeaf } from "@/lib/path.js";
 import { buildUnifiedDiff } from "@/lib/toolDiffPreview.js";

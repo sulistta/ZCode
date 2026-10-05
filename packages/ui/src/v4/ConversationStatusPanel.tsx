@@ -1,5 +1,4 @@
 /* oxlint-disable eslint(max-lines) -- 状态面板同时维护收起态摘要、展开态分区、菜单策略和宽度自适应，同文件能保证两种形态共享同一内容优先级。 */
-import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
 import {
   forwardRef,
   memo,
@@ -24,7 +23,6 @@ import {
   CircleCheckBigIcon,
   CircleIcon,
   EllipsisIcon,
-  FileDiffIcon,
   GoalIcon,
   ListChecksIcon,
   Maximize2Icon,
@@ -40,20 +38,15 @@ import {
   TID_V4_BACKGROUND_WORK_CANCEL,
   TID_V4_BACKGROUND_WORK_ITEM,
   testId,
-} from "@zcode/shared";
-import type {
-  GitChangeSourceId,
-  GitRepositorySummary,
-  ZCodeSessionRunningSubagent,
-  ZCodeTaskChangeSummary,
-} from "@zcode/shared";
+} from "@social-harness/shared";
+import type { ZCodeSessionRunningSubagent } from "@social-harness/shared";
 import type {
   BackgroundWorkSummary,
   GoalState,
   PlanState,
   ToolCallRow,
   WorkflowRunState,
-} from "@zcode/shared/zcode-protocol-v4";
+} from "@social-harness/shared/zcode-protocol-v4";
 import { cn } from "@/components/lib/utils.js";
 import { Button } from "@/components/ui/button.js";
 import {
@@ -76,8 +69,6 @@ import {
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { formatBackgroundTaskElapsedLabel } from "@/BackgroundTaskElapsedLabel.js";
-import { GitActionMenu } from "@/GitActionMenu.js";
-import { GitBranchSwitcher } from "@/GitBranchSwitcher.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import type {
   OpenPlanDetailSideTabRequest,
@@ -103,12 +94,6 @@ import {
 
 interface ConversationStatusPanelProps {
   workspacePath: string;
-  workspaceIdentity?: string;
-  gitSummary?: GitRepositorySummary | null;
-  gitDirtyFileCount?: number;
-  gitWorktreeReviewSourceId?: GitChangeSourceId | null;
-  gitWorktreeChangeSummary?: { added: number; removed: number } | null;
-  activeTaskChangeSummary?: ZCodeTaskChangeSummary | null;
   goal?: GoalState | null;
   sessionPlans?: readonly ToolCallRow[];
   plan?: PlanState | null;
@@ -137,8 +122,6 @@ interface ConversationStatusPanelProps {
   onAgentSectionOpenChange?: (open: boolean) => void;
   workflowSectionOpen?: boolean;
   onWorkflowSectionOpenChange?: (open: boolean) => void;
-  onRefreshGit?: () => void;
-  onOpenGitReview?: (sourceId?: GitChangeSourceId) => void;
   onPauseGoal?: () => void;
   onResumeGoal?: () => void;
   onOpenPlanDetail?: (request: OpenPlanDetailSideTabRequest) => void;
@@ -351,106 +334,6 @@ function StatusSection({
         </CollapsibleContent>
       </section>
     </Collapsible>
-  );
-}
-
-function GitStatusSection({
-  activeTaskChangeSummary,
-  gitSummary,
-  gitWorktreeReviewSourceId,
-  model,
-  onOpenGitReview,
-  onRefreshGit,
-  separated,
-  workspaceIdentity,
-  workspacePath,
-  useVerticalFloatingPanels,
-}: {
-  activeTaskChangeSummary?: ZCodeTaskChangeSummary | null;
-  gitSummary: GitRepositorySummary | null | undefined;
-  gitWorktreeReviewSourceId?: GitChangeSourceId | null;
-  model: ConversationStatusPanelModel;
-  onOpenGitReview?: (sourceId?: GitChangeSourceId) => void;
-  onRefreshGit?: () => void;
-  separated: boolean;
-  workspaceIdentity?: string;
-  workspacePath: string;
-  useVerticalFloatingPanels: boolean;
-}) {
-  const { intl } = useZCodeIntl();
-  const git = model.git;
-  if (!git || !gitSummary || !onRefreshGit) {
-    return null;
-  }
-  const hasChanges = git.added + git.removed > 0;
-  const canOpenReview = Boolean(onOpenGitReview && gitSummary.isRepository);
-
-  return (
-    <StatusSection
-      section="environment"
-      separated={separated}
-      title={intl.formatMessage({ id: "chat.statusPanel.environment" })}
-      trailing={(isOpen) =>
-        isOpen ? null : (
-          <span className="shrink-0 font-mono text-ui-sm tabular-nums">
-            <span className={cn("text-[var(--color-diff-added)]", !hasChanges && "opacity-50")}>
-              +{git.added}
-            </span>{" "}
-            <span className={cn("text-[var(--color-diff-removed)]", !hasChanges && "opacity-50")}>
-              -{git.removed}
-            </span>
-          </span>
-        )
-      }
-    >
-      <div className="space-y-0">
-        {/* V4 状态面板迁移时只保留了 Changes 的静态展示，
-            没有继续透传旧版 Git review 回调，导致规范中的审阅入口不可点击。 */}
-        <button
-          type="button"
-          disabled={!canOpenReview}
-          className={cn(
-            "flex h-8 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-left text-ui-base text-[var(--color-foreground)] transition-colors",
-            canOpenReview
-              ? "hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-input-border-focused)]"
-              : "cursor-default opacity-50",
-          )}
-          onClick={() => {
-            onOpenGitReview?.(gitWorktreeReviewSourceId ?? undefined);
-          }}
-        >
-          <FileDiffIcon className="size-4 shrink-0 text-[var(--color-foreground)]" />
-          <span className="min-w-0 flex-1 truncate">
-            {intl.formatMessage({ id: "chat.statusPanel.changes" })}
-          </span>
-          <span className="shrink-0 font-mono tabular-nums">
-            <span className="text-[var(--color-diff-added)]">+{git.added}</span>{" "}
-            <span className="text-[var(--color-diff-removed)]">-{git.removed}</span>
-          </span>
-        </button>
-        <GitBranchSwitcher
-          workspacePath={workspacePath}
-          gitSummary={gitSummary}
-          dirtyFileCount={git.dirtyFileCount}
-          onRefreshGit={onRefreshGit}
-          className="w-full px-0 pt-0"
-          triggerClassName="flex h-8 w-full min-w-0 justify-start gap-2 rounded-lg px-2 text-left text-ui-base text-[var(--color-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)] [&>span]:max-w-[calc(100%-3.5rem)] [&_svg:first-child]:text-[var(--color-foreground)]"
-          popoverClassName="w-72 max-w-[calc(100vw-2rem)]"
-          branchListClassName="max-h-56"
-          popoverSide={useVerticalFloatingPanels ? "bottom" : "left"}
-          showFooterActions
-        />
-        <GitActionMenu
-          workspacePath={workspacePath}
-          workspaceIdentity={workspaceIdentity}
-          gitSummary={gitSummary}
-          activeTaskChangeSummary={activeTaskChangeSummary ?? null}
-          onRefreshGit={onRefreshGit}
-          triggerLayout="status-row"
-          className="w-full"
-        />
-      </div>
-    </StatusSection>
   );
 }
 
@@ -1559,13 +1442,11 @@ function getCompletedPlanItem(plan: ConversationStatusPanelModel["plan"]) {
 
 function StatusSummaryRow({
   endedWorkflowRunCount,
-  gitWorktreeChangeSummary,
   model,
   onVariantChange,
 }: {
   /** 已结束 run 的目录计数；宿主给 0 表示目录入口不可渲染（缺会话或缺回调）。 */
   endedWorkflowRunCount: number;
-  gitWorktreeChangeSummary?: { added: number; removed: number } | null;
   model: ConversationStatusPanelModel;
   onVariantChange?: (variant: ChatViewSummaryPanelVariant | null) => void;
 }) {
@@ -1585,9 +1466,6 @@ function StatusSummaryRow({
     goalStatus === "paused" ||
     goalStatus === "verifying";
   const isDoneGoal = goalStatus === "verified";
-  const added = gitWorktreeChangeSummary?.added ?? 0;
-  const removed = gitWorktreeChangeSummary?.removed ?? 0;
-  const hasGitMiniSummary = Boolean(model.git && added + removed > 0);
 
   // 胶囊摘要过去把所有后台任务都写死成 Activity，纯 Subagent 因而没有复用
   // Running 明细的 Bot 语义。规则现在是三类的：**恰好一类**沿用该类图标，混合才是 Activity
@@ -1620,14 +1498,6 @@ function StatusSummaryRow({
     <StatusSummaryMetric icon={<GoalIcon className="size-4 text-[var(--color-foreground)]" />}>
       <span className="min-w-0 truncate">{goalTitle}</span>
     </StatusSummaryMetric>
-  ) : hasGitMiniSummary ? (
-    <StatusSummaryMetric icon={<FileDiffIcon className="size-4 text-[var(--color-foreground)]" />}>
-      <span className="min-w-0 truncate">
-        {intl.formatMessage({ id: "chat.statusPanel.changes" })}
-      </span>
-      <span className="shrink-0 text-[var(--color-diff-added)]">+{added}</span>
-      <span className="shrink-0 text-[var(--color-diff-removed)]">-{removed}</span>
-    </StatusSummaryMetric>
   ) : goalTitle && isDoneGoal ? (
     <StatusSummaryMetric icon={<GoalIcon className="size-4 text-[var(--color-foreground)]" />}>
       <span className="min-w-0 truncate">{goalTitle}</span>
@@ -1659,7 +1529,7 @@ function StatusSummaryRow({
     <StatusSummaryMetric
       icon={<RunningSummaryIcon className="size-4 text-[var(--color-foreground)]" />}
     >
-      {/* 产品规则：实时活动只能在没有 Goal/Todo/Git 等主状态时兜底，
+      {/* 产品规则：实时活动只能在没有 Goal/Todo 等主状态时兜底，
           避免胶囊把主状态和输入框已展示的实时计数重复拼接。 */}
       <span className="shrink-0">
         {hasRunningSubagent
@@ -1670,7 +1540,7 @@ function StatusSummaryRow({
   ) : endedWorkflowRunCount > 0 ? (
     // 胶囊的兜底链止步于「活动计数」，而面板级的卸载闸门（!hasContent &&
     // !canRenderEndedWorkflows）为了保住 run 目录入口，会在**只剩已结束 run**时仍保留
-    // 整个壳——工作区无 Git 变更时 workflow 一结束，胶囊各分支全 null，只剩一条 2px
+    // 整个壳，胶囊各分支全 null 时只剩一条 2px
     // 空壳线（与 goal notSatisfied 那次是同一个失效形状）。这里补上最低优先级的终态
     // 分支：图标沿用 Workflow 域，文案与 Workflows 分区页脚同 key，点开即展开面板。
     <StatusSummaryMetric
@@ -1705,12 +1575,6 @@ function StatusSummaryRow({
 
 function ConversationStatusPanelImpl({
   workspacePath,
-  workspaceIdentity,
-  gitSummary,
-  gitDirtyFileCount = 0,
-  gitWorktreeReviewSourceId,
-  gitWorktreeChangeSummary,
-  activeTaskChangeSummary,
   goal,
   sessionPlans,
   plan,
@@ -1731,8 +1595,6 @@ function ConversationStatusPanelImpl({
   onAgentSectionOpenChange,
   workflowSectionOpen,
   onWorkflowSectionOpenChange,
-  onRefreshGit,
-  onOpenGitReview,
   onPauseGoal,
   onResumeGoal,
   onOpenPlanDetail,
@@ -1744,16 +1606,11 @@ function ConversationStatusPanelImpl({
   onOpenWorkflowRunDirectory,
   className,
 }: ConversationStatusPanelProps) {
-  const isOfficeMode = useIsOfficeMode();
   const miniMeasureRef = useRef<HTMLDivElement | null>(null);
   const [miniWidth, setMiniWidth] = useState(320);
   const model = useMemo(
     () =>
       buildConversationStatusPanelModel({
-        isOfficeMode,
-        gitSummary,
-        gitDirtyFileCount,
-        gitWorktreeChangeSummary,
         goal,
         sessionPlans,
         workspacePath,
@@ -1762,25 +1619,12 @@ function ConversationStatusPanelImpl({
         runningSubagents,
         workflowRuns,
       }),
-    [
-      isOfficeMode,
-      backgroundWorks,
-      gitDirtyFileCount,
-      gitSummary,
-      gitWorktreeChangeSummary,
-      goal,
-      sessionPlans,
-      plan,
-      runningSubagents,
-      workflowRuns,
-      workspacePath,
-    ],
+    [backgroundWorks, goal, sessionPlans, plan, runningSubagents, workflowRuns, workspacePath],
   );
   const variant = resolveConversationStatusPanelVariant({
     variantOverride: summaryPanelVariantOverride ?? null,
   });
   const isVariantAutomatic = summaryPanelVariantOverride == null;
-  const useVerticalFloatingPanels = false;
   const panelModeValue = isVariantAutomatic ? "auto" : variant;
   const { intl } = useZCodeIntl();
   const panelMenuLabel = intl.formatMessage({
@@ -1793,7 +1637,6 @@ function ConversationStatusPanelImpl({
       }) as CSSProperties,
     [miniWidth],
   );
-  const canRenderGit = Boolean(model.git && gitSummary && onRefreshGit);
   const canRenderGoal = Boolean(model.goal);
   const canRenderSessionPlans = Boolean(model.sessionPlans);
   const canRenderPlan = Boolean(model.plan);
@@ -1963,24 +1806,10 @@ function ConversationStatusPanelImpl({
               variant === "auto" ? "hidden @min-[1280px]/conversation:flex" : "flex",
             )}
           >
-            {canRenderGit ? (
-              <GitStatusSection
-                model={model}
-                gitSummary={gitSummary}
-                gitWorktreeReviewSourceId={gitWorktreeReviewSourceId}
-                workspacePath={workspacePath}
-                workspaceIdentity={workspaceIdentity}
-                activeTaskChangeSummary={activeTaskChangeSummary}
-                onRefreshGit={onRefreshGit}
-                onOpenGitReview={onOpenGitReview}
-                separated={false}
-                useVerticalFloatingPanels={useVerticalFloatingPanels}
-              />
-            ) : null}
             {canRenderGoal ? (
               <GoalStatusSection
                 model={model}
-                separated={canRenderGit}
+                separated={false}
                 onPauseGoal={onPauseGoal}
                 onResumeGoal={onResumeGoal}
               />
@@ -1990,14 +1819,14 @@ function ConversationStatusPanelImpl({
                 model={model}
                 parentSessionId={parentSessionId}
                 onOpenPlanDetail={onOpenPlanDetail}
-                separated={canRenderGit || canRenderGoal}
+                separated={canRenderGoal}
               />
             ) : null}
             {canRenderPlan ? (
               <PlanStatusSection
                 model={model}
-                popoverSide={useVerticalFloatingPanels ? "bottom" : "left"}
-                separated={canRenderGit || canRenderGoal || canRenderSessionPlans}
+                popoverSide="left"
+                separated={canRenderGoal || canRenderSessionPlans}
               />
             ) : null}
             {canRenderTerminals ? (
@@ -2008,7 +1837,7 @@ function ConversationStatusPanelImpl({
                 works={model.runningBashWorks}
                 open={terminalSectionOpen}
                 onOpenChange={onTerminalSectionOpenChange}
-                separated={canRenderGit || canRenderGoal || canRenderSessionPlans || canRenderPlan}
+                separated={canRenderGoal || canRenderSessionPlans || canRenderPlan}
                 onCancelBackgroundWork={onCancelBackgroundWork}
               />
             ) : null}
@@ -2020,11 +1849,7 @@ function ConversationStatusPanelImpl({
                 open={workflowSectionOpen}
                 onOpenChange={onWorkflowSectionOpenChange}
                 separated={
-                  canRenderGit ||
-                  canRenderGoal ||
-                  canRenderSessionPlans ||
-                  canRenderPlan ||
-                  canRenderTerminals
+                  canRenderGoal || canRenderSessionPlans || canRenderPlan || canRenderTerminals
                 }
                 parentSessionId={parentSessionId}
                 onCancelBackgroundWork={onCancelBackgroundWork}
@@ -2041,7 +1866,6 @@ function ConversationStatusPanelImpl({
                 open={agentSectionOpen}
                 onOpenChange={onAgentSectionOpenChange}
                 separated={
-                  canRenderGit ||
                   canRenderGoal ||
                   canRenderSessionPlans ||
                   canRenderPlan ||
@@ -2073,7 +1897,6 @@ function ConversationStatusPanelImpl({
             // 与页脚同一道门（canRenderEndedWorkflows）：缺会话或缺回调时目录打不开，
             // 胶囊也就不该报一个点了没反应的数。
             endedWorkflowRunCount={canRenderEndedWorkflows ? endedWorkflowRunCount : 0}
-            gitWorktreeChangeSummary={gitWorktreeChangeSummary}
             onVariantChange={onVariantChange}
           />
         </div>

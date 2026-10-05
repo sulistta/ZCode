@@ -29,10 +29,11 @@ async function releaseManualClaimForSettledRun(params: ManualClaimReleaseParams)
 }
 
 export async function settleManualClaimForDispatchResult(
-  params: ManualClaimReleaseParams & { ok: boolean },
+  params: ManualClaimReleaseParams & { ok: boolean; admissionUncertain?: true },
 ): Promise<void> {
   // host ok 只表示 prompt accepted/queued，真实终态由 host subscription
   // 收口；scheduler 仅在派发失败、没有可等待 turn 时释放 manual claim。
-  if (params.ok) return;
+  // recipe 的 ACK 丢失不能证明未 admission；真实引擎终态仍由 Host 订阅结算。
+  if (params.ok || params.admissionUncertain) return;
   await releaseManualClaimForSettledRun(params);
 }

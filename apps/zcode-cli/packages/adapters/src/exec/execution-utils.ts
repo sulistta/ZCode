@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { ExecutionRequest } from "@zcode/contracts";
+import type { ExecutionRequest } from "@social-harness/contracts";
 
 export const DEFAULT_TIMEOUT_MS = 300_000;
 const MS_PER_SECOND = 1_000;
@@ -16,7 +16,8 @@ export const DEFAULT_PROGRESS_INTERVAL_MS = 1_000;
 export const DEFAULT_PROGRESS_TAIL_BYTES = 4 * 1024;
 
 export function resolveDefaultOutputRootDir(processEnv: NodeJS.ProcessEnv = process.env): string {
-  const storageRoot = processEnv.ZCODE_STORAGE_DIR?.trim() || join(homedir(), ".zcode");
+  const dataBaseDir = processEnv.SOCIAL_HARNESS_DATA_BASE_DIR?.trim() || homedir();
+  const storageRoot = join(dataBaseDir, ".social-harness", "v1");
   return join(storageRoot, "cli", "exec");
 }
 

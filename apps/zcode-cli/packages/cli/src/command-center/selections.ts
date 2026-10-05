@@ -1,4 +1,4 @@
-import type { TuiSelection, TuiSelectionItem } from "@zcode/tui";
+import type { CommandCenterSelection, CommandCenterSelectionItem } from "./contracts.js";
 import type {
   CommandCenterCheckpoint,
   CommandCenterSession,
@@ -8,7 +8,7 @@ import { formatTime, shortId, shortText } from "./utils.js";
 
 const COMPOSER_SELECTION_PLACEMENT = "composer";
 
-export function buildSessionSelection(sessions: CommandCenterSession[]): TuiSelection {
+export function buildSessionSelection(sessions: CommandCenterSession[]): CommandCenterSelection {
   return {
     emptyMessage: "No saved sessions found for this directory.",
     help: "Type to filter, Up/Down choose, Enter resumes, Esc cancels",
@@ -19,7 +19,7 @@ export function buildSessionSelection(sessions: CommandCenterSession[]): TuiSele
   };
 }
 
-function sessionToSelectionItem(session: CommandCenterSession): TuiSelectionItem {
+function sessionToSelectionItem(session: CommandCenterSession): CommandCenterSelectionItem {
   const forkMeta = session.parentId ? `fork of ${shortId(session.parentId)}` : "root";
   return {
     command: `/resume ${session.id}`,
@@ -34,7 +34,7 @@ function sessionToSelectionItem(session: CommandCenterSession): TuiSelectionItem
 export function buildCheckpointSelection(
   action: "fork" | "rewind",
   checkpoints: CommandCenterCheckpoint[],
-): TuiSelection {
+): CommandCenterSelection {
   const verb = action === "fork" ? "fork from" : "rewind to";
   return {
     emptyMessage: "No workspace checkpoints are available yet.",
@@ -49,7 +49,7 @@ export function buildCheckpointSelection(
 function checkpointToSelectionItem(
   action: "fork" | "rewind",
   checkpoint: CommandCenterCheckpoint,
-): TuiSelectionItem {
+): CommandCenterSelectionItem {
   const fileCount =
     checkpoint.fileCount === undefined
       ? "unknown files"
@@ -76,7 +76,7 @@ function checkpointToSelectionItem(
 export function buildTargetReplaceSelection(
   existing: CommandCenterTarget,
   objective: string,
-): TuiSelection {
+): CommandCenterSelection {
   return {
     emptyMessage: "No goal replacement actions are available.",
     help: "Enter replaces the current goal, Esc cancels",
