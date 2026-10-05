@@ -15,41 +15,8 @@ import {
 
 export { createSocialProjectCandidateHandoffScenarios };
 import { planSocialProductionResponse } from "./socialHarnessAgentProductionE2E.mjs";
-
-function parseToolContent(content) {
-  if (typeof content === "string") {
-    try {
-      return JSON.parse(content);
-    } catch {
-      return content;
-    }
-  }
-  if (Array.isArray(content)) {
-    const text = content.find((item) => item && typeof item.text === "string")?.text;
-    return text === undefined ? content : parseToolContent(text);
-  }
-  if (content && typeof content === "object" && typeof content.text === "string") {
-    return parseToolContent(content.text);
-  }
-  return content;
-}
-
-function collectToolResults(messages) {
-  const toolNamesById = new Map();
-  for (const message of messages ?? []) {
-    for (const toolCall of message.tool_calls ?? []) {
-      if (toolCall.id && toolCall.function?.name) {
-        toolNamesById.set(toolCall.id, toolCall.function.name);
-      }
-    }
-  }
-  return (messages ?? [])
-    .filter((message) => message.role === "tool")
-    .map((message) => ({
-      name: message.name ?? toolNamesById.get(message.tool_call_id),
-      content: parseToolContent(message.content),
-    }));
-}
+import { planLocalCompactResponse } from "./socialHarnessLocalModelCompactE2E.mjs";
+import { collectToolResults } from "./socialHarnessToolResultsE2E.mjs";
 
 function planProjectEditResponse(body, projectEdit, projectEditToolCalls) {
   const messages = body.messages ?? [];
@@ -240,7 +207,10 @@ export async function startLocalOpenAiMock(options = {}) {
         const projectEdit = projectEdits.find((candidate) =>
           serializedMarkedMessage.includes(candidate.marker),
         );
-        if (clipPreparation && serializedMarkedMessage.includes(clipPreparation.marker)) {
+        const compactAnswer = planLocalCompactResponse(body);
+        if (compactAnswer) {
+          answer = compactAnswer;
+        } else if (clipPreparation && serializedMarkedMessage.includes(clipPreparation.marker)) {
           answer = planSocialProductionResponse(body, clipPreparation, clipPreparationToolCalls);
         } else if (production && serializedMarkedMessage.includes(production.marker)) {
           answer = planSocialProductionResponse(body, production, productionToolCalls);

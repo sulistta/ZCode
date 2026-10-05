@@ -44,6 +44,8 @@ import {
   zcodeSkillsReferenceCatalogResultSchema,
   zcodeWorkflowsDeleteResultSchema,
   zcodeWorkflowsGetResultSchema,
+  zcodeWorkflowsSaveResultSchema,
+  zcodeWorkflowsValidateResultSchema,
   zcodeWorkflowsListResultSchema,
   zcodeWorkflowsMoveResultSchema,
   zcodeWorkflowsRunsResultSchema,
@@ -188,6 +190,8 @@ import type {
   ZCodeAgentSkillReferenceCatalogParams,
   ZCodeAgentDeleteSavedWorkflowParams,
   ZCodeAgentGetSavedWorkflowParams,
+  ZCodeAgentSaveSavedWorkflowParams,
+  ZCodeAgentValidateSavedWorkflowParams,
   ZCodeAgentListSavedWorkflowRunsParams,
   ZCodeAgentListSavedWorkflowsParams,
   ZCodeAgentMoveSavedWorkflowParams,
@@ -4051,6 +4055,30 @@ export function createZCodeAgentService(
         zcodeProtocolMethods.workflowsUpdateMeta,
         { workspace, name: params.name, meta: params.meta, ...savedWorkflowScopeParam(params) },
         zcodeWorkflowsUpdateMetaResultSchema,
+      );
+    },
+
+    async saveSavedWorkflow(params: ZCodeAgentSaveSavedWorkflowParams) {
+      const { client, workspace } = await resolveSavedWorkflowCarrier(params);
+      return client.request(
+        zcodeProtocolMethods.workflowsSave,
+        {
+          workspace,
+          name: params.name,
+          meta: params.meta,
+          script: params.script,
+          ...savedWorkflowScopeParam(params),
+        },
+        zcodeWorkflowsSaveResultSchema,
+      );
+    },
+
+    async validateSavedWorkflow(params: ZCodeAgentValidateSavedWorkflowParams) {
+      const { client, workspace } = await resolveSavedWorkflowCarrier(params);
+      return client.request(
+        zcodeProtocolMethods.workflowsValidate,
+        { workspace, approvedSnapshot: params.approvedSnapshot },
+        zcodeWorkflowsValidateResultSchema,
       );
     },
 

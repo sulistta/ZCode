@@ -7,7 +7,7 @@
 // 全局作用域：五个方法的 params 收可选 `scope`（缺省
 // `project`）。`global` 时改按本机 Social Harness 全局根操作，`workspace` 只是**载体**——
 // 处理器对全局档不读它的路径。`workflows/move` 把全局档搬回 `workspace` 项目（只此一向）。
-import { SavedWorkflowMetaSchema } from "@social-harness/contracts";
+import { SavedWorkflowMetaSchema, isValidSavedWorkflowName } from "@social-harness/contracts";
 import {
   listSavedWorkflows,
   deleteSavedWorkflow,
@@ -15,12 +15,18 @@ import {
   moveSavedWorkflow,
   resolveSavedWorkflow,
   savedWorkflowRoot,
+  saveSavedWorkflow,
+  analyzeScript,
+  resolveSavedWorkflowLaunch,
   type SavedWorkflowResolveFailure,
 } from "@social-harness/core";
 import {
   SOCIAL_HARNESS_WORKFLOWS_RUNS_MAX_LIMIT,
   zcodeWorkflowsDeleteParamsSchema,
   zcodeWorkflowsGetParamsSchema,
+  zcodeWorkflowsSaveParamsSchema,
+  zcodeWorkflowsValidateParamsSchema,
+  zcodeWorkflowsValidateResultSchema,
   zcodeWorkflowsListParamsSchema,
   zcodeWorkflowsMoveParamsSchema,
   zcodeWorkflowsRunsParamsSchema,
@@ -29,6 +35,8 @@ import {
   type ZCodeSavedWorkflowScope,
   type ZCodeWorkflowsDeleteResult,
   type ZCodeWorkflowsGetResult,
+  type ZCodeWorkflowsSaveResult,
+  type ZCodeWorkflowsValidateResult,
   type ZCodeWorkflowsListResult,
   type ZCodeWorkflowsMoveResult,
   type ZCodeWorkflowsRunsResult,
@@ -100,6 +108,58 @@ export async function getSavedWorkflowOp(
     meta: resolved.meta,
     script: resolved.script,
   };
+}
+
+const COMPILE_DIAGNOSTICS_MAX_CHARS = 8_192;
+
+/** 调度保存前与真实启动共用编译和实参校验；不创建会话、草稿或运行。 */
+export async function validateSavedWorkflowOp(
+  _context: ZCodeProtocolAgentServerContext,
+  rawParams: unknown,
+): Promise<ZCodeWorkflowsValidateResult> {
+  const params = parseParams(zcodeWorkflowsValidateParamsSchema, rawParams);
+  const snapshot = params.approvedSnapshot;
+  const resolved = await resolveSavedWorkflowLaunch({
+    cwd: params.workspace.workspacePath,
+    workspaceIdentity: params.workspace.workspaceIdentity,
+    name: snapshot.name,
+    scope: "project",
+    approvedSnapshot: snapshot,
+  });
+  if (!resolved.ok) return resolved;
+  return zcodeWorkflowsValidateResultSchema.parse({
+    ok: true,
+    approvedSnapshot: { ...snapshot, args: resolved.args },
+  });
+}
+
+/** GUI 的显式保存复用工具编译器和原子 store；不得另外解析或直接写 recipe 文件。 */
+export async function saveSavedWorkflowOp(
+  _context: ZCodeProtocolAgentServerContext,
+  rawParams: unknown,
+): Promise<ZCodeWorkflowsSaveResult> {
+  const params = parseParams(zcodeWorkflowsSaveParamsSchema, rawParams);
+  const scope = scopeOf(params);
+  if (!isValidSavedWorkflowName(params.name)) {
+    return { ok: false, reason: "invalid_name", detail: "Invalid saved recipe name." };
+  }
+  const analysis = analyzeScript(params.script);
+  if (!analysis.ok || analysis.diagnostics.length > 0) {
+    const detail = analysis.diagnostics
+      .map((diagnostic) => `L${diagnostic.line}:C${diagnostic.column} ${diagnostic.message}`)
+      .join("\n")
+      .slice(0, COMPILE_DIAGNOSTICS_MAX_CHARS);
+    return { ok: false, reason: "compile_failed", detail };
+  }
+  const saved = await saveSavedWorkflow({
+    cwd: params.workspace.workspacePath,
+    workspaceIdentity: params.workspace.workspaceIdentity,
+    scope,
+    name: params.name,
+    meta: SavedWorkflowMetaSchema.parse(params.meta),
+    script: params.script,
+  });
+  return { ok: true, ...saved };
 }
 
 /**

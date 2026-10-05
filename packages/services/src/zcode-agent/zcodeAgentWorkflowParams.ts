@@ -1,4 +1,8 @@
-import type { ZCodeSavedWorkflowMeta, ZCodeSavedWorkflowScope } from "@social-harness/shared";
+import type {
+  ApprovedWorkflowSnapshot,
+  ZCodeSavedWorkflowMeta,
+  ZCodeSavedWorkflowScope,
+} from "@social-harness/shared";
 import type { ZCodeAgentWorkspaceTarget } from "./zcodeAgentPluginParams.js";
 
 // 已保存工作流的 GUI 中枢：五个 workspace 级、无会话的方法。
@@ -23,6 +27,16 @@ export type ZCodeAgentGetSavedWorkflowParams = ZCodeAgentSavedWorkflowTarget & {
 export type ZCodeAgentUpdateSavedWorkflowMetaParams = ZCodeAgentSavedWorkflowTarget & {
   name: string;
   meta: ZCodeSavedWorkflowMeta;
+};
+
+export type ZCodeAgentSaveSavedWorkflowParams = ZCodeAgentSavedWorkflowTarget & {
+  name: string;
+  meta: ZCodeSavedWorkflowMeta;
+  script: string;
+};
+
+export type ZCodeAgentValidateSavedWorkflowParams = ZCodeAgentWorkspaceTarget & {
+  approvedSnapshot: ApprovedWorkflowSnapshot;
 };
 
 export type ZCodeAgentDeleteSavedWorkflowParams = ZCodeAgentSavedWorkflowTarget & {

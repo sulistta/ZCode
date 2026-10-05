@@ -52,6 +52,8 @@ export interface RunRegistryEntry {
   cwd: string;
   name?: string;
   scriptText: string;
+  /** 可信 admission 的实参字节快照；只覆盖 registry 到 journal 的间隙，避免调用方对象变更。 */
+  admissionArgsJson?: string;
   /**
    * 本 run 实际生效的并发上界（`dwf_run.caps_max_concurrency` 的内存副本，同一条间隙论证）。
    * submit / amend 落值，**resume 不落**——那条路沿用 journal 记录里的 caps，而它的行早就在了。

@@ -675,7 +675,79 @@ nodes:
         symbol: resolveBuiltInToolAllowlist
     invariants:
       - "The Host derives account scope from the trusted session workspace identity; model parameters never supply account IDs, paths, or credentials."
-      - "Social account runtimes expose only account-scoped Social Harness tools and do not register generic programming or external MCP tools."
+      - "Social account parents expose account Social Harness tools and seven restricted saved-workflow controls; actors retain social tools and safe engine controls. Neither registers generic programming or external MCP tools."
+  - id: capability.social-account-recipes
+    kind: capability
+    label: Account-owned saved script recipes and reviewed manual execution
+    aliases:
+      - account recipes
+      - saved workflow scripts
+      - receitas por conta
+    codeSeeds:
+      - file: packages/ui/src/social-accounts/SocialAccountRecipesPanel.tsx
+        symbol: SocialAccountRecipesPanel
+      - file: packages/ui/src/hooks/useSocialAccountRecipes.ts
+        symbol: useSocialAccountRecipes
+      - file: apps/zcode-cli/packages/core/src/runtime/methods/dynamic-workflow-run-start.ts
+        symbol: startSavedWorkflowRun
+    invariants:
+      - "Definition saves do not approve execution; account launches compile the exact reviewed snapshot without rereading a mutable saved name or creating filesystem drafts."
+      - "The existing definition store owns source and the dynamic-workflow journal owns execution history; Renderer drafts and history lists are projections."
+  - id: surface.social-account-recipes
+    kind: ui-surface
+    label: Account recipe editor, exact source review and owning-conversation navigation
+    codeSeeds:
+      - file: packages/ui/src/social-accounts/SocialAccountRecipeEditor.tsx
+        symbol: SocialAccountRecipeEditor
+      - file: packages/ui/src/social-accounts/SocialAccountRecipeReview.tsx
+        symbol: SocialAccountRecipeReview
+      - file: packages/ui/src/hooks/useSavedWorkflowLauncher.ts
+        symbol: useSavedWorkflowLauncher
+  - id: service.account-recipe-definition
+    kind: service
+    label: Existing account-restricted async definition store and workspace save RPC
+    codeSeeds:
+      - file: apps/zcode-cli/packages/core/src/tool/handlers/saved-workflows/store.ts
+        symbol: saveSavedWorkflow
+      - file: apps/zcode-cli/packages/bootstrap/src/zcode-protocol/saved-workflows.ts
+        symbol: saveSavedWorkflowOp
+      - file: packages/services/src/zcode-agent/zcodeAgent.ts
+        symbol: IZCodeAgentService
+  - id: state.approved-account-recipe
+    kind: state-owner
+    label: Strict reviewed recipe value admitted by the existing runtime
+    codeSeeds:
+      - file: packages/shared/src/approved-workflow-snapshot.ts
+        symbol: approvedWorkflowSnapshotSchema
+      - file: apps/zcode-cli/packages/core/src/tool/handlers/saved-workflows/launch-source.ts
+        symbol: resolveSavedWorkflowLaunch
+      - file: apps/zcode-cli/packages/bootstrap/src/app/account-workflow-admission.ts
+        symbol: resolveAccountWorkflowAdmission
+    invariants:
+      - "Trusted account command IDs reuse the existing registry/journal run; a retry cannot automatically resume or submit changed reviewed inputs."
+  - id: persistence.account-recipe-journal
+    kind: persistence
+    label: Existing engine journal with account-filtered run access
+    codeSeeds:
+      - file: apps/zcode-cli/packages/bootstrap/src/app/dynamic-workflow-run-service.ts
+        symbol: createDynamicWorkflowRunService
+      - file: apps/zcode-cli/packages/bootstrap/src/zcode-protocol/saved-workflows.ts
+        symbol: listSavedWorkflowRunsOp
+      - file: packages/desktop/src/host/accountRecipeRunTracker.ts
+        symbol: createAccountRecipeRunTracker
+    invariants:
+      - "The Host tracker settles only the owned engine lifecycle or journal result; a control-only launch turn does not settle an occurrence. Integrated scheduled-recipe Electron validation remains required."
+  - id: persistence.account-recipe-schedule
+    kind: persistence
+    label: Fixed approved schedule and occurrence snapshots in the existing repository
+    codeSeeds:
+      - file: packages/services/src/session/automationRepo.ts
+        symbol: AutomationRepo
+      - file: packages/desktop/src/host/accountRecipeCronDispatch.ts
+        symbol: dispatchAccountRecipeOccurrence
+    invariants:
+      - "The occurrence retains its reviewed snapshot and first bound parent. Later definition edits or ACKs cannot replace source, parent or terminal error."
+      - "The Host dispatches the owned occurrence through the existing engine; reviewed schedule authoring and complete restart recovery remain required."
   - id: service.social-project-service
     kind: service
     label: Host-owned social project documents and revisioned commands
@@ -1246,4 +1318,36 @@ edges:
   - from: state.instagram-publication
     to: persistence.instagram-publications
     type: persists-before-side-effects-through
+    rank: must-inspect
+  - from: capability.social-account-recipes
+    to: surface.social-account-recipes
+    type: renders-explicit-source-review-in
+    rank: must-inspect
+  - from: surface.social-account-recipes
+    to: service.social-account-service
+    type: resolves-selected-account-workspace-through
+    rank: must-inspect
+  - from: surface.social-account-recipes
+    to: service.account-recipe-definition
+    type: reads-and-commits-definitions-through-host-hook
+    rank: must-inspect
+  - from: surface.social-account-recipes
+    to: state.approved-account-recipe
+    type: submits-reviewed-source-through-existing-launcher
+    rank: must-inspect
+  - from: state.approved-account-recipe
+    to: persistence.account-recipe-journal
+    type: launches-existing-engine-and-reads-owned-history
+    rank: must-inspect
+  - from: persistence.account-recipe-journal
+    to: capability.social-account-agent-tools
+    type: retains-trusted-account-actor-tools-and-capability-denials
+    rank: invariant-only
+  - from: state.approved-account-recipe
+    to: persistence.account-recipe-schedule
+    type: freezes-source-and-arguments-at-schedule-review
+    rank: must-inspect
+  - from: persistence.account-recipe-schedule
+    to: persistence.account-recipe-journal
+    type: correlates-occurrence-with-real-engine-admission-and-outcome
     rank: must-inspect

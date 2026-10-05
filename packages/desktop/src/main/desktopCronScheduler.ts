@@ -20,6 +20,7 @@ export interface CronRunResultPayload {
   sessionId?: string;
   error?: string;
   failureKind?: "transient" | "permanent";
+  admissionUncertain?: true;
 }
 
 /** host → main 的闲时任务派发结果（与 cron 消息独立）。 */

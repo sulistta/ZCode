@@ -58,6 +58,7 @@ export type MainToSchedulerMessage =
       sessionId?: string;
       error?: string;
       failureKind?: "transient" | "permanent";
+      admissionUncertain?: true;
     }
   | {
       // 闲时任务派发结果；迟到结果仅凭 offPeakTaskId 结算（无 inFlight 上下文也可，幂等）。

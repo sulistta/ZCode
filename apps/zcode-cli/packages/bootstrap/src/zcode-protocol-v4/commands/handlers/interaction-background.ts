@@ -259,8 +259,12 @@ async function startSavedWorkflow(
   // 注意：方法必须经 app 调用（不可解构，实现可能依赖 this 绑定）。
   const result = await record.app.startSavedWorkflow({
     name: payload.name,
+    launchInputId: envelope.commandId,
     ...(payload.scope === undefined ? {} : { scope: payload.scope }),
     ...(payload.args === undefined ? {} : { args: payload.args }),
+    ...(payload.approvedSnapshot === undefined
+      ? {}
+      : { approvedSnapshot: payload.approvedSnapshot }),
   });
   if (!result.ok) throw new V4SavedWorkflowStartRejectedError(result.reason, result.message);
   return { type: "startSavedWorkflow", runId: result.runId, toolCallId: result.toolCallId };

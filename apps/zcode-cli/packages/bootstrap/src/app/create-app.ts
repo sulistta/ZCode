@@ -1265,6 +1265,8 @@ export async function createZCodeApp(options: ZCodeAppOptions): Promise<ZCodeApp
               name: string;
               scope?: "project" | "global";
               args?: Record<string, unknown>;
+              approvedSnapshot?: import("@social-harness/shared").ApprovedWorkflowSnapshot;
+              launchInputId?: string;
             }) => {
               await prepareUserExecutionBoundary({ traceContext });
               return await getRuntime().startSavedWorkflowRun({ ...input, traceContext });

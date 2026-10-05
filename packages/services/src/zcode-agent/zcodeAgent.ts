@@ -35,6 +35,8 @@ import type {
   ZCodeSkillsReferenceCatalogResult,
   ZCodeWorkflowsDeleteResult,
   ZCodeWorkflowsGetResult,
+  ZCodeWorkflowsSaveResult,
+  ZCodeWorkflowsValidateResult,
   ZCodeWorkflowsListResult,
   ZCodeWorkflowsMoveResult,
   ZCodeWorkflowsRunsResult,
@@ -138,6 +140,8 @@ import type {
 import type {
   ZCodeAgentDeleteSavedWorkflowParams,
   ZCodeAgentGetSavedWorkflowParams,
+  ZCodeAgentSaveSavedWorkflowParams,
+  ZCodeAgentValidateSavedWorkflowParams,
   ZCodeAgentListSavedWorkflowRunsParams,
   ZCodeAgentListSavedWorkflowsParams,
   ZCodeAgentMoveSavedWorkflowParams,
@@ -623,6 +627,10 @@ export interface IZCodeAgentService {
   // 全局档传 `scope: "global"`：带 workspace 就用它当载体，不带则由 services 层自选本机载体运行时。
   listSavedWorkflows(params: ZCodeAgentListSavedWorkflowsParams): Promise<ZCodeWorkflowsListResult>;
   getSavedWorkflow(params: ZCodeAgentGetSavedWorkflowParams): Promise<ZCodeWorkflowsGetResult>;
+  saveSavedWorkflow(params: ZCodeAgentSaveSavedWorkflowParams): Promise<ZCodeWorkflowsSaveResult>;
+  validateSavedWorkflow(
+    params: ZCodeAgentValidateSavedWorkflowParams,
+  ): Promise<ZCodeWorkflowsValidateResult>;
   updateSavedWorkflowMeta(
     params: ZCodeAgentUpdateSavedWorkflowMetaParams,
   ): Promise<ZCodeWorkflowsUpdateMetaResult>;

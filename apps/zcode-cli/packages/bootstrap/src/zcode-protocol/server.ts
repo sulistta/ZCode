@@ -76,6 +76,8 @@ import { getSkillReferenceCatalog } from "./skill-reference-catalog.js";
 import {
   deleteSavedWorkflowOp,
   getSavedWorkflowOp,
+  saveSavedWorkflowOp,
+  validateSavedWorkflowOp,
   listSavedWorkflowRunsOp,
   listSavedWorkflowsOp,
   moveSavedWorkflowOp,
@@ -655,6 +657,10 @@ export class ZCodeProtocolAgentServer {
         return await listSavedWorkflowsOp(this.context, request.params);
       case zcodeProtocolMethods.workflowsGet:
         return await getSavedWorkflowOp(this.context, request.params);
+      case zcodeProtocolMethods.workflowsSave:
+        return await saveSavedWorkflowOp(this.context, request.params);
+      case zcodeProtocolMethods.workflowsValidate:
+        return await validateSavedWorkflowOp(this.context, request.params);
       case zcodeProtocolMethods.workflowsUpdateMeta:
         return await updateSavedWorkflowMetaOp(this.context, request.params);
       case zcodeProtocolMethods.workflowsDelete:

@@ -135,6 +135,10 @@ import {
   settleManualDispatchFailureBestEffort,
 } from "./cronRunLifecycle.js";
 import {
+  dispatchAccountRecipeOccurrence,
+  AccountRecipeAdmissionUncertainError,
+} from "./accountRecipeCronDispatch.js";
+import {
   createRemotePromptAttachmentSessionService,
   createRemotePromptAttachmentTaskService,
   materializeRemotePromptAttachments,
@@ -939,6 +943,14 @@ async function dispatchCronRun(request: CronRunDispatchRequest): Promise<{
   // 长期配置是原意图；首次派发在目标 Host 解析后固定。已有 run 必须直接复用，
   // 不能因账号变化或本次 Registry 读取失败重新解释历史执行选择。
   const existingRun = await cronAutomationRepo.getRun(request.runId);
+  const workspaceKey = resolveWorkspaceKey(request);
+  if (
+    !existingRun ||
+    existingRun.automationId !== request.automationId ||
+    existingRun.workspaceKey !== workspaceKey
+  ) {
+    throw new Error("Automation occurrence is unavailable for this workspace.");
+  }
   const resolvedSubmissionModelSelection = await resolveAutomationSubmissionModelSelection({
     selection: request.modelSelection,
     fixedSelection: existingRun?.modelSelection,
@@ -955,8 +967,71 @@ async function dispatchCronRun(request: CronRunDispatchRequest): Promise<{
     request.runId,
     resolvedSubmissionModelSelection,
   );
+  if (existingRun.recipeSnapshot || existingRun.recipeSnapshotError) {
+    const agent = targetServices.getOptional(IZCodeAgentService);
+    if (!agent) throw new Error("Account Agent service is unavailable.");
+    return dispatchAccountRecipeOccurrence({
+      ...request,
+      run: existingRun,
+      repo: cronAutomationRepo,
+      agent,
+      async createParent() {
+        const task = await zcodeTaskService.createTask({
+          workspacePath: request.workspacePath,
+          workspaceIdentity: request.workspaceIdentity,
+          model: formatModelPickerValue(submissionModelSelection),
+          mode: request.mode,
+          thoughtLevel: submissionModelSelection.options?.reasoningLevel,
+          automationId: request.automationId,
+          deferPersistenceUntilFirstPrompt: true,
+        });
+        return task.taskId;
+      },
+      async resumeParent(taskId) {
+        await zcodeTaskService.resumeTask({
+          taskId,
+          workspacePath: request.workspacePath,
+          workspaceIdentity: request.workspaceIdentity,
+          model: formatModelPickerValue(submissionModelSelection),
+          thoughtLevel: submissionModelSelection.options?.reasoningLevel,
+          automationId: request.automationId,
+        });
+        await applyCronRunConfigToExistingTask({
+          zcodeTaskService,
+          taskId,
+          traceId: request.runId as TraceId,
+          modelSelection: submissionModelSelection,
+          mode: request.mode,
+        });
+      },
+      async discardEmptyParent(taskId) {
+        await zcodeTaskService.deleteTask({
+          taskId,
+          workspacePath: request.workspacePath,
+          workspaceIdentity: request.workspaceIdentity,
+        });
+      },
+      registerTracker(tracker, sessionId) {
+        const key = cronRunSubscriptionKey(sessionId, request.runId as TraceId);
+        disposeCronRunSubscription(key);
+        cronRunSubscriptions.set(key, tracker);
+      },
+      onTrackerSettled(tracker, sessionId) {
+        const key = cronRunSubscriptionKey(sessionId, request.runId as TraceId);
+        if (cronRunSubscriptions.get(key) === tracker) cronRunSubscriptions.delete(key);
+      },
+      async setUnread(taskId) {
+        await zcodeTaskService.setTaskUnread({
+          taskId,
+          workspacePath: request.workspacePath,
+          workspaceIdentity: request.workspaceIdentity,
+          unread: true,
+        });
+      },
+      logWarn: (message, error) => logger.warn(message, error),
+    });
+  }
   let trackedKey: string | null = null;
-  const workspaceKey = resolveWorkspaceKey(request);
   const trigger = request.runId.includes(":manual:") ? "manual" : "schedule";
   const scheduledAt = parseCronRunScheduledAt(request.runId, request.automationId);
   try {
@@ -1062,6 +1137,8 @@ async function dispatchManualAutomationRun(params: {
       `direct manual automation dispatch failed automation=${params.automation.automationId} runId=${params.run.runId}:`,
       error,
     );
+    // ACK 丢失后引擎仍可能运行；保留原 parent、tracker 和 claim，不能结算成未派发再创建新 occurrence。
+    if (error instanceof AccountRecipeAdmissionUncertainError) throw error;
     await settleManualDispatchFailureBestEffort({
       repo: cronAutomationRepo,
       automationId: params.automation.automationId,
@@ -2467,6 +2544,9 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
           ok: false,
           error: error instanceof Error ? error.message : String(error),
           failureKind: "transient",
+          ...(error instanceof AccountRecipeAdmissionUncertainError
+            ? { admissionUncertain: true }
+            : {}),
         });
       }
     })();

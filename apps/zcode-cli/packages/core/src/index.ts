@@ -47,6 +47,8 @@ export {
   serializeSavedWorkflow,
   validateWorkflowArgs,
 } from "./tool/handlers/saved-workflows/index.js";
+export { analyzeScript } from "./tool/handlers/workflow-script-analysis.js";
+export { resolveSavedWorkflowLaunch } from "./tool/handlers/saved-workflows/launch-source.js";
 export type {
   ResolvedSavedWorkflow,
   SavedWorkflowListResult,

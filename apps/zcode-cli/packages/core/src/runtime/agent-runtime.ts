@@ -1,5 +1,8 @@
-import { DEFAULT_SOCIAL_HARNESS_MODEL_CONTEXT_BUDGET_STRATEGY, resolveExecutionState } from "@social-harness/shared";
-import type { BackgroundBashOutputResult } from "@social-harness/shared";
+import {
+  DEFAULT_SOCIAL_HARNESS_MODEL_CONTEXT_BUDGET_STRATEGY,
+  resolveExecutionState,
+} from "@social-harness/shared";
+import type { BackgroundBashOutputResult, ApprovedWorkflowSnapshot } from "@social-harness/shared";
 import {
   createDenyPermissionBroker,
   createRootTraceContext,
@@ -297,7 +300,9 @@ export class AgentRuntime {
     this.dynamicWorkflowRunPort = deps.dynamicWorkflowRunPort;
     // GUI「配置」解析子代理模型用的目录（与工具上下文拿的是同一个端口）。
     this.modelCatalogPort = deps.modelCatalogPort;
-    this.registry = socialAccountRuntime ? createToolRegistry() : (deps.toolRegistry ?? createToolRegistry());
+    this.registry = socialAccountRuntime
+      ? createToolRegistry()
+      : (deps.toolRegistry ?? createToolRegistry());
     this.workspaceRoot = this.workingDirectory;
     const tooling = initializeRuntimeTooling(runtime, deps, sessionId);
     this.hookRunner = tooling.hookRunner;
@@ -549,6 +554,8 @@ export interface AgentRuntime {
     name: string;
     scope?: SavedWorkflowScope;
     args?: Record<string, unknown>;
+    approvedSnapshot?: ApprovedWorkflowSnapshot;
+    launchInputId?: string;
     traceContext?: TraceContext;
   }): Promise<StartSavedWorkflowRunResult>;
   /**

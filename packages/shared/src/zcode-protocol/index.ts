@@ -21,6 +21,15 @@ import { bashOutputDisplaySchema } from "../bash-output-display.js";
 export * from "../background-bash-output.js";
 import { executionOutputPreviewSchema } from "../execution-output-preview.js";
 import { z } from "zod";
+import {
+  approvedWorkflowScriptSchema,
+  approvedWorkflowSnapshotSchema,
+} from "../approved-workflow-snapshot.js";
+import {
+  zcodeSavedWorkflowArgsDeclarationSchema,
+  zcodeSavedWorkflowMetaSchema,
+} from "../saved-workflow-metadata.js";
+export * from "../saved-workflow-metadata.js";
 export * from "../process-diagnostic.js";
 import { errorAttributionSchema } from "../zcode-protocol-v4/snapshot.js";
 import { modelSelectionSchema } from "../model-selection.js";
@@ -2695,34 +2704,6 @@ export type ZCodeSkillsReferenceCatalogResult = z.infer<
 // `<cwd>/.zcode/workflows/`（挂载时快照会漏掉手改的文件）。形状与 @social-harness/contracts 的
 // saved-workflow.ts 逐字对齐——依赖方向是 contracts → shared，所以这里结构化地再声明一遍，
 // 而不是 import；两边的 strict 形状由 bootstrap 侧的协议测试互相钉住。
-export const zcodeSavedWorkflowArgTypeSchema = z.enum(["string", "number", "boolean", "json"]);
-export type ZCodeSavedWorkflowArgType = z.infer<typeof zcodeSavedWorkflowArgTypeSchema>;
-export const zcodeSavedWorkflowArgDeclarationSchema = z
-  .object({
-    type: zcodeSavedWorkflowArgTypeSchema,
-    description: z.string().optional(),
-    required: z.boolean().optional(),
-    default: z.unknown().optional(),
-  })
-  .strict();
-export type ZCodeSavedWorkflowArgDeclaration = z.infer<
-  typeof zcodeSavedWorkflowArgDeclarationSchema
->;
-export const zcodeSavedWorkflowArgsDeclarationSchema = z.record(
-  z.string(),
-  zcodeSavedWorkflowArgDeclarationSchema,
-);
-export type ZCodeSavedWorkflowArgsDeclaration = z.infer<
-  typeof zcodeSavedWorkflowArgsDeclarationSchema
->;
-export const zcodeSavedWorkflowMetaSchema = z
-  .object({
-    description: nonEmptyString,
-    whenToUse: nonEmptyString.optional(),
-    args: zcodeSavedWorkflowArgsDeclarationSchema.optional(),
-  })
-  .strict();
-export type ZCodeSavedWorkflowMeta = z.infer<typeof zcodeSavedWorkflowMetaSchema>;
 // 作用域两档：项目档落 `<cwd>/.zcode/workflows/`、全局档落 Social Harness 数据根。作用域由文件所在目录推得，frontmatter 不存 scope。
 export const zcodeSavedWorkflowScopeSchema = z.enum(["project", "global"]);
 export type ZCodeSavedWorkflowScope = z.infer<typeof zcodeSavedWorkflowScopeSchema>;
@@ -2800,6 +2781,55 @@ export const zcodeWorkflowsGetResultSchema = z.union([
   zcodeSavedWorkflowFailureSchema,
 ]);
 export type ZCodeWorkflowsGetResult = z.infer<typeof zcodeWorkflowsGetResultSchema>;
+
+export const zcodeWorkflowsSaveParamsSchema = z
+  .object({
+    workspace: zcodeWorkspaceRefSchema,
+    name: nonEmptyString,
+    scope: zcodeSavedWorkflowScopeSchema.optional(),
+    meta: zcodeSavedWorkflowMetaSchema,
+    script: approvedWorkflowScriptSchema,
+  })
+  .strict();
+export type ZCodeWorkflowsSaveParams = z.infer<typeof zcodeWorkflowsSaveParamsSchema>;
+export const zcodeWorkflowsSaveResultSchema = z.union([
+  z
+    .object({
+      ok: z.literal(true),
+      path: nonEmptyString,
+      scope: zcodeSavedWorkflowScopeSchema,
+      overwritten: z.boolean(),
+    })
+    .strict(),
+  zcodeSavedWorkflowFailureSchema,
+  z
+    .object({
+      ok: z.literal(false),
+      reason: z.literal("compile_failed"),
+      detail: z.string().max(8_192),
+    })
+    .strict(),
+]);
+export type ZCodeWorkflowsSaveResult = z.infer<typeof zcodeWorkflowsSaveResultSchema>;
+
+export const zcodeWorkflowsValidateParamsSchema = z
+  .object({
+    workspace: zcodeWorkspaceRefSchema,
+    approvedSnapshot: approvedWorkflowSnapshotSchema,
+  })
+  .strict();
+export type ZCodeWorkflowsValidateParams = z.infer<typeof zcodeWorkflowsValidateParamsSchema>;
+export const zcodeWorkflowsValidateResultSchema = z.union([
+  z.object({ ok: z.literal(true), approvedSnapshot: approvedWorkflowSnapshotSchema }).strict(),
+  z
+    .object({
+      ok: z.literal(false),
+      reason: z.enum(["invalid_name", "not_found", "invalid_args", "compile_failed"]),
+      message: z.string().max(8_192),
+    })
+    .strict(),
+]);
+export type ZCodeWorkflowsValidateResult = z.infer<typeof zcodeWorkflowsValidateResultSchema>;
 
 export const zcodeWorkflowsUpdateMetaParamsSchema = z
   .object({
@@ -3357,7 +3387,9 @@ export const zcodeAutomationProtocolSchema = z
     automationId: nonEmptyString,
     title: z.string(),
     cronExpr: nonEmptyString,
-    prompt: nonEmptyString,
+    prompt: z.string(),
+    recipeSnapshot: approvedWorkflowSnapshotSchema.optional(),
+    recipeSnapshotError: z.literal("invalid_recipe_snapshot").optional(),
     modelSelection: modelSelectionSchema.optional(),
     mode: zcodeTaskModeSchema.optional(),
     targetTaskId: nonEmptyString.optional(),
@@ -3651,6 +3683,8 @@ export const zcodeProtocolMethods = {
   // 已保存工作流的 GUI 中枢：workspace 级、无会话。
   workflowsList: "workflows/list",
   workflowsGet: "workflows/get",
+  workflowsSave: "workflows/save",
+  workflowsValidate: "workflows/validate",
   workflowsUpdateMeta: "workflows/updateMeta",
   workflowsDelete: "workflows/delete",
   workflowsRuns: "workflows/runs",

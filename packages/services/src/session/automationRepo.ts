@@ -27,6 +27,10 @@ import {
 } from "@social-harness/shared";
 import { getTasksIndexDatabasePath } from "#src/paths.js";
 import { runTasksDatabaseMigrations } from "#src/session/tasksDatabase/migrations.js";
+import {
+  readAutomationRecipeSnapshot,
+  serializeAutomationRecipeSnapshot,
+} from "#src/session/automationRecipeSnapshot.js";
 
 const require = createRequire(import.meta.url);
 const { DatabaseSync } = require("node:sqlite") as typeof import("node:sqlite");
@@ -56,6 +60,7 @@ interface AutomationRow {
   title: string;
   cron_expr: string;
   prompt: string;
+  recipe_snapshot: string | null;
   model: string | null;
   provider: string | null;
   mode: string | null;
@@ -93,6 +98,7 @@ interface AutomationRunRow {
   workspace_key: string;
   scheduled_at: number | null;
   trigger: string;
+  recipe_snapshot: string | null;
   model_selection: string | null;
   dispatch_status: string;
   outcome: string | null;
@@ -115,6 +121,7 @@ function rowToAutomation(row: AutomationRow): ZCodeAutomation {
     title: row.title,
     cronExpr: row.cron_expr,
     prompt: row.prompt,
+    ...readAutomationRecipeSnapshot(row.recipe_snapshot),
     ...(modelSelection ? { modelSelection } : {}),
     // 历史版本曾把空字符串写进 mode，旧读取逻辑又直接强转为枚举，导致
     // automation/list 在协议层校验整个数组时被单条脏数据拖垮。历史非法值按未设置兼容。
@@ -184,6 +191,7 @@ function rowToRun(row: AutomationRunRow): ZCodeAutomationRun {
     workspaceKey: row.workspace_key,
     scheduledAt: row.scheduled_at ?? undefined,
     trigger: row.trigger as ZCodeAutomationTrigger,
+    ...readAutomationRecipeSnapshot(row.recipe_snapshot),
     ...(modelSelection ? { modelSelection } : {}),
     dispatchStatus: row.dispatch_status as ZCodeAutomationRunDispatchStatus,
     outcome: (row.outcome as ZCodeAutomationRunOutcome | null) ?? undefined,
@@ -312,6 +320,11 @@ export class AutomationRepo {
     options: { nextRunAt: number | null; lifecycleStatus?: ZCodeAutomationLifecycleStatus },
   ): Promise<ZCodeAutomation> {
     assertValidAutomationMode(params.mode);
+    const recipeSnapshot = serializeAutomationRecipeSnapshot({
+      snapshot: params.recipeSnapshot,
+      workspaceIdentity: params.workspaceIdentity,
+      prompt: params.prompt,
+    });
     await this.ensureReady();
     const now = Date.now();
     const automationId = `automation-${randomUUID()}`;
@@ -332,7 +345,7 @@ export class AutomationRepo {
       }
       db.prepare(
         `INSERT INTO automations (
-          automation_id, title, cron_expr, prompt, model, provider, model_selection,
+          automation_id, title, cron_expr, prompt, recipe_snapshot, model, provider, model_selection,
           workspace_key, workspace_path, workspace_identity, target_task_id, location_kind,
           recurring, max_runs, end_at, schedule_rule, schedule_edited_by_user,
           run_count, enabled, lifecycle_status,
@@ -341,7 +354,7 @@ export class AutomationRepo {
           mode, thought_level,
           created_at, updated_at
         ) VALUES (
-          @automation_id, @title, @cron_expr, @prompt, @model, @provider, @model_selection,
+          @automation_id, @title, @cron_expr, @prompt, @recipe_snapshot, @model, @provider, @model_selection,
           @workspace_key, @workspace_path, @workspace_identity, @target_task_id, 'local',
           @recurring, @max_runs, @end_at, @schedule_rule, 0,
           0, @enabled, @lifecycle_status,
@@ -355,6 +368,7 @@ export class AutomationRepo {
         title: params.title,
         cron_expr: params.cronExpr,
         prompt: params.prompt,
+        recipe_snapshot: recipeSnapshot,
         model: null,
         provider: null,
         // 任务配置的显式空值与尚未迁移的 SQL NULL 分开；run 的 SQL NULL 冻结语义不变。
@@ -478,6 +492,14 @@ export class AutomationRepo {
       title: params.title ?? existing.title,
       cron_expr: params.cronExpr ?? existing.cron_expr,
       prompt: params.prompt ?? existing.prompt,
+      recipe_snapshot:
+        params.recipeSnapshot === undefined
+          ? existing.recipe_snapshot
+          : serializeAutomationRecipeSnapshot({
+              snapshot: params.recipeSnapshot,
+              workspaceIdentity: existing.workspace_identity ?? undefined,
+              prompt: params.prompt ?? existing.prompt,
+            }),
       // 旧三列只供回滚保留；标题等编辑不能清除尚未迁入的旧选择，也不能参与新版运行读取。
       model: existing.model,
       provider: existing.provider,
@@ -517,6 +539,16 @@ export class AutomationRepo {
         : existing.enabled,
       updated_at: now,
     };
+    if (params.prompt !== undefined && params.recipeSnapshot === undefined) {
+      const stored = readAutomationRecipeSnapshot(existing.recipe_snapshot);
+      if (stored.recipeSnapshotError)
+        throw new Error("Invalid stored recipe snapshot. Review and replace it.");
+      serializeAutomationRecipeSnapshot({
+        snapshot: stored.recipeSnapshot,
+        workspaceIdentity: existing.workspace_identity ?? undefined,
+        prompt: next.prompt,
+      });
+    }
     this.writeRow(next);
     return rowToAutomation(next);
   }
@@ -636,16 +668,17 @@ export class AutomationRepo {
       db.prepare(
         `INSERT INTO automation_runs (
           run_id, automation_id, workspace_key, scheduled_at, trigger,
-          model_selection, dispatch_status, attempts, created_at, updated_at
+          recipe_snapshot, model_selection, dispatch_status, attempts, created_at, updated_at
         ) VALUES (
           @run_id, @automation_id, @workspace_key, @scheduled_at, 'manual',
-          @model_selection, 'claimed', 1, @now, @now
+          @recipe_snapshot, @model_selection, 'claimed', 1, @now, @now
         )`,
       ).run({
         run_id: runId,
         automation_id: automationId,
         workspace_key: row.workspace_key,
         scheduled_at: options.now,
+        recipe_snapshot: row.recipe_snapshot,
         // 认领尚未经过目标 Host 解析；原意图仍在 automation，run 等首次派发再固定。
         model_selection: null,
         now: options.now,
@@ -664,6 +697,7 @@ export class AutomationRepo {
           workspace_key: row.workspace_key,
           scheduled_at: options.now,
           trigger: "manual",
+          recipe_snapshot: row.recipe_snapshot,
           model_selection: null,
           dispatch_status: "claimed",
           outcome: null,
@@ -728,6 +762,20 @@ export class AutomationRepo {
       for (const row of dueRows) {
         const res = claim.run({ id: row.automation_id, now });
         if (res.changes === 1) {
+          // 认领后再从 agenda 读脚本会遇到并发编辑；同一事务首次复制，重试连 NULL 都不能覆盖。
+          db.prepare(`INSERT INTO automation_runs (
+            run_id, automation_id, workspace_key, scheduled_at, trigger,
+            recipe_snapshot, dispatch_status, attempts, created_at, updated_at
+          ) VALUES (@run_id, @automation_id, @workspace_key, @scheduled_at, 'schedule',
+            @recipe_snapshot, 'claimed', 0, @now, @now)
+          ON CONFLICT(run_id) DO NOTHING`).run({
+            run_id: `${row.automation_id}:${row.next_run_at ?? row.retry_at ?? now}`,
+            automation_id: row.automation_id,
+            workspace_key: row.workspace_key,
+            scheduled_at: row.next_run_at ?? row.retry_at ?? now,
+            recipe_snapshot: row.recipe_snapshot,
+            now,
+          });
           claimed.push(
             rowToAutomation({
               ...row,
@@ -769,6 +817,7 @@ export class AutomationRepo {
             a.title AS a_title,
             a.cron_expr AS a_cron_expr,
             a.prompt AS a_prompt,
+            a.recipe_snapshot AS a_recipe_snapshot,
             a.model AS a_model,
             a.provider AS a_provider,
             a.model_selection AS a_model_selection,
@@ -803,6 +852,7 @@ export class AutomationRepo {
             r.workspace_key AS r_workspace_key,
             r.scheduled_at AS r_scheduled_at,
             r.trigger AS r_trigger,
+            r.recipe_snapshot AS r_recipe_snapshot,
             r.model_selection AS r_model_selection,
             r.dispatch_status AS r_dispatch_status,
             r.outcome AS r_outcome,
@@ -845,6 +895,7 @@ export class AutomationRepo {
             title: row["a_title"] as string,
             cron_expr: row["a_cron_expr"] as string,
             prompt: row["a_prompt"] as string,
+            recipe_snapshot: (row["a_recipe_snapshot"] as string | null) ?? null,
             model: (row["a_model"] as string | null) ?? null,
             provider: (row["a_provider"] as string | null) ?? null,
             model_selection: (row["a_model_selection"] as string | null) ?? null,
@@ -881,6 +932,7 @@ export class AutomationRepo {
             workspace_key: row["r_workspace_key"] as string,
             scheduled_at: (row["r_scheduled_at"] as number | null) ?? null,
             trigger: row["r_trigger"] as string,
+            recipe_snapshot: (row["r_recipe_snapshot"] as string | null) ?? null,
             model_selection: (row["r_model_selection"] as string | null) ?? null,
             dispatch_status: row["r_dispatch_status"] as string,
             outcome: (row["r_outcome"] as string | null) ?? null,
@@ -1137,8 +1189,9 @@ export class AutomationRepo {
       .prepare(
         `INSERT INTO automation_runs (
           run_id, automation_id, workspace_key, scheduled_at, trigger,
-          dispatch_status, attempts, created_at, updated_at
-        ) VALUES (@run_id, @automation_id, @workspace_key, @scheduled_at, @trigger, 'claimed', 0, @now, @now)
+          recipe_snapshot, dispatch_status, attempts, created_at, updated_at
+        ) VALUES (@run_id, @automation_id, @workspace_key, @scheduled_at, @trigger,
+          (SELECT recipe_snapshot FROM automations WHERE automation_id=@automation_id AND workspace_key=@workspace_key), 'claimed', 0, @now, @now)
         ON CONFLICT(run_id) DO NOTHING`,
       )
       .run({
@@ -1166,8 +1219,9 @@ export class AutomationRepo {
       .prepare(
         `INSERT INTO automation_runs (
           run_id, automation_id, workspace_key, scheduled_at, trigger,
-          model_selection, dispatch_status, attempts, created_at, updated_at
-        ) VALUES (@run_id, @automation_id, @workspace_key, @scheduled_at, @trigger, @model_selection, 'claimed', 0, @now, @now)
+          recipe_snapshot, model_selection, dispatch_status, attempts, created_at, updated_at
+        ) VALUES (@run_id, @automation_id, @workspace_key, @scheduled_at, @trigger,
+          (SELECT recipe_snapshot FROM automations WHERE automation_id=@automation_id AND workspace_key=@workspace_key), @model_selection, 'claimed', 0, @now, @now)
         ON CONFLICT(run_id) DO UPDATE SET
           dispatch_status = 'claimed',
           model_selection = COALESCE(automation_runs.model_selection, excluded.model_selection),
@@ -1211,6 +1265,42 @@ export class AutomationRepo {
     return fixed;
   }
 
+  /** 在引擎 admission 前固定同一 occurrence 的父会话；第一笔绑定是唯一执行归属。 */
+  async fixRunSession(params: {
+    runId: string;
+    automationId: string;
+    workspaceKey: string;
+    sessionId: string;
+  }): Promise<string> {
+    if (!params.sessionId.trim()) throw new Error("Automation parent session is unavailable.");
+    await this.ensureReady();
+    const db = this.getDatabase();
+    db.prepare(
+      `UPDATE automation_runs
+       SET session_id = COALESCE(session_id, @session_id), updated_at = @now
+       WHERE run_id = @run_id AND automation_id = @automation_id AND workspace_key = @workspace_key`,
+    ).run({
+      run_id: params.runId,
+      automation_id: params.automationId,
+      workspace_key: params.workspaceKey,
+      session_id: params.sessionId,
+      now: Date.now(),
+    });
+    const row = db
+      .prepare(
+        `SELECT session_id FROM automation_runs
+         WHERE run_id = @run_id AND automation_id = @automation_id AND workspace_key = @workspace_key`,
+      )
+      .get({
+        run_id: params.runId,
+        automation_id: params.automationId,
+        workspace_key: params.workspaceKey,
+      }) as Pick<AutomationRunRow, "session_id"> | undefined;
+    if (!row?.session_id)
+      throw new Error("Automation occurrence is unavailable for this workspace.");
+    return row.session_id;
+  }
+
   /** 派发结果回写 run（dispatched 回填 session_id / failed_to_dispatch 记 error）。 */
   async markRunDispatch(params: {
     runId: string;
@@ -1223,8 +1313,13 @@ export class AutomationRepo {
       .prepare(
         `UPDATE automation_runs
         SET dispatch_status = @dispatch_status,
-            session_id = COALESCE(@session_id, session_id),
-            error = @error,
+            -- 迟到 ACK 不能改绑已经 admission 的父会话，否则丢确认后重试会启动第二个引擎。
+            session_id = COALESCE(session_id, @session_id),
+            -- recipe 的引擎可能先于 ACK 结算；派发确认不能清除真实失败原因。
+            error = CASE
+              WHEN recipe_snapshot IS NOT NULL AND outcome IS NOT NULL AND outcome <> 'running' THEN error
+              ELSE @error
+            END,
             updated_at = @now
         WHERE run_id = @run_id`,
       )
@@ -1270,8 +1365,12 @@ export class AutomationRepo {
       db.prepare(
         `UPDATE automation_runs
         SET dispatch_status = 'dispatched',
-            session_id = COALESCE(@session_id, session_id),
-            error = NULL,
+            session_id = COALESCE(session_id, @session_id),
+            -- manual ACK 只确认 admission，不能覆盖较早到达的引擎终态错误。
+            error = CASE
+              WHEN recipe_snapshot IS NOT NULL AND outcome IS NOT NULL AND outcome <> 'running' THEN error
+              ELSE NULL
+            END,
             updated_at = @now
         WHERE run_id = @run_id AND trigger = 'manual' AND dispatch_status <> 'dispatched'`,
       ).run({
@@ -1317,6 +1416,8 @@ export class AutomationRepo {
             END,
             error = CASE
               WHEN @outcome = 'running' AND outcome IS NOT NULL AND outcome <> 'running' THEN error
+              -- journal 已确认 recipe 成功后，较早的 ACK/传输错误不再是执行结果。
+              WHEN @outcome = 'succeeded' AND recipe_snapshot IS NOT NULL THEN NULL
               ELSE COALESCE(@error, error)
             END,
             updated_at = @now
@@ -1404,7 +1505,7 @@ export class AutomationRepo {
     this.getDatabase()
       .prepare(
         `UPDATE automations SET
-          title = @title, cron_expr = @cron_expr, prompt = @prompt, model = @model, provider = @provider,
+          title = @title, cron_expr = @cron_expr, prompt = @prompt, recipe_snapshot = @recipe_snapshot, model = @model, provider = @provider,
           model_selection = @model_selection,
           mode = @mode, thought_level = @thought_level,
           recurring = @recurring, max_runs = @max_runs, end_at = @end_at,
@@ -1420,6 +1521,7 @@ export class AutomationRepo {
         title: row.title,
         cron_expr: row.cron_expr,
         prompt: row.prompt,
+        recipe_snapshot: row.recipe_snapshot,
         model: row.model,
         provider: row.provider,
         model_selection: row.model_selection,

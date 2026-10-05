@@ -82,6 +82,12 @@ jobs:
       - name: Test localized internal CLI help
         run: pnpm --filter @social-harness/i18n test
 
+      - name: Test reviewed account recipes and fixed schedule versions
+        run: |
+          node --import tsx --test packages/shared/test/approvedWorkflowSnapshot.test.ts packages/services/test/accountRecipeAutomation.test.ts packages/services/test/automationRunAdmission.test.ts
+          pnpm --dir apps/zcode-cli exec node --import tsx --test packages/core/test/tool/account-recipe-launch.test.ts packages/core/test/runtime/account-recipe-runtime-launch.test.ts packages/bootstrap/test/account-workflow-protocol.test.ts packages/bootstrap/test/account-recipe-admission.test.ts
+          node --import tsx --test packages/desktop/test/socialHarnessLocalModelProvider.test.mjs packages/desktop/test/accountRecipeRunTracker.test.ts packages/desktop/test/accountRecipeCronDispatch.test.ts packages/desktop/test/manualRecipeClaimUncertainty.test.ts packages/desktop/test/cronDispatchRouter.test.ts
+
       - name: Lint localized internal CLI help
         run: pnpm --filter @social-harness/i18n lint
 

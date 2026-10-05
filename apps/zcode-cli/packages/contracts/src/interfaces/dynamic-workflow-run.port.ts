@@ -42,10 +42,16 @@ export interface DynamicWorkflowRunSubmitRequest {
   toolCallId?: ToolCallId | string;
   /**
    * 发起 run 那一轮的 inputId：子代理的
-   * `agent_step` 归到这个 message 下。只有中枢直接启动填它（`startSavedWorkflowRun` 铸的
-   * UUID v7，与 controlOnly 启动轮共用）；聊天路径缺席，由 run service 从父 runtime 的活动轮解析。
+   * `agent_step` 归到这个 message 下。中枢直接启动填它：账号用可信 V4 commandId，
+   * 通用路径铸 UUID v7，与 controlOnly 启动轮共用。聊天工具路径缺席，由父 runtime 活动轮解析。
    */
   launchInputId?: string;
+  /**
+   * 可信账号直接启动的 V4 commandId（非脚本参数）。同一账号/父会话/键复用既有 run，
+   * 源码、名称或实参冲突则抛错；只能读取 registry/journal，不自动 resume，不另建持久化队列。
+   * 普通工具和通用工作区不填。非空，最多 512 字符，必须等于 launchInputId。
+   */
+  admissionKey?: string;
   /**
    * 脚本声明的阶段表（因果图有名阶段，声明序，≤ 32 × 128；`createWorkflowPhaseNames`）。引擎把它
    * 与锚点一起记进 `run-launched`，sessions-index 投影据此给侧栏迷你轨道画出前方的站点。纯展示元数据：不参与执行、
@@ -96,11 +102,12 @@ export interface DynamicWorkflowRunSubmitOptions {
 }
 
 /**
- * submit 的结果。成功只有 runId：它同时是 backgroundTaskId 与 cancelBackgroundWork 的
+ * submit 的结果。runId 同时是 backgroundTaskId 与 cancelBackgroundWork 的
  * workId（runId ≡ taskId ≡ workId），所以三条路径不需要各自的身份映射表。全新 run 没有可拒之处：
- * 接线故障（编译产物损坏、journal 不可用）仍然上抛。
+ * 接线故障（编译产物损坏、journal 不可用）仍然上抛。replayed 表示复用已接纳的账号 occurrence，
+ * 调用方不能再造启动轮或自动 resume；既有 journal 和回放是权威。
  */
-export type DynamicWorkflowRunSubmitResult = { ok: true; runId: string };
+export type DynamicWorkflowRunSubmitResult = { ok: true; runId: string; replayed?: true };
 
 /**
  * {@link DynamicWorkflowRunPort.amend} 的请求。

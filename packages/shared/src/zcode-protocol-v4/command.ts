@@ -3,6 +3,7 @@ import { localTtftContextSchema, localTtftClockSchema } from "../localTtft.js";
 // conversation rewind 无独立命令（裁决：= editUserQuery 的 UI 入口）；
 // workspace-only 文件撤销走 applyFileRewind，不截断聊天历史。
 import { z } from "zod";
+import { approvedWorkflowSnapshotSchema } from "../approved-workflow-snapshot.js";
 import { conversationRowTargetSchema, timestampSchema } from "./core.js";
 import { attachmentRefSchema } from "./attachment-ref.js";
 import { v4ConversationFileRewindPreviewResultSchema } from "./transport.js";
@@ -236,6 +237,7 @@ export const commandPayloadSchemas = {
     name: z.string().min(1),
     scope: z.enum(["project", "global"]).optional(),
     args: z.record(z.string(), z.unknown()).optional(),
+    approvedSnapshot: approvedWorkflowSnapshotSchema.optional(),
   }),
   // amendWorkflowRunSettings：run 卡 / 详情页的「配置」直接请 agent 以新设置修订 run，不经模型轮。载荷、结果与拒绝
   // 词表见 workflow-run-settings-command.ts；能力缺席 → V4CapabilityUnsupportedError。

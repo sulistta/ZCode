@@ -1,5 +1,41 @@
 /** English translations */
 const enUS: Record<string, string> = {
+  "socialAccounts.recipes.title": "Saved script recipes",
+  "socialAccounts.recipes.intro":
+    "Recipes belong to this account. Review the source and arguments before running.",
+  "socialAccounts.recipes.refresh": "Refresh recipes",
+  "socialAccounts.recipes.new": "New recipe",
+  "socialAccounts.recipes.editor": "Recipe editor",
+  "socialAccounts.recipes.name": "Recipe name",
+  "socialAccounts.recipes.description": "Description",
+  "socialAccounts.recipes.declarations": "Argument declarations (JSON)",
+  "socialAccounts.recipes.declarationsHelp":
+    'Example: {"topic":{"type":"string","required":true}}. Types: string, number, boolean, json; optional default values.',
+  "socialAccounts.recipes.script": "Script",
+  "socialAccounts.recipes.save": "Save recipe",
+  "socialAccounts.recipes.saveNotice":
+    "Saving checks the script. Execution requires a separate review.",
+  "socialAccounts.recipes.invalidMetadata":
+    "Enter a description and valid JSON argument declarations.",
+  "socialAccounts.recipes.edit": "Edit recipe",
+  "socialAccounts.recipes.review": "Review and run",
+  "socialAccounts.recipes.reviewTitle": "Review recipe execution",
+  "socialAccounts.recipes.arguments": "Argument values (JSON)",
+  "socialAccounts.recipes.reviewNotice":
+    "Run these exact source bytes for this account. Actors follow the account permissions; publishing still follows its approval policy.",
+  "socialAccounts.recipes.runReviewed": "Run reviewed version",
+  "socialAccounts.recipes.invalidArguments":
+    "Enter a valid JSON object of argument values within the 1 MiB recipe limit.",
+  "socialAccounts.recipes.history": "Recent recipe runs",
+  "socialAccounts.recipes.noRuns": "No recipe runs yet.",
+  "socialAccounts.recipes.openConversation": "Open conversation",
+  "socialAccounts.recipes.loading": "Loading account recipes…",
+  "socialAccounts.recipes.empty": "No saved script recipes in this account yet.",
+  "socialAccounts.recipes.unavailable": "Could not load this account’s recipes. Try refreshing.",
+  "socialAccounts.recipes.invalidDefinitions":
+    "Some saved recipes could not be read. Edit valid recipes or repair the invalid definitions before running them.",
+  "socialAccounts.recipes.actionFailed":
+    "The recipe action failed. Review the recipe and try again.",
   "socialConvex.title": "Set up your Instagram infrastructure",
   "socialConvex.ownership":
     "Use your own dedicated Convex project and your own Meta app for all your Instagram accounts. Only Social Harness is installed; connections use outbound HTTPS without router or port changes.",

@@ -1,40 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-
-function parseToolContent(content) {
-  if (typeof content === "string") {
-    try {
-      return JSON.parse(content);
-    } catch {
-      return content;
-    }
-  }
-  if (Array.isArray(content)) {
-    const text = content.find((item) => item && typeof item.text === "string")?.text;
-    return text === undefined ? content : parseToolContent(text);
-  }
-  if (content && typeof content === "object" && typeof content.text === "string") {
-    return parseToolContent(content.text);
-  }
-  return content;
-}
-
-function collectToolResults(messages) {
-  const toolNamesById = new Map();
-  for (const message of messages ?? []) {
-    for (const toolCall of message.tool_calls ?? []) {
-      if (toolCall.id && toolCall.function?.name) {
-        toolNamesById.set(toolCall.id, toolCall.function.name);
-      }
-    }
-  }
-  return (messages ?? [])
-    .filter((message) => message.role === "tool")
-    .map((message) => ({
-      name: message.name ?? toolNamesById.get(message.tool_call_id),
-      content: parseToolContent(message.content),
-    }));
-}
+import { collectToolResults } from "./socialHarnessToolResultsE2E.mjs";
 
 export function planClipCandidateHandoffResponse(body, handoff, handoffToolCalls, handoffResults) {
   const messages = body.messages ?? [];

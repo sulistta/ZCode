@@ -75,6 +75,18 @@ export function SocialAccountsHome({
     setPolicyDraft,
   } = useSocialAccountEditor(service);
   const [activeView, setActiveView] = useState<SocialMediaView>("accounts");
+  const [conversationRequest, setConversationRequest] = useState<{
+    accountId: string;
+    sessionId: string;
+  } | null>(null);
+  const openAccountConversation = useCallback(
+    (accountId: string, sessionId: string) => {
+      selectAccount(accountId);
+      setConversationRequest({ accountId, sessionId });
+      setActiveView("conversations");
+    },
+    [selectAccount],
+  );
   const openModelSettings = useCallback(() => setActiveView("model-settings"), []);
   const instagramConnections = useSocialInstagramConnections({
     accounts,
@@ -152,6 +164,11 @@ export function SocialAccountsHome({
                 service={service}
                 isDesktop={isDesktop}
                 onOpenModelSettings={openModelSettings}
+                requestedSessionId={
+                  conversationRequest?.accountId === selectedAccount.accountId
+                    ? conversationRequest.sessionId
+                    : undefined
+                }
               />
             ) : activeView === "library" && mediaService && selectedAccount ? (
               <SocialLibraryHome
@@ -174,6 +191,9 @@ export function SocialAccountsHome({
                 key={selectedAccount.accountId}
                 account={selectedAccount}
                 accountService={service}
+                onOpenConversation={(sessionId) =>
+                  openAccountConversation(selectedAccount.accountId, sessionId)
+                }
               />
             ) : activeView === "model-settings" ? (
               <SocialModelSettings />

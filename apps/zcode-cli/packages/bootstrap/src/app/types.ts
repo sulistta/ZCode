@@ -1,4 +1,8 @@
-import type { ZCodeToolExecResource, BackgroundBashOutputResult } from "@social-harness/shared";
+import type {
+  ZCodeToolExecResource,
+  BackgroundBashOutputResult,
+  ApprovedWorkflowSnapshot,
+} from "@social-harness/shared";
 import type { AiSdkModelAdapter } from "@social-harness/adapters/model";
 import type {
   AgentRuntime,
@@ -442,6 +446,8 @@ export interface ZCodeApp {
     name: string;
     scope?: "project" | "global";
     args?: Record<string, unknown>;
+    approvedSnapshot?: ApprovedWorkflowSnapshot;
+    launchInputId?: string;
   }): Promise<StartSavedWorkflowRunResult>;
   /**
    * GUI「配置」改一个 run 的子代理模型与并发上界：以同一份脚本修订出新 run，不经模型轮、不开确认窗。可选能力：端口

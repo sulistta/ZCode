@@ -270,6 +270,7 @@ async function settleDispatchResult(
       runId: msg.runId,
       workspaceKey,
       ok,
+      admissionUncertain: msg.admissionUncertain,
       logError: (message) => log("error", message),
     });
   };
@@ -295,6 +296,12 @@ async function settleDispatchResult(
     return;
   }
 
+  // manual recipe 的确认不确定时保留同一 claimed row 和 claim；不得当成未派发清锁。
+  if (trigger === "manual" && msg.admissionUncertain) {
+    await repo.markRunDispatch({ runId: msg.runId, dispatchStatus: "claimed", error: msg.error });
+    await settleManualClaim(false);
+    return;
+  }
   await repo.markRunDispatch({
     runId: msg.runId,
     dispatchStatus: "failed_to_dispatch",

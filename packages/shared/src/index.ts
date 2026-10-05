@@ -26,6 +26,7 @@ export type {
   PersistedWorkspaceSessionEntry,
 } from "./protocol.js";
 export type { WorkspacePurpose } from "./workspacePurpose.js";
+export * from "./approved-workflow-snapshot.js";
 export { DEFAULT_LOCALE } from "./protocol.js";
 export {
   SOCIAL_HARNESS_VERSION,

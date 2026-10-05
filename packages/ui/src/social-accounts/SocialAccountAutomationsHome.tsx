@@ -9,6 +9,7 @@ import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { SocialAccountAutomationForm } from "./SocialAccountAutomationForm.js";
 import { SocialAccountAutomationList } from "./SocialAccountAutomationList.js";
 import { SocialAccountAutomationNotices } from "./SocialAccountAutomationNotices.js";
+import { SocialAccountRecipesPanel } from "./SocialAccountRecipesPanel.js";
 import {
   AUTOMATION_TEMPLATES,
   scheduleForDraft,
@@ -19,9 +20,11 @@ import {
 export function SocialAccountAutomationsHome({
   account,
   accountService,
+  onOpenConversation,
 }: {
   account: SocialAccount;
   accountService: SocialAccountService;
+  onOpenConversation: (sessionId: string) => void;
 }) {
   const { intl, locale } = useZCodeIntl();
   const { zcodeAgentService } = useServices();
@@ -316,6 +319,12 @@ export function SocialAccountAutomationsHome({
           {intl.formatMessage({ id: "socialAccounts.automations.create" })}
         </Button>
       </header>
+
+      <SocialAccountRecipesPanel
+        account={account}
+        accountService={accountService}
+        onOpenConversation={onOpenConversation}
+      />
 
       <SocialAccountAutomationNotices
         actionFailed={actionFailed}

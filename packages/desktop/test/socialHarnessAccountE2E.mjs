@@ -37,6 +37,10 @@ import {
 import * as candidateHandoffE2E from "./socialProjectCandidateHandoffE2E.mjs";
 import { verifySocialAgentProjectEditInElectron } from "./socialProjectAgentEditingE2E.mjs";
 import {
+  createAndRunAccountRecipe,
+  verifyAccountRecipeAfterRelaunch,
+} from "./socialAccountRecipesE2E.mjs";
+import {
   createClipPreparationScenario,
   verifySocialProductionWorkflowsInElectron,
 } from "./socialHarnessClipPreparationE2E.mjs";
@@ -164,6 +168,7 @@ try {
   cdpPort = await waitForDevTools(runtime);
   ({ browser, page } = await connectToPage(cdpPort));
   await page.getByRole("heading", { level: 1, name: editedName, exact: true }).waitFor();
+  await createAndRunAccountRecipe(page);
   const clipIds = await createProjectMotionInElectron(page, runId, candidateFixtures.mediaFixture);
   await createSecondAccountAndVerifyIsolation(
     page,
@@ -226,6 +231,7 @@ try {
   await verifyAccountAutomationAfterRelaunch(page, editedAutomationTitle, automationWeekday);
   await verifyProjectMotionAfterRelaunch(page, runId, clipIds, projectAgentScenario.captionText);
   await candidateHandoffE2E.verifyCandidateProjectsAfterRelaunch(page, mockProvider);
+  await verifyAccountRecipeAfterRelaunch(page);
   assertNoRetiredZCodeProductApiRequests(runtime);
 
   await browser.close();

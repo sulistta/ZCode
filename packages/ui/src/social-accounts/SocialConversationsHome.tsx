@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import type {
   SocialAccount,
@@ -25,11 +25,13 @@ export function SocialConversationsHome({
   service,
   isDesktop,
   onOpenModelSettings,
+  requestedSessionId,
 }: {
   account: SocialAccount;
   service: SocialAccountService;
   isDesktop: boolean;
   onOpenModelSettings: () => void;
+  requestedSessionId?: string;
 }) {
   const { intl } = useZCodeIntl();
   const [workspaceState, setWorkspaceState] = useState<WorkspaceState>({ status: "loading" });
@@ -68,6 +70,21 @@ export function SocialConversationsHome({
   );
   const { items: sessions, hydratingEndpointKeys } =
     useWorkspaceSessionsIndexItems(workspaceScopes);
+  const handledRequest = useRef<string | null>(null);
+  useEffect(() => {
+    if (!requestedSessionId || handledRequest.current === requestedSessionId || !workspace) return;
+    // 启动 ACK 可能先于索引投影；只在账户索引确认归属后导航，不能靠延时或外部 session ID 绕过隔离。
+    if (
+      !sessions.some(
+        (session) =>
+          session.taskId === requestedSessionId &&
+          session.workspaceIdentity === workspace.workspaceIdentity,
+      )
+    )
+      return;
+    handledRequest.current = requestedSessionId;
+    setSelectedSessionId(requestedSessionId);
+  }, [requestedSessionId, sessions, workspace]);
 
   const selectSession = useCallback((sessionId: string | null) => {
     setSelectedSessionId(sessionId);

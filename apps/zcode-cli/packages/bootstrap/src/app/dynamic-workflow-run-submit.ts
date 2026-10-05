@@ -52,6 +52,8 @@ import {
 import { isResumableRecord, type RunRegistryEntry } from "./dynamic-workflow-run-observation.js";
 import type { DynamicWorkflowRunServiceDeps } from "./dynamic-workflow-run-service.js";
 import type { WorkflowEscalationRegistry } from "./workflow-escalation-registry.js";
+import { canonicalJson } from "@social-harness/dynamic-workflow";
+import { resolveAccountWorkflowAdmission } from "./account-workflow-admission.js";
 
 /**
  * 两条入口要用的 service 内部状态。全是**引用**而不是副本：注册表与停驻表是 service 的那一份，
@@ -79,8 +81,10 @@ export async function submitDynamicWorkflowRun(
   ctx: DynamicWorkflowRunEntryContext,
   request: DynamicWorkflowRunSubmitRequest,
 ): Promise<DynamicWorkflowRunSubmitResult> {
+  const admission = resolveAccountWorkflowAdmission(ctx, request);
+  if (admission?.replayed) return { ok: true, runId: admission.runId, replayed: true };
   const runId = startNewRun(ctx, {
-    runId: mintRunId(),
+    runId: admission?.runId ?? mintRunId(),
     scriptText: request.scriptText,
     cwd: request.cwd,
     ...(request.name === undefined ? {} : { name: request.name }),
@@ -88,6 +92,7 @@ export async function submitDynamicWorkflowRun(
     ...(request.parentSessionId === undefined ? {} : { parentSessionId: request.parentSessionId }),
     ...(request.toolCallId === undefined ? {} : { toolCallId: request.toolCallId }),
     ...(request.launchInputId === undefined ? {} : { launchInputId: request.launchInputId }),
+    ...(request.admissionKey === undefined ? {} : { admissionKey: request.admissionKey }),
     ...(request.phaseNames === undefined ? {} : { phaseNames: request.phaseNames }),
     ...(request.maxConcurrency === undefined ? {} : { maxConcurrency: request.maxConcurrency }),
     ...(request.subagentModel === undefined ? {} : { subagentModel: request.subagentModel }),
@@ -212,6 +217,7 @@ interface StartNewRunInput {
   parentSessionId?: string;
   toolCallId?: string;
   launchInputId?: string;
+  admissionKey?: string;
   /** 脚本声明的阶段表（submit 与 amend 都传：修订用**新脚本**的阶段表）。 */
   phaseNames?: string[];
   /** 请求的并发上界；缺席即天花板。钳制在 {@link DynamicWorkflowRunEntryContext.caps} 里。 */
@@ -295,6 +301,9 @@ function startNewRun(ctx: DynamicWorkflowRunEntryContext, input: StartNewRunInpu
     cwd: input.cwd,
     ...(input.name === undefined ? {} : { name: input.name }),
     scriptText: input.scriptText,
+    ...(input.admissionKey === undefined
+      ? {}
+      : { admissionArgsJson: canonicalJson(input.args ?? {}) }),
     // 生效的并发上界（= 落库那一份）。同一条间隙论证：`AmendWorkflow` 的 resolveInput 读
     // getTask 判「沿用什么」，而修订一个刚起步的 run 恰好会落在这个间隙里。
     maxConcurrency: caps.maxConcurrency,

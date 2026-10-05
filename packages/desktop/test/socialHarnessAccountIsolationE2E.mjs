@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createSocialProjectCandidateHandoffScenarios } from "./socialHarnessCandidateHandoffMockE2E.mjs";
 import { createCandidateProjectsInElectron } from "./socialProjectAgentEditingE2E.mjs";
 import { waitForRuntimeOutput } from "./socialHarnessAccountE2EUtils.mjs";
+import { verifyAccountRecipeIsolation } from "./socialAccountRecipesE2E.mjs";
 
 export async function verifyAccountConversationShell(page) {
   await page.getByRole("button", { name: "Conversations", exact: true }).click();
@@ -234,6 +235,7 @@ export async function createSecondAccountAndVerifyIsolation(
     );
   }
 
+  await verifyAccountRecipeIsolation(page);
   await page.getByRole("button", { name: "Library", exact: true }).click();
   await page.getByRole("heading", { name: "Bring in your first source", exact: true }).waitFor();
   for (const mediaName of isolatedMediaNames) {

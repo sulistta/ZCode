@@ -1,5 +1,37 @@
 /** 中文翻译 */
 const zhCN: Record<string, string> = {
+  "socialAccounts.recipes.title": "已保存的脚本配方",
+  "socialAccounts.recipes.intro": "配方属于当前账户。运行前请审阅脚本和参数。",
+  "socialAccounts.recipes.refresh": "刷新配方",
+  "socialAccounts.recipes.new": "新建配方",
+  "socialAccounts.recipes.editor": "配方编辑器",
+  "socialAccounts.recipes.name": "配方名称",
+  "socialAccounts.recipes.description": "说明",
+  "socialAccounts.recipes.declarations": "参数声明（JSON）",
+  "socialAccounts.recipes.declarationsHelp":
+    '示例：{"topic":{"type":"string","required":true}}。类型支持 string、number、boolean、json，可设置默认值。',
+  "socialAccounts.recipes.script": "脚本",
+  "socialAccounts.recipes.save": "保存配方",
+  "socialAccounts.recipes.saveNotice": "保存时检查脚本；执行需单独审阅。",
+  "socialAccounts.recipes.invalidMetadata": "请输入说明和有效的 JSON 参数声明。",
+  "socialAccounts.recipes.edit": "编辑配方",
+  "socialAccounts.recipes.review": "审阅并运行",
+  "socialAccounts.recipes.reviewTitle": "审阅配方执行",
+  "socialAccounts.recipes.arguments": "参数值（JSON）",
+  "socialAccounts.recipes.reviewNotice":
+    "为此账户执行当前审阅的脚本。子代理遵守账户权限，发布仍需遵守审批策略。",
+  "socialAccounts.recipes.runReviewed": "运行已审阅版本",
+  "socialAccounts.recipes.invalidArguments":
+    "请输入有效的 JSON 参数对象，配方总大小不得超过 1 MiB。",
+  "socialAccounts.recipes.history": "最近的配方执行",
+  "socialAccounts.recipes.noRuns": "暂无配方执行。",
+  "socialAccounts.recipes.openConversation": "打开对话",
+  "socialAccounts.recipes.loading": "正在加载账户配方…",
+  "socialAccounts.recipes.empty": "此账户尚无已保存的脚本配方。",
+  "socialAccounts.recipes.unavailable": "无法加载此账户的配方，请刷新重试。",
+  "socialAccounts.recipes.invalidDefinitions":
+    "部分配方无法读取，请编辑有效配方，或修复无效定义后再运行。",
+  "socialAccounts.recipes.actionFailed": "配方操作失败，请审阅配方后重试。",
   "socialConvex.title": "配置自己的 Instagram 基础设施",
   "socialConvex.ownership":
     "所有 Instagram 账号使用你自己的专用 Convex 项目和 Meta 应用。只需安装 Social Harness，通过出站 HTTPS 连接，无需配置路由器或开放端口。",

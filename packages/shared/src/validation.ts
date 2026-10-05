@@ -835,15 +835,21 @@ export const hostFeedbackLogArchiveRequestResponseSchema = z.object({
 });
 
 // host → main：定时任务派发结果。ok=已成功创建 session 且 prompt 已发出。
-export const hostCronRunResultResponseSchema = z.object({
-  type: z.literal("cron-run-result"),
-  runId: nonEmptyStringSchema,
-  ok: z.boolean(),
-  taskId: z.string().optional(),
-  sessionId: z.string().optional(),
-  error: z.string().optional(),
-  failureKind: z.enum(["transient", "permanent"]).optional(),
-});
+export const hostCronRunResultResponseSchema = z
+  .object({
+    type: z.literal("cron-run-result"),
+    runId: nonEmptyStringSchema,
+    ok: z.boolean(),
+    taskId: z.string().optional(),
+    sessionId: z.string().optional(),
+    error: z.string().optional(),
+    failureKind: z.enum(["transient", "permanent"]).optional(),
+    admissionUncertain: z.literal(true).optional(),
+  })
+  .refine(
+    (result) => !result.admissionUncertain || !result.ok,
+    "Uncertain admission cannot confirm dispatch",
+  );
 
 // host → main：闲时任务派发结果。ok=session 已确保存在且 prompt 已发出；迟到结果用 offPeakTaskId 兜底结算。
 export const hostOffPeakRunResultResponseSchema = z.object({
