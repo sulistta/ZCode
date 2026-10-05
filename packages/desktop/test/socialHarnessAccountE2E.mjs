@@ -1,4 +1,5 @@
 import { createSocialHarnessE2ERuntime } from "./socialHarnessElectronRuntimeE2E.mjs";
+import { describeFixtureModelRequests } from "./socialHarnessModelRequestShapesE2E.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -262,6 +263,11 @@ try {
   if (succeeded) {
     await rm(testRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 250 });
   } else {
+    if (mockProvider)
+      await writeFile(
+        join(testRoot, "model-request-shapes.json"),
+        JSON.stringify(describeFixtureModelRequests(mockProvider.requests), null, 2),
+      );
     console.error(`E2E diagnostics retained at ${testRoot}`);
     if (runtime?.output) console.error(runtime.output);
   }

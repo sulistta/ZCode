@@ -5,6 +5,8 @@ import {
   AUTOMATION_TEMPLATES,
   draftFromAutomation,
   scheduleForDraft,
+  draftFromRecipe,
+  automationWriteForDraft,
   type AutomationDraft,
 } from "../src/social-accounts/socialAccountAutomationsModel.js";
 
@@ -83,4 +85,45 @@ test("daily account automation omits weekday and preserves non-simple schedules 
     }),
   );
   assert.equal(yearlyDraft.scheduleEditable, false);
+});
+
+test("recipe create writes the reviewed value and ordinary schedule edits omit replacement", () => {
+  const snapshot = {
+    schemaVersion: 1 as const,
+    name: "daily",
+    meta: { description: "Reviewed" },
+    script: "return 'first';",
+    args: {},
+  };
+  const created = draftFromRecipe(snapshot);
+  assert.equal(created.prompt, "");
+  assert.deepEqual(automationWriteForDraft(created), {
+    title: "daily",
+    prompt: "",
+    recipeSnapshot: snapshot,
+  });
+  const existing = draftFromAutomation(makeAutomation({ prompt: "", recipeSnapshot: snapshot }));
+  assert.deepEqual(automationWriteForDraft({ ...existing, title: "New title" }), {
+    title: "New title",
+  });
+  assert.deepEqual(
+    automationWriteForDraft({
+      ...existing,
+      recipeSnapshot: { ...snapshot, script: "return 'second';" },
+      recipeVersionDirty: true,
+    }),
+    {
+      title: existing.title,
+      prompt: "",
+      recipeSnapshot: { ...snapshot, script: "return 'second';" },
+    },
+  );
+});
+
+test("malformed stored recipes remain title/time editable without prompt fallback", () => {
+  const draft = draftFromAutomation(
+    makeAutomation({ prompt: "", recipeSnapshotError: "invalid_recipe_snapshot" }),
+  );
+  assert.equal(draft.recipeSnapshotError, "invalid_recipe_snapshot");
+  assert.deepEqual(automationWriteForDraft(draft), { title: draft.title });
 });

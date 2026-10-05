@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HostMessageTypes } from "@social-harness/shared";
+import {
+  HostMessageTypes,
+  hostCronRunMessageSchema,
+  hostIncomingMessageSchema,
+} from "@social-harness/shared";
 import type { UtilityProcess } from "electron";
 import {
   routeCronDispatchRequest,
@@ -67,6 +71,31 @@ test("forwards the complete scheduled run context to the resolved Host", () => {
     },
   ]);
   assert.deepEqual(fixture.schedulerMessages, []);
+});
+
+test("the actual Main router passes empty account recipe dispatch through the strict Host union", () => {
+  const messages: unknown[] = [];
+  const fixture = createDeps({ postMessage: (message: unknown) => messages.push(message) } as Pick<
+    UtilityProcess,
+    "postMessage"
+  >);
+  routeCronDispatchRequest({ ...request, prompt: "" }, fixture.deps);
+  assert.equal(messages.length, 1);
+  assert.equal(hostCronRunMessageSchema.safeParse(messages[0]).success, true);
+  assert.equal(hostIncomingMessageSchema.safeParse(messages[0]).success, true);
+  for (const workspaceIdentity of [undefined, "generic", "social-account:"])
+    assert.equal(
+      hostCronRunMessageSchema.safeParse({ ...(messages[0] as object), workspaceIdentity }).success,
+      false,
+    );
+  assert.equal(
+    hostCronRunMessageSchema.safeParse({
+      ...(messages[0] as object),
+      workspaceIdentity: undefined,
+      prompt: "Legacy prompt",
+    }).success,
+    true,
+  );
 });
 
 test("returns a transient result when no local Host can accept the run", () => {

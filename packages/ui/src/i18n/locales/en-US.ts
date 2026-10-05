@@ -23,6 +23,11 @@ const enUS: Record<string, string> = {
   "socialAccounts.recipes.arguments": "Argument values (JSON)",
   "socialAccounts.recipes.reviewNotice":
     "Run these exact source bytes for this account. Actors follow the account permissions; publishing still follows its approval policy.",
+  "socialAccounts.recipes.scheduleReviewed": "Schedule reviewed version",
+  "socialAccounts.recipes.scheduleNotice":
+    "This schedule uses the exact reviewed script and arguments. Editing the recipe does not update it. Future runs change only after an explicit version replacement. Account tool permissions and publication approval still apply.",
+  "socialAccounts.recipes.pinnedVersion": "Approved script version",
+  "socialAccounts.recipes.replaceVersion": "Replace approved version",
   "socialAccounts.recipes.runReviewed": "Run reviewed version",
   "socialAccounts.recipes.invalidArguments":
     "Enter a valid JSON object of argument values within the 1 MiB recipe limit.",
@@ -5461,6 +5466,8 @@ const enUS: Record<string, string> = {
   "workflows.hub.launch.error.start_failed": "The workflow could not be started",
   "workflows.hub.launch.error.unsupported":
     "The current agent does not support running workflows directly",
+  "workflows.hub.launch.error.confirmation_unavailable":
+    "Admission confirmation is unavailable. The original conversation has been kept; inspect it before starting another run.",
   "workflows.hub.launch.error.generic": "The workflow could not be started",
   "workflows.hub.detail.tab.definition": "Definition",
   "workflows.hub.detail.tab.history": "Run history",

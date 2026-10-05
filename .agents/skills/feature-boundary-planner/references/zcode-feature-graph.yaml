@@ -678,7 +678,7 @@ nodes:
       - "Social account parents expose account Social Harness tools and seven restricted saved-workflow controls; actors retain social tools and safe engine controls. Neither registers generic programming or external MCP tools."
   - id: capability.social-account-recipes
     kind: capability
-    label: Account-owned saved script recipes and reviewed manual execution
+    label: Account-owned saved script recipes and fixed reviewed schedules
     aliases:
       - account recipes
       - saved workflow scripts
@@ -688,6 +688,8 @@ nodes:
         symbol: SocialAccountRecipesPanel
       - file: packages/ui/src/hooks/useSocialAccountRecipes.ts
         symbol: useSocialAccountRecipes
+      - file: packages/ui/src/hooks/useSocialAccountAutomations.ts
+        symbol: useSocialAccountAutomations
       - file: apps/zcode-cli/packages/core/src/runtime/methods/dynamic-workflow-run-start.ts
         symbol: startSavedWorkflowRun
     invariants:
@@ -703,6 +705,8 @@ nodes:
         symbol: SocialAccountRecipeReview
       - file: packages/ui/src/hooks/useSavedWorkflowLauncher.ts
         symbol: useSavedWorkflowLauncher
+      - file: packages/ui/src/hooks/savedWorkflowLaunchConfirmation.ts
+        symbol: confirmSavedWorkflowLaunch
   - id: service.account-recipe-definition
     kind: service
     label: Existing account-restricted async definition store and workspace save RPC
@@ -745,9 +749,11 @@ nodes:
         symbol: AutomationRepo
       - file: packages/desktop/src/host/accountRecipeCronDispatch.ts
         symbol: dispatchAccountRecipeOccurrence
+      - file: packages/services/src/zcode-agent/accountRecipeScheduleValidation.ts
+        symbol: validateAccountRecipeScheduleWrite
     invariants:
       - "The occurrence retains its reviewed snapshot and first bound parent. Later definition edits or ACKs cannot replace source, parent or terminal error."
-      - "The Host dispatches the owned occurrence through the existing engine; reviewed schedule authoring and complete restart recovery remain required."
+      - "The Host validates reviewed authoring before repository commit. Editing title/time omits source; explicit replacement affects future unclaimed occurrences. Complete restart recovery remains required."
   - id: service.social-project-service
     kind: service
     label: Host-owned social project documents and revisioned commands

@@ -123,7 +123,10 @@ export async function dispatchAccountRecipeOccurrence(params: {
           },
         }),
       });
+      // 异步回包必须对应原 occurrence；其他 command 的 ACK 不能确认启动或释放本次 claim。
+      const matchesOccurrence = ack.commandId === run.runId;
       if (
+        matchesOccurrence &&
         (ack.status === "accepted" || ack.status === "duplicate") &&
         ack.result?.type === "startSavedWorkflow"
       ) {
@@ -134,7 +137,9 @@ export async function dispatchAccountRecipeOccurrence(params: {
         }
         return result;
       }
-      rejected = ack.status === "rejected" || ack.status === "stale" || ack.status === "failed";
+      rejected =
+        matchesOccurrence &&
+        (ack.status === "rejected" || ack.status === "stale" || ack.status === "failed");
       throw new Error(ack.message ?? `Recipe admission ${ack.status}`);
     } catch (error) {
       // 网络异常不等于脚本未启动。先用同一父会话的 journal 对账，不能释放 claim 后用新 key 再运行。

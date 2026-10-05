@@ -2,6 +2,7 @@ import { CirclePlay, Clock3, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import type { ZCodeAutomation, ZCodeAutomationRun } from "@social-harness/shared";
 import { Button } from "@/components/ui/button.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import { SocialAccountRecipeSnapshot } from "./SocialAccountRecipeSnapshot.js";
 import {
   draftFromAutomation,
   formatDate,
@@ -13,11 +14,14 @@ import {
 export function SocialAccountAutomationList({
   automations,
   busyAutomationId,
+  busy,
   draft,
   expandedAutomationId,
   runsByAutomation,
   locale,
   onDraftChange,
+  onReplaceVersion,
+  onOpenConversation,
   onDelete,
   onLoadRuns,
   onRestart,
@@ -28,11 +32,14 @@ export function SocialAccountAutomationList({
 }: {
   automations: ZCodeAutomation[];
   busyAutomationId: string | null;
+  busy: boolean;
   draft: AutomationDraft | null;
   expandedAutomationId: string | null;
   runsByAutomation: Record<string, ZCodeAutomationRun[]>;
   locale: string;
   onDraftChange: (draft: AutomationDraft) => void;
+  onReplaceVersion: (automation: ZCodeAutomation) => void;
+  onOpenConversation: (sessionId: string) => void;
   onDelete: (automation: ZCodeAutomation) => void;
   onLoadRuns: (automationId: string, target: WorkspaceTarget) => void;
   onRestart: (automation: ZCodeAutomation) => void;
@@ -49,7 +56,7 @@ export function SocialAccountAutomationList({
       aria-label={intl.formatMessage({ id: "socialAccounts.automations.listTitle" })}
     >
       {automations.map((automation) => {
-        const isBusy = busyAutomationId === automation.automationId;
+        const isBusy = busy || busyAutomationId === automation.automationId;
         const expanded = expandedAutomationId === automation.automationId;
         const runs = runsByAutomation[automation.automationId] ?? [];
         return (
@@ -70,7 +77,7 @@ export function SocialAccountAutomationList({
                   </span>
                 </div>
                 <p className="mt-1 line-clamp-2 text-ui-sm text-foreground-subtle">
-                  {automation.prompt}
+                  {automation.recipeSnapshot?.meta.description ?? automation.prompt}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-ui-xs text-foreground-subtle">
                   <span className="inline-flex items-center gap-1">
@@ -95,6 +102,17 @@ export function SocialAccountAutomationList({
                 </div>
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-1">
+                {automation.recipeSnapshot ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isBusy || Boolean(draft)}
+                    onClick={() => onReplaceVersion(automation)}
+                  >
+                    {intl.formatMessage({ id: "socialAccounts.recipes.replaceVersion" })}
+                  </Button>
+                ) : null}
                 {automation.lifecycleStatus === "failed" ? (
                   <Button
                     type="button"
@@ -123,7 +141,7 @@ export function SocialAccountAutomationList({
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={isBusy}
+                  disabled={isBusy || Boolean(automation.recipeSnapshotError)}
                   onClick={() => onRunNow(automation)}
                 >
                   <CirclePlay aria-hidden="true" />
@@ -151,6 +169,17 @@ export function SocialAccountAutomationList({
                 </Button>
               </div>
             </div>
+            {automation.recipeSnapshot || automation.recipeSnapshotError ? (
+              <details className="text-ui-sm">
+                <summary className="cursor-pointer">
+                  {intl.formatMessage({ id: "socialAccounts.recipes.pinnedVersion" })}
+                </summary>
+                <SocialAccountRecipeSnapshot
+                  snapshot={automation.recipeSnapshot}
+                  invalid={Boolean(automation.recipeSnapshotError)}
+                />
+              </details>
+            ) : null}
             <div className="border-t border-border pt-2">
               <Button
                 type="button"
@@ -177,6 +206,32 @@ export function SocialAccountAutomationList({
                       <time dateTime={new Date(run.createdAt).toISOString()}>
                         {formatDate(run.createdAt, locale)}
                       </time>
+                      {run.error ? (
+                        <p className="w-full whitespace-pre-wrap break-words text-destructive">
+                          {run.error}
+                        </p>
+                      ) : null}
+                      {run.sessionId ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onOpenConversation(run.sessionId!)}
+                        >
+                          {intl.formatMessage({ id: "socialAccounts.recipes.openConversation" })}
+                        </Button>
+                      ) : null}
+                      {run.recipeSnapshot || run.recipeSnapshotError ? (
+                        <details className="w-full">
+                          <summary className="cursor-pointer">
+                            {intl.formatMessage({ id: "socialAccounts.recipes.pinnedVersion" })}
+                          </summary>
+                          <SocialAccountRecipeSnapshot
+                            snapshot={run.recipeSnapshot}
+                            invalid={Boolean(run.recipeSnapshotError)}
+                          />
+                        </details>
+                      ) : null}
                     </li>
                   ))}
                   {runs.length === 0 ? (

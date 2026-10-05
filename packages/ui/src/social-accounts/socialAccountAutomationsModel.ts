@@ -1,4 +1,5 @@
 import type {
+  ApprovedWorkflowSnapshot,
   ZCodeAutomation,
   ZCodeAutomationRun,
   ZCodeAutomationScheduleRule,
@@ -18,6 +19,40 @@ export interface AutomationDraft {
   weekday: number;
   scheduleEditable: boolean;
   scheduleDirty: boolean;
+  recipeSnapshot?: ApprovedWorkflowSnapshot;
+  recipeSnapshotError?: "invalid_recipe_snapshot";
+  recipeVersionDirty?: boolean;
+}
+
+export function isRecipeDraft(draft: AutomationDraft): boolean {
+  return Boolean(draft.recipeSnapshot || draft.recipeSnapshotError);
+}
+
+export function draftFromRecipe(recipeSnapshot: ApprovedWorkflowSnapshot): AutomationDraft {
+  return {
+    title: recipeSnapshot.name,
+    prompt: "",
+    mode: "plan",
+    frequency: "daily",
+    time: "09:00",
+    weekday: 1,
+    scheduleEditable: true,
+    scheduleDirty: true,
+    recipeSnapshot,
+    recipeVersionDirty: true,
+  };
+}
+
+/** 仅显式审阅替换才写 source；编辑时间/标题不能把展示投影误作新批准版本。 */
+export function automationWriteForDraft(draft: AutomationDraft) {
+  if (isRecipeDraft(draft))
+    return {
+      title: draft.title.trim(),
+      ...(draft.recipeVersionDirty && draft.recipeSnapshot
+        ? { prompt: "", recipeSnapshot: draft.recipeSnapshot }
+        : {}),
+    };
+  return { title: draft.title.trim(), prompt: draft.prompt.trim() };
 }
 
 export const WEEKDAY_MESSAGE_IDS = [
@@ -107,6 +142,10 @@ export function draftFromAutomation(automation: ZCodeAutomation): AutomationDraf
     weekday: Number.isInteger(weekday) && weekday >= 0 && weekday <= 6 ? weekday : 1,
     scheduleEditable: isSimpleSchedule(automation),
     scheduleDirty: false,
+    ...(automation.recipeSnapshot ? { recipeSnapshot: automation.recipeSnapshot } : {}),
+    ...(automation.recipeSnapshotError
+      ? { recipeSnapshotError: automation.recipeSnapshotError }
+      : {}),
   };
 }
 

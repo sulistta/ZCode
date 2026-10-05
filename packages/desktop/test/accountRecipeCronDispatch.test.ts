@@ -263,3 +263,55 @@ test("a confirmed rejection without an engine run disposes tracking", async (t) 
   await assert.rejects(dispatchAccountRecipeOccurrence(f.params), /Invalid recipe/);
   assert.equal(f.listeners.size, 0);
 });
+
+test("another command's accepted or rejected ACK cannot settle this occurrence", async (t) => {
+  for (const status of ["accepted", "rejected"] as const) {
+    const f = fixture(t);
+    f.params.agent.sendConversationCommandV4 = async () => ({
+      commandId: "another-occurrence",
+      status,
+      revisionAtDecision: 1,
+      ...(status === "accepted"
+        ? {
+            result: {
+              type: "startSavedWorkflow" as const,
+              runId: "other-engine",
+              toolCallId: "launch-other",
+            },
+          }
+        : { message: "Another command rejected" }),
+    });
+    await assert.rejects(
+      dispatchAccountRecipeOccurrence(f.params),
+      AccountRecipeAdmissionUncertainError,
+    );
+    assert.equal(f.listeners.size, 1);
+    assert.equal(
+      f.calls.some((call) => call.name === "release" || call.name === "discard"),
+      false,
+    );
+  }
+});
+
+test("owned journal evidence overrides another command's rejected ACK", async (t) => {
+  const f = fixture(t);
+  f.params.agent.sendConversationCommandV4 = async () => {
+    f.setRows([
+      {
+        runId: "engine",
+        toolCallId: `launch-${owner.runId}`,
+        status: "completed",
+        resumable: false,
+      },
+    ]);
+    return { commandId: "another-occurrence", status: "rejected", revisionAtDecision: 1 };
+  };
+  assert.equal((await dispatchAccountRecipeOccurrence(f.params)).sessionId, "new-parent");
+  assert.ok(
+    f.calls.some(
+      (call) =>
+        call.name === "outcome" && (call.value as { outcome: string }).outcome === "succeeded",
+    ),
+  );
+  assert.equal(f.listeners.size, 0);
+});

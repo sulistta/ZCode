@@ -1,8 +1,5 @@
-// 中枢「运行」的直接启动编排。
-// 不再合成对话文案：在目标项目里建一个空会话 → 向它发 startSavedWorkflow 命令 →
-// accepted 则导航到新会话（启动卡已在顶部）；rejected / 抛错则删掉空会话、把错误回给调用方
-// （实参窗行内 / toast），用户留在中枢。「失败在会话存在之前」（不变式 2）：createSession
-// 被拒时不发 start、不留会话；start 被拒时立即 deleteSession 收回刚建的空会话。
+// 空父会话 → 原 startSavedWorkflow command → ACK/journal 对账 → 原会话导航。
+// 只有确定拒绝才回收空会话，丢失 ACK 保留父会话并报告确认未知。
 import { useCallback, useRef, useState } from "react";
 import type { ApprovedWorkflowSnapshot } from "@social-harness/shared";
 import {
@@ -17,6 +14,7 @@ import {
   type WorkspaceConnectionAgentService,
 } from "@/v4/workspaceConnectionRegistry.js";
 import { logger } from "@/logger.js";
+import { confirmSavedWorkflowLaunch } from "./savedWorkflowLaunchConfirmation.js";
 
 /** 目标项目坐标（工作流所属项目，绝不取活动项目；不变式 7）；remoteSessionId 决定连接 endpoint。 */
 export interface SavedWorkflowLaunchTarget {
@@ -37,6 +35,7 @@ interface SavedWorkflowLaunchRequest {
 export type SavedWorkflowLaunchErrorReason =
   | SavedWorkflowStartRejectionReason
   | "unsupported"
+  | "confirmation_unavailable"
   | "generic";
 
 export interface SavedWorkflowLaunchError {
@@ -182,7 +181,8 @@ export function useSavedWorkflowLauncher(params: {
         createdSessionId = createAck.result.sessionId;
 
         // ② startSavedWorkflow：name / scope 定向查找 + 实参；无实参不带 args 键。
-        const startAck = await lease.transport.sendCommand(
+        const confirmation = await confirmSavedWorkflowLaunch(
+          lease.transport,
           createCommandEnvelope({
             type: "startSavedWorkflow",
             payload: {
@@ -197,23 +197,32 @@ export function useSavedWorkflowLauncher(params: {
             sessionId: createdSessionId,
           }),
         );
-        if (startAck.status === "accepted" && startAck.result?.type === "startSavedWorkflow") {
+        if (confirmation.state === "started") {
           // accepted：启动卡已在新会话顶部，切过去让它活起来（无导航载体时静默启动，不切页）。
           onNavigate?.(target, createdSessionId);
           return {
             ok: true,
             sessionId: createdSessionId,
-            runId: startAck.result.runId,
-            toolCallId: startAck.result.toolCallId,
+            runId: confirmation.runId,
+            toolCallId: confirmation.toolCallId,
           };
         }
         // 启动被拒 / 失败：收回刚建的空会话（不变式 2），把原因回给实参窗 / toast。
+        if (confirmation.state === "uncertain") {
+          const err: SavedWorkflowLaunchError = {
+            reason: "confirmation_unavailable",
+            code: "confirmation_unavailable",
+          };
+          setError(err);
+          onNavigate?.(target, createdSessionId);
+          return { ok: false, error: err };
+        }
         deleteCreatedSession(createdSessionId);
-        const err = mapLaunchError(startAck);
+        const err = mapLaunchError(confirmation.ack);
         setError(err);
         return { ok: false, error: err };
       } catch (thrown) {
-        if (createdSessionId) deleteCreatedSession(createdSessionId);
+        // 本地回调异常也不能证明启动被拒；只有上面的确定拒绝能回收空父会话。
         const err: SavedWorkflowLaunchError = {
           reason: "generic",
           code: "exception",

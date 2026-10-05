@@ -951,6 +951,9 @@ async function dispatchCronRun(request: CronRunDispatchRequest): Promise<{
   ) {
     throw new Error("Automation occurrence is unavailable for this workspace.");
   }
+  // 传输允许账户配方的空 prompt，但不能把 NULL 快照的旧计划推断成配方并建立空会话。
+  if (!existingRun.recipeSnapshot && !existingRun.recipeSnapshotError && !request.prompt.trim())
+    throw new Error("Prompt automation instructions are empty; no recipe occurrence is available.");
   const resolvedSubmissionModelSelection = await resolveAutomationSubmissionModelSelection({
     selection: request.modelSelection,
     fixedSelection: existingRun?.modelSelection,

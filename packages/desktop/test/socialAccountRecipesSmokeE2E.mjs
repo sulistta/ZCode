@@ -18,6 +18,13 @@ import {
   createAndRunAccountRecipe,
   verifyAccountRecipeAfterRelaunch,
 } from "./socialAccountRecipesE2E.mjs";
+import {
+  createAndRunPinnedRecipeSchedule,
+  replaceAndRunRecipeSchedule,
+  verifyAutomaticRecipeOccurrence,
+} from "./socialAccountRecipeSchedulesE2E.mjs";
+import { DatabaseSync } from "node:sqlite";
+import { AutomationRepo } from "@social-harness/services/node";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const vitePort = await reserveVitePort();
@@ -70,9 +77,42 @@ try {
   await configureLocalMockProvider(settingsDir, mock.baseUrl);
   await start();
   await createAndRunAccountRecipe(page);
+  const { firstScript } = await createAndRunPinnedRecipeSchedule(page);
+  const { secondScript } = await replaceAndRunRecipeSchedule(page);
+  const repo = new AutomationRepo(join(settingsDir, "tasks-index.sqlite"));
+  try {
+    await verifyAutomaticRecipeOccurrence(page, repo);
+  } finally {
+    repo.close();
+  }
   await stop();
+  const database = new DatabaseSync(join(settingsDir, "tasks-index.sqlite"), { readOnly: true });
+  try {
+    const schedule = database
+      .prepare("SELECT automation_id, recipe_snapshot FROM automations WHERE title = ?")
+      .get("Renamed pinned schedule");
+    assert.ok(schedule);
+    assert.equal(JSON.parse(schedule.recipe_snapshot).script, secondScript);
+    const runs = database
+      .prepare(
+        "SELECT recipe_snapshot, outcome FROM automation_runs WHERE automation_id = ? AND trigger = 'manual' ORDER BY created_at ASC",
+      )
+      .all(schedule.automation_id);
+    assert.equal(runs.length, 2);
+    assert.deepEqual(
+      runs.map((run) => JSON.parse(run.recipe_snapshot).script),
+      [firstScript, secondScript],
+    );
+    assert.deepEqual(
+      runs.map((run) => run.outcome),
+      ["succeeded", "succeeded"],
+    );
+  } finally {
+    database.close();
+  }
   await start();
   await verifyAccountRecipeAfterRelaunch(page);
+  await page.getByRole("heading", { name: "Renamed pinned schedule", exact: true }).waitFor();
   await page.getByRole("button", { name: "Create account", exact: true }).click();
   await page.getByLabel("Account name").fill(`Second ${runId}`);
   await page.getByLabel("Niche").fill("Second isolated recipe account");
@@ -89,10 +129,14 @@ try {
     .getByText("No saved script recipes in this account yet.", { exact: true })
     .waitFor();
   assert.equal(await recipes.getByRole("heading", { name: "reviewed-daily" }).count(), 0);
+  assert.equal(
+    await page.getByRole("heading", { name: "Renamed pinned schedule", exact: true }).count(),
+    0,
+  );
   await stop();
   succeeded = true;
   console.log(
-    "Social Harness account recipe editor, runtime, history, relaunch and isolation Electron E2E passed.",
+    "Social Harness reviewed recipes, pinned schedule replacement, engine history, relaunch and account isolation Electron E2E passed.",
   );
 } finally {
   await browser?.close().catch(() => undefined);

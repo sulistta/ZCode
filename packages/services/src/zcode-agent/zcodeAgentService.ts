@@ -307,6 +307,7 @@ import {
 } from "./zcodeAgentConnectionScope.js";
 import { createBackgroundSessionEventCoalescer } from "#src/zcode-agent/zcodeSessionEventCoalescer.js";
 import { AutomationService } from "#src/session/automationService.js";
+import { validateAccountRecipeScheduleWrite } from "./accountRecipeScheduleValidation.js";
 import { AutomationRepo } from "#src/session/automationRepo.js";
 import { TaskIndexRepo } from "#src/session/taskIndexRepo.js";
 import { ZCodeAgentMcpStatusModeUnsupportedError } from "#src/zcode-agent/zcodeAgentErrors.js";
@@ -3264,6 +3265,15 @@ export function createZCodeAgentService(
     return resolveGlobalSavedWorkflowCarrier();
   }
 
+  async function validateSavedWorkflow(params: ZCodeAgentValidateSavedWorkflowParams) {
+    const { client, workspace } = await resolveSavedWorkflowCarrier(params);
+    return client.request(
+      zcodeProtocolMethods.workflowsValidate,
+      { workspace, approvedSnapshot: params.approvedSnapshot },
+      zcodeWorkflowsValidateResultSchema,
+    );
+  }
+
   // mcp/list 专用：与插件管理命令隔离进程，见 mcpStatusProcessManager 处的说明。
   async function getMcpStatusClient(): Promise<ZCodeProtocolClient> {
     const workspace = { workspacePath: ensurePluginManagementWorkspacePath() };
@@ -4073,14 +4083,7 @@ export function createZCodeAgentService(
       );
     },
 
-    async validateSavedWorkflow(params: ZCodeAgentValidateSavedWorkflowParams) {
-      const { client, workspace } = await resolveSavedWorkflowCarrier(params);
-      return client.request(
-        zcodeProtocolMethods.workflowsValidate,
-        { workspace, approvedSnapshot: params.approvedSnapshot },
-        zcodeWorkflowsValidateResultSchema,
-      );
-    },
+    validateSavedWorkflow,
 
     async deleteSavedWorkflow(params: ZCodeAgentDeleteSavedWorkflowParams) {
       const { client, workspace } = await resolveSavedWorkflowCarrier(params);
@@ -4378,11 +4381,17 @@ export function createZCodeAgentService(
     },
 
     async createAutomation(params: ZCodeAgentCreateAutomationParams) {
+      await assertSocialAccountWorkspace(params);
+      const recipeSnapshot = await validateAccountRecipeScheduleWrite({
+        ...params,
+        validate: validateSavedWorkflow,
+      });
       return automationService.create({
         title: params.title,
         cronExpr: params.cronExpr,
         relativeDelayMinutes: params.relativeDelayMinutes,
         prompt: params.prompt,
+        ...(recipeSnapshot ? { recipeSnapshot } : {}),
         modelSelection: params.modelSelection,
         mode: params.mode as ZCodeTaskMode | undefined,
         workspacePath: params.workspacePath,
@@ -4395,12 +4404,21 @@ export function createZCodeAgentService(
     },
 
     async updateAutomation(params: ZCodeAgentUpdateAutomationParams) {
+      await assertSocialAccountWorkspace(params);
+      const existing = await automationService.get(params.automationId, params);
+      if (!existing) return null;
+      const recipeSnapshot = await validateAccountRecipeScheduleWrite({
+        ...params,
+        existing,
+        validate: validateSavedWorkflow,
+      });
       return automationService.update(
         params.automationId,
         {
           title: params.title,
           cronExpr: params.cronExpr,
           prompt: params.prompt,
+          ...(recipeSnapshot ? { recipeSnapshot } : {}),
           modelSelection: params.modelSelection,
           mode: params.mode === null ? null : (params.mode as ZCodeTaskMode | undefined),
           recurring: params.recurring,

@@ -8,7 +8,9 @@ import {
   WEEKDAY_MESSAGE_IDS,
   type AutomationDraft,
   type AutomationFrequency,
+  isRecipeDraft,
 } from "./socialAccountAutomationsModel.js";
+import { SocialAccountRecipeSnapshot } from "./SocialAccountRecipeSnapshot.js";
 
 export function SocialAccountAutomationForm({
   draft,
@@ -16,12 +18,14 @@ export function SocialAccountAutomationForm({
   onDraftChange,
   onSave,
   onCancel,
+  accountName,
 }: {
   draft: AutomationDraft;
   isSaving: boolean;
   onDraftChange: (draft: AutomationDraft) => void;
   onSave: () => void;
   onCancel: () => void;
+  accountName: string;
 }) {
   const { intl } = useZCodeIntl();
   const weekdayOptions = useMemo(
@@ -45,19 +49,20 @@ export function SocialAccountAutomationForm({
           </h2>
           <p className="mt-1 text-ui-sm text-foreground-subtle">
             {intl.formatMessage({
-              id:
-                draft.mode === "build"
+              id: isRecipeDraft(draft)
+                ? "socialAccounts.recipes.scheduleNotice"
+                : draft.mode === "build"
                   ? "socialAccounts.automations.form.policyNoticeBuild"
                   : "socialAccounts.automations.form.policyNoticePlan",
             })}
           </p>
         </div>
-        <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+        <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={isSaving}>
           {intl.formatMessage({ id: "common.cancel" })}
         </Button>
       </div>
 
-      {!draft.automationId ? (
+      {!draft.automationId && !isRecipeDraft(draft) ? (
         <div className="grid gap-2 sm:grid-cols-2">
           {AUTOMATION_TEMPLATES.map((template) => (
             <button
@@ -92,15 +97,23 @@ export function SocialAccountAutomationForm({
           onChange={(event) => onDraftChange({ ...draft, title: event.currentTarget.value })}
         />
       </label>
-      <label className="grid gap-1.5 text-ui-sm font-medium">
-        {intl.formatMessage({ id: "socialAccounts.automations.form.instructions" })}
-        <Textarea
-          value={draft.prompt}
-          rows={6}
-          maxLength={12_000}
-          onChange={(event) => onDraftChange({ ...draft, prompt: event.currentTarget.value })}
+      {isRecipeDraft(draft) ? (
+        <SocialAccountRecipeSnapshot
+          snapshot={draft.recipeSnapshot}
+          invalid={Boolean(draft.recipeSnapshotError)}
+          accountName={accountName}
         />
-      </label>
+      ) : (
+        <label className="grid gap-1.5 text-ui-sm font-medium">
+          {intl.formatMessage({ id: "socialAccounts.automations.form.instructions" })}
+          <Textarea
+            value={draft.prompt}
+            rows={6}
+            maxLength={12_000}
+            onChange={(event) => onDraftChange({ ...draft, prompt: event.currentTarget.value })}
+          />
+        </label>
+      )}
 
       <div className="grid gap-3 rounded-md border border-border bg-background-alt p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px]">
         {draft.scheduleEditable ? (
@@ -180,13 +193,15 @@ export function SocialAccountAutomationForm({
         )}
       </div>
       <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSaving}>
           {intl.formatMessage({ id: "common.cancel" })}
         </Button>
         <Button
           type="button"
           onClick={onSave}
-          disabled={isSaving || !draft.title.trim() || !draft.prompt.trim()}
+          disabled={
+            isSaving || !draft.title.trim() || (!isRecipeDraft(draft) && !draft.prompt.trim())
+          }
         >
           {intl.formatMessage({
             id: draft.automationId

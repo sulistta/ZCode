@@ -14,6 +14,7 @@ import { isKnownRemoteResourcePackageId } from "./remoteResourcePackages.js";
 import { zcodeProviderSchema } from "./providers.js";
 import { zcodeAgentProviderSchema } from "./zcode-agent-policy.js";
 import { modelSelectionSchema } from "./model-selection.js";
+import { parseSocialAccountWorkspaceIdentity } from "./social-account.js";
 import { providerProvisioningTriggerSchema } from "./provider-provisioning.js";
 import {
   zcodeMcpTelemetryEventSchema,
@@ -364,17 +365,25 @@ export const hostFeedbackLogArchiveResultMessageSchema = z.object({
 
 // main → host：定时任务到点派发。会话内 cron 带 targetTaskId 时直接 sendPrompt 到当前会话；
 // 历史未绑定任务才 fallback createTask + sendPrompt 建 session。
-export const hostCronRunMessageSchema = z.object({
-  type: z.literal("cron-run"),
-  automationId: nonEmptyStringSchema,
-  runId: nonEmptyStringSchema,
-  workspacePath: nonEmptyStringSchema,
-  workspaceIdentity: z.string().optional(),
-  prompt: nonEmptyStringSchema,
-  targetTaskId: nonEmptyStringSchema.optional(),
-  modelSelection: modelSelectionSchema.optional(),
-  mode: z.string().optional(),
-});
+export const hostCronRunMessageSchema = z
+  .object({
+    type: z.literal("cron-run"),
+    automationId: nonEmptyStringSchema,
+    runId: nonEmptyStringSchema,
+    workspacePath: nonEmptyStringSchema,
+    workspaceIdentity: z.string().optional(),
+    prompt: z.string(),
+    targetTaskId: nonEmptyStringSchema.optional(),
+    modelSelection: modelSelectionSchema.optional(),
+    mode: z.string().optional(),
+  })
+  .refine(
+    // 旧的非空 prompt guard 丢弃了定时配方消息；仅放行 canonical 账户的空 prompt，source 仍由 Host 从已认领 run 读取。
+    (message) =>
+      message.prompt.length > 0 ||
+      Boolean(parseSocialAccountWorkspaceIdentity(message.workspaceIdentity)),
+    "Empty automation prompts require an account-owned recipe occurrence",
+  );
 
 // main → host：闲时任务派发（仿 cron-run，字段独立不复用）。首跑不带 conversationId/sessionId，
 // host createTask 新建 session；3h 续跑 / 中断恢复带上两者 resume 同一会话。

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { SocialAccount } from "@social-harness/shared";
+import type { ApprovedWorkflowSnapshot, SocialAccount } from "@social-harness/shared";
 import type { SocialAccountService } from "@social-harness/services";
 import { Button } from "@/components/ui/button.js";
 import {
@@ -19,10 +19,14 @@ export function SocialAccountRecipesPanel({
   account,
   accountService,
   onOpenConversation,
+  onSchedule,
+  scheduleDisabled = false,
 }: {
   account: SocialAccount;
   accountService: SocialAccountService;
   onOpenConversation: (sessionId: string) => void;
+  onSchedule?: (snapshot: ApprovedWorkflowSnapshot) => void;
+  scheduleDisabled?: boolean;
 }) {
   const { intl, locale } = useZCodeIntl();
   const model = useSocialAccountRecipes({ account, accountService, onOpenConversation });
@@ -94,6 +98,15 @@ export function SocialAccountRecipesPanel({
           accountName={account.displayName}
           busy={model.busy}
           onRun={(snapshot) => void model.run(snapshot)}
+          onSchedule={
+            onSchedule
+              ? (snapshot) => {
+                  setReview(null);
+                  onSchedule(snapshot);
+                }
+              : undefined
+          }
+          scheduleDisabled={scheduleDisabled}
           onCancel={() => setReview(null)}
         />
       ) : null}

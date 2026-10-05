@@ -13,12 +13,16 @@ export function SocialAccountRecipeReview({
   accountName,
   busy,
   onRun,
+  onSchedule,
+  scheduleDisabled = false,
   onCancel,
 }: {
   recipe: AccountRecipeDraft;
   accountName: string;
   busy: boolean;
-  onRun: (snapshot: ApprovedWorkflowSnapshot) => void;
+  onRun?: (snapshot: ApprovedWorkflowSnapshot) => void;
+  onSchedule?: (snapshot: ApprovedWorkflowSnapshot) => void;
+  scheduleDisabled?: boolean;
   onCancel: () => void;
 }) {
   const { intl } = useZCodeIntl();
@@ -26,6 +30,21 @@ export function SocialAccountRecipeReview({
   const message = (key: string) => intl.formatMessage({ id: `socialAccounts.recipes.${key}` });
   const [args, setArgs] = useState("{}");
   const [invalid, setInvalid] = useState(false);
+  const submit = (action: (snapshot: ApprovedWorkflowSnapshot) => void) => {
+    let snapshot;
+    try {
+      snapshot = approvedWorkflowSnapshotSchema.parse({
+        ...recipe,
+        schemaVersion: 1,
+        args: JSON.parse(args),
+      });
+    } catch {
+      setInvalid(true);
+      return;
+    }
+    setInvalid(false);
+    action(snapshot);
+  };
   return (
     <section
       aria-label={message("reviewTitle")}
@@ -61,27 +80,21 @@ export function SocialAccountRecipeReview({
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          disabled={busy}
-          onClick={() => {
-            let snapshot;
-            try {
-              snapshot = approvedWorkflowSnapshotSchema.parse({
-                ...recipe,
-                schemaVersion: 1,
-                args: JSON.parse(args),
-              });
-            } catch {
-              setInvalid(true);
-              return;
-            }
-            setInvalid(false);
-            onRun(snapshot);
-          }}
-        >
-          {message("runReviewed")}
-        </Button>
+        {onRun ? (
+          <Button type="button" disabled={busy} onClick={() => submit(onRun)}>
+            {message("runReviewed")}
+          </Button>
+        ) : null}
+        {onSchedule ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy || scheduleDisabled}
+            onClick={() => submit(onSchedule)}
+          >
+            {message("scheduleReviewed")}
+          </Button>
+        ) : null}
         <Button type="button" variant="outline" onClick={onCancel} disabled={busy}>
           {intl.formatMessage({ id: "common.cancel" })}
         </Button>

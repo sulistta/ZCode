@@ -1,21 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
 import { CalendarClock, Plus } from "lucide-react";
-import type { SocialAccount, ZCodeAutomation, ZCodeAutomationRun } from "@social-harness/shared";
+import type { SocialAccount } from "@social-harness/shared";
 import type { SocialAccountService } from "@social-harness/services";
 import { Button } from "@/components/ui/button.js";
-import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
-import { useServices } from "@/hooks/useServices.js";
+import { useSocialAccountAutomations } from "@/hooks/useSocialAccountAutomations.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { SocialAccountAutomationForm } from "./SocialAccountAutomationForm.js";
 import { SocialAccountAutomationList } from "./SocialAccountAutomationList.js";
 import { SocialAccountAutomationNotices } from "./SocialAccountAutomationNotices.js";
 import { SocialAccountRecipesPanel } from "./SocialAccountRecipesPanel.js";
-import {
-  AUTOMATION_TEMPLATES,
-  scheduleForDraft,
-  type AutomationDraft,
-  type WorkspaceTarget,
-} from "./socialAccountAutomationsModel.js";
+import { SocialAccountRecipeReview } from "./SocialAccountRecipeReview.js";
+import { AUTOMATION_TEMPLATES } from "./socialAccountAutomationsModel.js";
 
 export function SocialAccountAutomationsHome({
   account,
@@ -27,262 +21,31 @@ export function SocialAccountAutomationsHome({
   onOpenConversation: (sessionId: string) => void;
 }) {
   const { intl, locale } = useZCodeIntl();
-  const { zcodeAgentService } = useServices();
-  const confirmDialog = useConfirmDialog();
-  const [workspaceTarget, setWorkspaceTarget] = useState<WorkspaceTarget | null>(null);
-  const [automations, setAutomations] = useState<ZCodeAutomation[]>([]);
-  const [runsByAutomation, setRunsByAutomation] = useState<Record<string, ZCodeAutomationRun[]>>(
-    {},
-  );
-  const [expandedAutomationId, setExpandedAutomationId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<AutomationDraft | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [busyAutomationId, setBusyAutomationId] = useState<string | null>(null);
-  const [loadFailed, setLoadFailed] = useState(false);
-  const [workspaceUnavailable, setWorkspaceUnavailable] = useState(false);
-  const [actionFailed, setActionFailed] = useState(false);
-  const [noticeId, setNoticeId] = useState<string | null>(null);
-
-  const loadAutomations = useCallback(
-    async (target: WorkspaceTarget, showSpinner = false) => {
-      if (showSpinner) setIsLoading(true);
-      try {
-        // Account-scoped view must never use listAllAutomations: the Host-derived target is the boundary.
-        const items = await zcodeAgentService.listAutomations(target);
-        setAutomations(items);
-        setLoadFailed(false);
-      } catch {
-        setLoadFailed(true);
-      } finally {
-        if (showSpinner) setIsLoading(false);
-      }
-    },
-    [zcodeAgentService],
-  );
-
-  useEffect(() => {
-    let active = true;
-    setWorkspaceTarget(null);
-    setWorkspaceUnavailable(false);
-    setLoadFailed(false);
-    setIsLoading(true);
-    void accountService
-      .resolveConversationWorkspace(account.accountId)
-      .then((workspace) => {
-        if (!active) return;
-        if (!workspace || workspace.workspaceIdentity !== account.workspaceIdentity) {
-          setWorkspaceUnavailable(true);
-          setIsLoading(false);
-          return;
-        }
-        const target = {
-          workspacePath: workspace.workspacePath,
-          workspaceIdentity: workspace.workspaceIdentity,
-        };
-        setWorkspaceTarget(target);
-        void loadAutomations(target, true);
-      })
-      .catch(() => {
-        if (active) {
-          setWorkspaceUnavailable(true);
-          setIsLoading(false);
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [account.accountId, account.workspaceIdentity, accountService, loadAutomations]);
-
-  useEffect(() => {
-    if (!workspaceTarget) return;
-    const poll = setInterval(() => void loadAutomations(workspaceTarget), 15_000);
-    return () => clearInterval(poll);
-  }, [loadAutomations, workspaceTarget]);
-
-  const loadRuns = useCallback(
-    async (automationId: string, target: WorkspaceTarget) => {
-      try {
-        const runs = await zcodeAgentService.listAutomationRuns({ ...target, automationId });
-        setRunsByAutomation((current) => ({ ...current, [automationId]: runs }));
-      } catch {
-        setActionFailed(true);
-      }
-    },
-    [zcodeAgentService],
-  );
-
-  const startCreate = useCallback(
-    (template?: (typeof AUTOMATION_TEMPLATES)[number]) => {
-      setActionFailed(false);
-      setNoticeId(null);
-      setDraft({
-        title: template ? intl.formatMessage({ id: template.titleId }) : "",
-        prompt: template?.prompt ?? "",
-        mode: template?.mode ?? "plan",
-        frequency: "daily",
-        time: "09:00",
-        weekday: 1,
-        scheduleEditable: true,
-        scheduleDirty: true,
-      });
-    },
-    [intl],
-  );
-
-  const saveDraft = useCallback(async () => {
-    if (!workspaceTarget || !draft || !draft.title.trim() || !draft.prompt.trim()) return;
-    setIsSaving(true);
-    setActionFailed(false);
-    setNoticeId(null);
-    try {
-      const schedule = scheduleForDraft(draft);
-      if (draft.automationId) {
-        const result = await zcodeAgentService.updateAutomation({
-          ...workspaceTarget,
-          automationId: draft.automationId,
-          title: draft.title.trim(),
-          prompt: draft.prompt.trim(),
-          ...(draft.scheduleDirty ? schedule : {}),
-          ...(draft.scheduleDirty ? { scheduleEditedByUser: true } : {}),
-        });
-        if (!result) throw new Error("Account automation no longer exists.");
-      } else {
-        await zcodeAgentService.createAutomation({
-          ...workspaceTarget,
-          title: draft.title.trim(),
-          prompt: draft.prompt.trim(),
-          ...schedule,
-          recurring: true,
-          mode: draft.mode,
-        });
-        setNoticeId("socialAccounts.automations.created");
-      }
-      setDraft(null);
-      await loadAutomations(workspaceTarget);
-    } catch {
-      setActionFailed(true);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [draft, loadAutomations, workspaceTarget, zcodeAgentService]);
-
-  const toggleEnabled = useCallback(
-    async (automation: ZCodeAutomation) => {
-      if (!workspaceTarget) return;
-      setBusyAutomationId(automation.automationId);
-      setActionFailed(false);
-      try {
-        await zcodeAgentService.setAutomationEnabled({
-          ...workspaceTarget,
-          automationId: automation.automationId,
-          enabled: !automation.enabled,
-        });
-        await loadAutomations(workspaceTarget);
-      } catch {
-        setActionFailed(true);
-      } finally {
-        setBusyAutomationId(null);
-      }
-    },
-    [loadAutomations, workspaceTarget, zcodeAgentService],
-  );
-
-  const restart = useCallback(
-    async (automation: ZCodeAutomation) => {
-      if (!workspaceTarget) return;
-      setBusyAutomationId(automation.automationId);
-      setActionFailed(false);
-      try {
-        await zcodeAgentService.restartAutomation({
-          ...workspaceTarget,
-          automationId: automation.automationId,
-        });
-        await loadAutomations(workspaceTarget);
-      } catch {
-        setActionFailed(true);
-      } finally {
-        setBusyAutomationId(null);
-      }
-    },
-    [loadAutomations, workspaceTarget, zcodeAgentService],
-  );
-
-  const runNow = useCallback(
-    async (automation: ZCodeAutomation) => {
-      if (!workspaceTarget) return;
-      setBusyAutomationId(automation.automationId);
-      setActionFailed(false);
-      setNoticeId(null);
-      try {
-        const result = await zcodeAgentService.runAutomationNow({
-          ...workspaceTarget,
-          automationId: automation.automationId,
-        });
-        setNoticeId(
-          result.status === "queued"
-            ? "socialAccounts.automations.runNowQueued"
-            : "socialAccounts.automations.runNowDuplicate",
-        );
-        await Promise.all([
-          loadAutomations(workspaceTarget),
-          loadRuns(automation.automationId, workspaceTarget),
-        ]);
-      } catch {
-        setActionFailed(true);
-      } finally {
-        setBusyAutomationId(null);
-      }
-    },
-    [loadAutomations, loadRuns, workspaceTarget, zcodeAgentService],
-  );
-
-  const deleteAutomation = useCallback(
-    async (automation: ZCodeAutomation) => {
-      if (!workspaceTarget) return;
-      const confirmed = await confirmDialog({
-        presentation: "automation-confirmation",
-        title: intl.formatMessage({ id: "automations.delete.title" }),
-        description: intl.formatMessage(
-          { id: "automations.delete.description" },
-          { title: automation.title },
-        ),
-        confirmLabel: intl.formatMessage({ id: "common.delete" }),
-        confirmVariant: "destructive",
-        showKeyboardHints: false,
-      });
-      if (!confirmed) return;
-      setBusyAutomationId(automation.automationId);
-      setActionFailed(false);
-      try {
-        await zcodeAgentService.deleteAutomation({
-          ...workspaceTarget,
-          automationId: automation.automationId,
-        });
-        setRunsByAutomation((current) => {
-          const next = { ...current };
-          delete next[automation.automationId];
-          return next;
-        });
-        if (expandedAutomationId === automation.automationId) setExpandedAutomationId(null);
-        if (draft?.automationId === automation.automationId) setDraft(null);
-        await loadAutomations(workspaceTarget);
-      } catch {
-        setActionFailed(true);
-      } finally {
-        setBusyAutomationId(null);
-      }
-    },
-    [
-      confirmDialog,
-      draft?.automationId,
-      expandedAutomationId,
-      intl,
-      loadAutomations,
-      workspaceTarget,
-      zcodeAgentService,
-    ],
-  );
+  const model = useSocialAccountAutomations(account, accountService);
+  const {
+    workspaceTarget,
+    automations,
+    runsByAutomation,
+    expandedAutomationId,
+    setExpandedAutomationId,
+    draft,
+    setDraft,
+    isLoading,
+    isSaving,
+    busyAutomationId,
+    loadFailed,
+    workspaceUnavailable,
+    actionFailed,
+    noticeId,
+    loadAutomations,
+    loadRuns,
+    startCreate,
+    saveDraft,
+    toggleEnabled,
+    restart,
+    runNow,
+    deleteAutomation,
+  } = model;
 
   return (
     <div className="mx-auto grid max-w-4xl gap-5 pb-8">
@@ -313,7 +76,7 @@ export function SocialAccountAutomationsHome({
         <Button
           type="button"
           onClick={() => startCreate()}
-          disabled={!workspaceTarget || Boolean(draft)}
+          disabled={!workspaceTarget || Boolean(draft || model.replacement) || isSaving}
         >
           <Plus aria-hidden="true" />
           {intl.formatMessage({ id: "socialAccounts.automations.create" })}
@@ -324,6 +87,8 @@ export function SocialAccountAutomationsHome({
         account={account}
         accountService={accountService}
         onOpenConversation={onOpenConversation}
+        onSchedule={(snapshot) => void model.prepareRecipe(snapshot)}
+        scheduleDisabled={Boolean(draft || model.replacement) || isSaving}
       />
 
       <SocialAccountAutomationNotices
@@ -334,10 +99,26 @@ export function SocialAccountAutomationsHome({
         workspaceUnavailable={workspaceUnavailable}
       />
 
+      {model.actionError ? (
+        <p role="alert" className="text-ui-sm text-destructive whitespace-pre-wrap break-words">
+          {model.actionError}
+        </p>
+      ) : null}
+      {model.replacement ? (
+        <SocialAccountRecipeReview
+          key={model.replacement.automation.automationId}
+          recipe={model.replacement.recipe}
+          accountName={account.displayName}
+          busy={isSaving}
+          onSchedule={(snapshot) => void model.prepareRecipe(snapshot)}
+          onCancel={() => model.setReplacement(null)}
+        />
+      ) : null}
       {draft ? (
         <SocialAccountAutomationForm
           draft={draft}
           isSaving={isSaving}
+          accountName={account.displayName}
           onDraftChange={setDraft}
           onSave={() => void saveDraft()}
           onCancel={() => setDraft(null)}
@@ -378,11 +159,14 @@ export function SocialAccountAutomationsHome({
         <SocialAccountAutomationList
           automations={automations}
           busyAutomationId={busyAutomationId}
+          busy={isSaving}
           draft={draft}
           expandedAutomationId={expandedAutomationId}
           runsByAutomation={runsByAutomation}
           locale={locale}
           onDraftChange={setDraft}
+          onReplaceVersion={(automation) => void model.replaceVersion(automation)}
+          onOpenConversation={onOpenConversation}
           onDelete={(automation) => void deleteAutomation(automation)}
           onLoadRuns={(automationId, target) => void loadRuns(automationId, target)}
           onRestart={(automation) => void restart(automation)}

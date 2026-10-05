@@ -39,9 +39,17 @@ export function useSocialAccountRecipes({
   const generation = useRef(0);
   const action = useRef(false);
   const readRequest = useRef(0);
+  const navigationTarget = useRef<SavedWorkflowLaunchTarget | null>(null);
   const launcher = useSavedWorkflowLauncher({
     agentService: zcodeAgentService,
-    onNavigate: (_target, sessionId) => onOpenConversation(sessionId),
+    onNavigate: (workspace, sessionId) => {
+      // 切换账户后旧 ACK 不能改变当前导航；执行仍归原账户的 Host/journal。
+      if (
+        navigationTarget.current?.workspaceIdentity === workspace.workspaceIdentity &&
+        navigationTarget.current?.workspacePath === workspace.workspacePath
+      )
+        onOpenConversation(sessionId);
+    },
   });
 
   const read = useCallback(
@@ -76,6 +84,7 @@ export function useSocialAccountRecipes({
         workspaceIdentity: workspace.workspaceIdentity,
       };
       setTarget(resolved);
+      navigationTarget.current = resolved;
       await read(resolved, revision);
     })()
       .catch(() => {
@@ -86,6 +95,7 @@ export function useSocialAccountRecipes({
       });
     return () => {
       generation.current++;
+      navigationTarget.current = null;
     };
   }, [account.accountId, account.workspaceIdentity, accountService, read]);
 

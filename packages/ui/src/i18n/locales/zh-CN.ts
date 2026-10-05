@@ -20,6 +20,11 @@ const zhCN: Record<string, string> = {
   "socialAccounts.recipes.arguments": "参数值（JSON）",
   "socialAccounts.recipes.reviewNotice":
     "为此账户执行当前审阅的脚本。子代理遵守账户权限，发布仍需遵守审批策略。",
+  "socialAccounts.recipes.scheduleReviewed": "安排已审阅版本",
+  "socialAccounts.recipes.scheduleNotice":
+    "此计划使用已审阅的脚本和参数。编辑配方不会更新计划；只有明确替换批准版本后，未来执行才会改变。账户工具权限和发布审批仍然生效。",
+  "socialAccounts.recipes.pinnedVersion": "已批准的脚本版本",
+  "socialAccounts.recipes.replaceVersion": "替换批准版本",
   "socialAccounts.recipes.runReviewed": "运行已审阅版本",
   "socialAccounts.recipes.invalidArguments":
     "请输入有效的 JSON 参数对象，配方总大小不得超过 1 MiB。",
@@ -5157,6 +5162,8 @@ const zhCN: Record<string, string> = {
   "workflows.hub.launch.error.session_busy": "会话忙，请重试",
   "workflows.hub.launch.error.start_failed": "工作流启动失败",
   "workflows.hub.launch.error.unsupported": "当前 agent 不支持直接启动工作流",
+  "workflows.hub.launch.error.confirmation_unavailable":
+    "无法确认脚本是否已接受。原会话已保留；请先检查它，不要另起重复执行。",
   "workflows.hub.launch.error.generic": "工作流启动失败",
   "workflows.hub.detail.tab.definition": "定义",
   "workflows.hub.detail.tab.history": "运行历史",

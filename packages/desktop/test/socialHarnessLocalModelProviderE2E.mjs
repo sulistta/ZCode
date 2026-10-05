@@ -207,7 +207,14 @@ export async function startLocalOpenAiMock(options = {}) {
         const projectEdit = projectEdits.find((candidate) =>
           serializedMarkedMessage.includes(candidate.marker),
         );
-        const compactAnswer = planLocalCompactResponse(body);
+        const compactAnswer = planLocalCompactResponse(
+          body,
+          [
+            ...projectEdits,
+            ...candidateHandoffs,
+            ...[production, clipPreparation].filter(Boolean),
+          ].map((scenario) => scenario.marker),
+        );
         if (compactAnswer) {
           answer = compactAnswer;
         } else if (clipPreparation && serializedMarkedMessage.includes(clipPreparation.marker)) {
